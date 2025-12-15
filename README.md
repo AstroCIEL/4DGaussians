@@ -38,21 +38,58 @@ Light Gaussian implementation: [This link](https://github.com/pablodawson/4DGaus
 
 ## Environmental Setups
 
-Please follow the [3D-GS](https://github.com/graphdeco-inria/gaussian-splatting) to install the relative packages.
+Please follow the [3D-GS](https://github.com/AstroCIEL/gaussian-splatting) to install the relative packages.
 
 ```bash
-git clone https://github.com/hustvl/4DGaussians
+git clone https://github.com/AstroCIEL/4DGaussians --recursive
 cd 4DGaussians
-git submodule update --init --recursive
-conda create -n Gaussians4D python=3.7 
-conda activate Gaussians4D
-
-pip install -r requirements.txt
-pip install -e submodules/depth-diff-gaussian-rasterization
-pip install -e submodules/simple-knn
 ```
 
-In our environment, we use pytorch=1.13.1+cu116.
+### Modifications for compatibility with Ubuntu 24.04
+environment.yaml already modified. More changes should be applied to make it compatible with Ubuntu 24.04.
+
+Tested on 
+
+```
+Ubuntu 24.04 LTS
+RTX 6000 Ada
+NVIDIA-SMI 580.95.05
+Driver Version: 580.95.05
+CUDA Version: 13.0
+```
+
+#### `simple-knn` patch
+
+in `submodules/simple-knn/simple_knn.cu` header add `#include <float.h>`
+
+#### `depth-diff-gaussian-rasterization` patch
+
+in `submodules/depth-diff-gaussian-rasterization/cuda_rasterizer/rasterizer_impl.h` header add `#include <cstdint>`
+
+
+```bash
+conda env create -f environment.yml
+conda activate gs4
+```
+
+#### `pillow` reinstallation
+
+To solve libtiff.so.5 issue, we need to reinstall pillow.
+
+```shell
+pip uninstall pillow
+pip install pillow
+```
+
+In our environment, we use
+
+```
+python=3.8.20
+cuda-toolkit=12.4
+torch=2.4.1
+torchvision=0.20.0
+torchaudio=2.4.1
+```
 
 ## Data Preparation
 
