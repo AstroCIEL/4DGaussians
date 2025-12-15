@@ -1,0 +1,28 @@
+name: gs4
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+  - nvidia
+dependencies:
+  - cuda-toolkit=12.4
+  - plyfile
+  - python=3.8
+  - pip=22.3.1
+  - pytorch
+  - torchaudio
+  - torchvision
+  - tqdm
+  - pytorch-cuda=12.4
+  - gxx_linux-64=10
+  - pip:
+    - submodules/depth-diff-gaussian-rasterization
+    - submodules/simple-knn
+    - opencv-python
+    - open3d
+    - imageio[ffmpeg]
+    - pytorch_msssim
+    - lpips
+    - mmcv==1.6.0
+    - matplotlib
+    - argparse
