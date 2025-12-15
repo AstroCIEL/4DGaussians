@@ -38,18 +38,47 @@ Light Gaussian implementation: [This link](https://github.com/pablodawson/4DGaus
 
 ## Environmental Setups
 
-Please follow the [3D-GS](https://github.com/graphdeco-inria/gaussian-splatting) to install the relative packages.
+For jetson platform, the arch is aarch64 which is not common, you should install compatible torch wheel according to you jetpack version, which you can refer to jetson official web (if you don't want to bother to build from source which will take lots of time).
+It is for jetson agx orin platform equipped with jetpack6.2, whose environment is:
+
+![alt text](assets/jetpack.png)
 
 ```bash
-git clone https://github.com/hustvl/4DGaussians
+git clone https://github.com/hustvl/4DGaussians --recursive
 cd 4DGaussians
-git submodule update --init --recursive
-conda create -n Gaussians4D python=3.7 
+
+conda create -n Gaussians4D python=3.10
 conda activate Gaussians4D
+wget https://pypi.jetson-ai-lab.io/jp6/cu126/+f/62a/1beee9f2f1470/torch-2.8.0-cp310-cp310-linux_aarch64.whl#sha256=62a1beee9f2f147076a974d2942c90060c12771c94740830327cae705b2595fc
+wget https://pypi.jetson-ai-lab.io/jp6/cu126/+f/907/c4c1933789645/torchvision-0.23.0-cp310-cp310-linux_aarch64.whl#sha256=907c4c1933789645ebb20dd9181d40f8647978e6bd30086ae7b01febb937d2d1
+wget https://pypi.jetson-ai-lab.io/jp6/cu126/+f/81a/775c8af36ac85/torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl#sha256=81a775c8af36ac859fb3f4a1b2f662d5fcf284a835b6bb4ed8d0827a6aa9c0b7
+pip install torch-2.8.0-cp310-cp310-linux_aarch64.whl
+pip install torchvision-0.23.0-cp310-cp310-linux_aarch64.whl
+pip install torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl
 
 pip install -r requirements.txt
-pip install -e submodules/depth-diff-gaussian-rasterization
-pip install -e submodules/simple-knn
+
+#here i met numpy conflict, so i do:
+pip install "numpy==1.26.4"
+pip install "opencv-python<=4.9.0.80"
+# it depends
+
+# 1. 强制指定系统原生编译器 (解决 nvcc fatal 和 PyTorch 日志崩溃)
+export CC=/usr/bin/gcc
+export CXX=/usr/bin/g++
+
+# 2. 再次确保清理掉 Conda 的干扰参数
+unset CFLAGS
+unset CXXFLAGS
+
+# 3. 确保 CUDA 相关变量还在
+export TORCH_CUDA_ARCH_LIST="8.7"
+export CUDA_HOME=/usr/local/cuda-12.6
+export FORCE_CUDA=1
+export CPATH=/usr/include:/usr/include/aarch64-linux-gnu:$CPATH
+
+pip install submodules/depth-diff-gaussian-rasterization --no-build-isolation
+pip install submodules/simple-knn --no-build-isolation
 ```
 
 In our environment, we use pytorch=1.13.1+cu116.
