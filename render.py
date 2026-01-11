@@ -68,6 +68,8 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
 
     time2=time()
     print("FPS:",(len(views)-1)/(time2-time1))
+    with open(os.path.join(model_path, name, "ours_{}".format(iteration), "fps.txt"), "w") as f:
+        f.write("FPS: {}\n".format((len(views)-1)/(time2-time1)))
 
     multithread_write(gt_list, gts_path)
 

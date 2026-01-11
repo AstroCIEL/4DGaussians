@@ -81,8 +81,6 @@ pip install submodules/depth-diff-gaussian-rasterization --no-build-isolation
 pip install submodules/simple-knn --no-build-isolation
 ```
 
-In our environment, we use pytorch=1.13.1+cu116.
-
 ## Data Preparation
 
 **For synthetic scenes:**

@@ -1,42 +1,42 @@
-exp_name1=$1
 
-
-
-export CUDA_VISIBLE_DEVICES=0&&python train.py -s data/dnerf/jumpingjacks --port 7169 --expname "$exp_name1/jumpingjacks" --configs arguments/$exp_name1/jumpingjacks.py  &
-export CUDA_VISIBLE_DEVICES=2&&python train.py -s data/dnerf/trex --port 7170 --expname "$exp_name1/trex" --configs arguments/$exp_name1/trex.py 
-
-export CUDA_VISIBLE_DEVICES=2&&python render.py --model_path "output/$exp_name1/jumpingjacks/"  --skip_train --configs arguments/$exp_name1/jumpingjacks.py &
-export CUDA_VISIBLE_DEVICES=0&&python render.py --model_path "output/$exp_name1/trex/"  --skip_train --configs arguments/$exp_name1/trex.py  
+python train.py -s data/dnerf/jumpingjacks --port 7169 --expname "dnerf/jumpingjacks" --configs arguments/dnerf/jumpingjacks.py  &
+python train.py -s data/dnerf/trex --port 7170 --expname "dnerf/trex" --configs arguments/dnerf/trex.py 
+# jumpingjacks ~20fps
+python render.py --model_path "output/dnerf/jumpingjacks/"  --skip_train --configs arguments/dnerf/jumpingjacks.py
+# trex ~15fps ~2GB
+python render.py --model_path "output/dnerf/trex/"  --skip_train --configs arguments/dnerf/trex.py  
+# 
+python metrics.py --model_path "output/dnerf/jumpingjacks/"
+python metrics.py --model_path "output/dnerf/trex/" 
 wait
-export CUDA_VISIBLE_DEVICES=0&&python metrics.py --model_path "output/$exp_name1/jumpingjacks/" &
-export CUDA_VISIBLE_DEVICES=2&&python metrics.py --model_path "output/$exp_name1/trex/" 
-
+python train.py -s data/dnerf/mutant --port 7168 --expname "dnerf/mutant" --configs arguments/dnerf/mutant.py &
+python train.py -s data/dnerf/standup --port 7166 --expname "dnerf/standup" --configs arguments/dnerf/standup.py 
+# mutant ~20fps ~2GB
+python render.py --model_path "output/dnerf/mutant/"  --skip_train --configs arguments/dnerf/mutant.py
+# standup ~20fps
+python render.py --model_path "output/dnerf/standup/"  --skip_train --configs arguments/dnerf/standup.py 
 wait
-export CUDA_VISIBLE_DEVICES=2&&python train.py -s data/dnerf/mutant --port 7168 --expname "$exp_name1/mutant" --configs arguments/$exp_name1/mutant.py &
-export CUDA_VISIBLE_DEVICES=0&&python train.py -s data/dnerf/standup --port 7166 --expname "$exp_name1/standup" --configs arguments/$exp_name1/standup.py 
-
-export CUDA_VISIBLE_DEVICES=2&&python render.py --model_path "output/$exp_name1/mutant/"  --skip_train --configs arguments/$exp_name1/mutant.py   &
-export CUDA_VISIBLE_DEVICES=0&&python render.py --model_path "output/$exp_name1/standup/"  --skip_train --configs arguments/$exp_name1/standup.py 
+python metrics.py --model_path "output/dnerf/mutant/" 
+python metrics.py --model_path "output/dnerf/standup/"  
 wait
-export CUDA_VISIBLE_DEVICES=0&&python metrics.py --model_path "output/$exp_name1/mutant/"   &
-export CUDA_VISIBLE_DEVICES=2&&python metrics.py --model_path "output/$exp_name1/standup/"  
+python train.py -s data/dnerf/hook --port 7369 --expname "dnerf/hook" --configs arguments/dnerf/hook.py  &
+python train.py -s data/dnerf/hellwarrior --port 7370 --expname "dnerf/hellwarrior" --configs arguments/dnerf/hellwarrior.py 
+# hellwarrior ~20fps
+python render.py --model_path "output/dnerf/hellwarrior/"  --skip_train --configs arguments/dnerf/hellwarrior.py
+# hook ~20fps
+python render.py --model_path "output/dnerf/hook/"  --skip_train --configs arguments/dnerf/hook.py  
 wait
-export CUDA_VISIBLE_DEVICES=2&&python train.py -s data/dnerf/hook --port 7369 --expname "$exp_name1/hook" --configs arguments/$exp_name1/hook.py  &
-export CUDA_VISIBLE_DEVICES=0&&python train.py -s data/dnerf/hellwarrior --port 7370 --expname "$exp_name1/hellwarrior" --configs arguments/$exp_name1/hellwarrior.py 
+python metrics.py --model_path "output/dnerf/hellwarrior/"  &
+python metrics.py --model_path "output/dnerf/hook/" 
 wait
-export CUDA_VISIBLE_DEVICES=2&&python render.py --model_path "output/$exp_name1/hellwarrior/"  --skip_train --configs arguments/$exp_name1/hellwarrior.py  &
-export CUDA_VISIBLE_DEVICES=0&&python render.py --model_path "output/$exp_name1/hook/"  --skip_train --configs arguments/$exp_name1/hook.py  
+python train.py -s data/dnerf/lego --port 7168 --expname "dnerf/lego" --configs arguments/dnerf/lego.py &
+python train.py -s data/dnerf/bouncingballs --port 7166 --expname "dnerf/bouncingballs" --configs arguments/dnerf/bouncingballs.py 
+# bouncingballs ~18fps
+python render.py --model_path "output/dnerf/bouncingballs/"  --skip_train --configs arguments/dnerf/bouncingballs.py
+# lego ~14fps
+python render.py --model_path "output/dnerf/lego/"  --skip_train --configs arguments/dnerf/lego.py  
 wait
-export CUDA_VISIBLE_DEVICES=2&&python metrics.py --model_path "output/$exp_name1/hellwarrior/"  &
-export CUDA_VISIBLE_DEVICES=0&&python metrics.py --model_path "output/$exp_name1/hook/" 
-wait
-export CUDA_VISIBLE_DEVICES=2&&python train.py -s data/dnerf/lego --port 7168 --expname "$exp_name1/lego" --configs arguments/$exp_name1/lego.py &
-export CUDA_VISIBLE_DEVICES=0&&python train.py -s data/dnerf/bouncingballs --port 7166 --expname "$exp_name1/bouncingballs" --configs arguments/$exp_name1/bouncingballs.py 
-wait
-export CUDA_VISIBLE_DEVICES=2&&python render.py --model_path "output/$exp_name1/bouncingballs/"  --skip_train --configs arguments/$exp_name1/bouncingballs.py  &
-export CUDA_VISIBLE_DEVICES=0&&python render.py --model_path "output/$exp_name1/lego/"  --skip_train --configs arguments/$exp_name1/lego.py  
-wait
-export CUDA_VISIBLE_DEVICES=2&&python metrics.py --model_path "output/$exp_name1/bouncingballs/" &
-export CUDA_VISIBLE_DEVICES=0&&python metrics.py --model_path "output/$exp_name1/lego/"   
+python metrics.py --model_path "output/dnerf/bouncingballs/" &
+python metrics.py --model_path "output/dnerf/lego/"   
 wait
 echo "Done"
