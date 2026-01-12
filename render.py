@@ -52,13 +52,19 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     render_images = []
     gt_list = []
     render_list = []
+    deform_time_list=[] # deformation time statistics
+    rasterization_time_list=[] # rasterization(full forward cuda kernel) time statistic
     print("point nums:",gaussians._xyz.shape[0])
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         if idx == 0:time1 = time()
         
-        rendering = render(view, gaussians, pipeline, background,cam_type=cam_type)["render"]
+        rendering_results = render(view, gaussians, pipeline, background,cam_type=cam_type)
+        rendering = rendering_results["render"]
         render_images.append(to8b(rendering).transpose(1,2,0))
         render_list.append(rendering)
+        if rendering_results["time"] is not None:
+            deform_time_list.append(rendering_results["time"]["deformation"])
+            rasterization_time_list.append(rendering_results["time"]["rasterization"])
         if name in ["train", "test"]:
             if cam_type != "PanopticSports":
                 gt = view.original_image[0:3, :, :]
@@ -68,8 +74,11 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
 
     time2=time()
     print("FPS:",(len(views)-1)/(time2-time1))
-    with open(os.path.join(model_path, name, "ours_{}".format(iteration), "fps.txt"), "w") as f:
-        f.write("FPS: {}\n".format((len(views)-1)/(time2-time1)))
+    with open(os.path.join(model_path, name, "ours_{}".format(iteration), "statistics.txt"), "w") as f:
+        f.write("gaussian point nums: {}\n".format(gaussians._xyz.shape[0]))
+        f.write("FPS ave: {}\n".format((len(views)-1)/(time2-time1)))
+        f.write("Deformation Time ave: {}\n".format(np.mean(deform_time_list)))
+        f.write("Rasterization Time ave: {}\n".format(np.mean(rasterization_time_list)))
 
     multithread_write(gt_list, gts_path)
 
