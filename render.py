@@ -15,6 +15,7 @@ from scene import Scene
 import os
 import cv2
 from tqdm import tqdm
+import sys
 from os import makedirs
 from gaussian_renderer import render
 import torchvision
@@ -43,7 +44,7 @@ def multithread_write(image_list, path):
             write_image(image_list[index], index, path)
     
 to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
-def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type):
+def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type, quiet: bool = False, render_num: int = 9999999):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
 
@@ -54,10 +55,21 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     render_list = []
     deform_time_list=[] # deformation time statistics
     rasterization_time_list=[] # rasterization(full forward cuda kernel) time statistic
+    total_time_list=[]
     print("point nums:",gaussians._xyz.shape[0])
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        if idx == 0:time1 = time()
-        
+    # When running under profilers (e.g., Nsight Compute), stdout/stderr may not be a TTY and tqdm
+    # can spam one line per update. Use --quiet to disable the progress bar in those cases.
+    progress = tqdm(
+        views,
+        desc="Rendering progress",
+        disable=bool(quiet),
+        file=sys.stderr,
+        dynamic_ncols=True,
+        leave=not bool(quiet),
+    )
+    for idx, view in enumerate(progress):
+        if idx >= min(render_num, len(views)):
+            break
         rendering_results = render(view, gaussians, pipeline, background,cam_type=cam_type)
         rendering = rendering_results["render"]
         render_images.append(to8b(rendering).transpose(1,2,0))
@@ -65,6 +77,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         if rendering_results["time"] is not None:
             deform_time_list.append(rendering_results["time"]["deformation"])
             rasterization_time_list.append(rendering_results["time"]["rasterization"])
+            total_time_list.append(rendering_results["time"]["total"])
         if name in ["train", "test"]:
             if cam_type != "PanopticSports":
                 gt = view.original_image[0:3, :, :]
@@ -72,13 +85,15 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
                 gt  = view['image'].cuda()
             gt_list.append(gt)
 
-    time2=time()
-    print("FPS:",(len(views)-1)/(time2-time1))
+    print("FPS:",1/np.mean(total_time_list))
     with open(os.path.join(model_path, name, "ours_{}".format(iteration), "statistics.txt"), "w") as f:
         f.write("gaussian point nums: {}\n".format(gaussians._xyz.shape[0]))
-        f.write("FPS ave: {}\n".format((len(views)-1)/(time2-time1)))
         f.write("Deformation Time ave: {}\n".format(np.mean(deform_time_list)))
         f.write("Rasterization Time ave: {}\n".format(np.mean(rasterization_time_list)))
+        f.write("FPS ave: {}\n".format(1/np.mean(total_time_list)))
+        if (np.mean(rasterization_time_list)>1.0):
+            f.write("WARNING: Detected rasterization Time ave > 1.0s\n")
+            f.write("You may running nsight compute. FPS data invalid\n")
 
     multithread_write(gt_list, gts_path)
 
@@ -86,7 +101,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
 
     
     imageio.mimwrite(os.path.join(model_path, name, "ours_{}".format(iteration), 'video_rgb.mp4'), render_images, fps=30)
-def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, skip_video: bool):
+def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, skip_video: bool, quiet: bool = False, render_num: int = 9999999):
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree, hyperparam)
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
@@ -95,12 +110,12 @@ def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : P
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
         if not skip_train:
-            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background,cam_type)
+            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background, cam_type, quiet=quiet, render_num=render_num)
 
         if not skip_test:
-            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background,cam_type)
+            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background, cam_type, quiet=quiet, render_num=render_num)
         if not skip_video:
-            render_set(dataset.model_path,"video",scene.loaded_iter,scene.getVideoCameras(),gaussians,pipeline,background,cam_type)
+            render_set(dataset.model_path, "video", scene.loaded_iter, scene.getVideoCameras(), gaussians, pipeline, background, cam_type, quiet=quiet, render_num=render_num)
 if __name__ == "__main__":
     # Set up command line argument parser
     parser = ArgumentParser(description="Testing script parameters")
@@ -113,6 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--skip_video", action="store_true")
     parser.add_argument("--configs", type=str)
+    parser.add_argument("--render_num", type=int, default=9999999)
     args = get_combined_args(parser)
     print("Rendering " , args.model_path)
     if args.configs:
@@ -123,4 +139,14 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    render_sets(model.extract(args), hyperparam.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.skip_video)
+    render_sets(
+        model.extract(args),
+        hyperparam.extract(args),
+        args.iteration,
+        pipeline.extract(args),
+        args.skip_train,
+        args.skip_test,
+        args.skip_video,
+        quiet=args.quiet,
+        render_num=args.render_num,
+    )

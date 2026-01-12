@@ -137,7 +137,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "radii": radii,
             "depth":depth,
             "time":{"deformation":time2-time1,
-                    "rasterization":time4-time3
-                    } if "fine" in stage else None
+                    "rasterization":time4-time3,
+                    "total":time4-time1} if "fine" in stage else None
             }
 
