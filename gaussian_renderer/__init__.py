@@ -14,6 +14,7 @@ import math
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
+from utils.latency_profiler import CudaEventProfiler
 from time import time as get_time
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, stage="fine", cam_type=None):
     """
@@ -80,6 +81,15 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     if "coarse" in stage:
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = means3D, scales, rotations, opacity, shs
     elif "fine" in stage:
+        # NOTE: CPU wall-time around CUDA ops is unstable due to async execution.
+        # For accurate latency breakdown, use CUDA events and synchronize once per frame.
+        profile_latency = bool(getattr(getattr(pc._deformation, "deformation_net", pc._deformation), "args", None) and
+                               getattr(pc._deformation.deformation_net.args, "profile_latency", False))
+        prof = CudaEventProfiler(enabled=profile_latency)
+        if profile_latency:
+            prof.mark("frame_start")
+            # allow Deformation to optionally mark sub-intervals (e.g. HexPlane)
+            setattr(pc._deformation.deformation_net, "_lat_profiler", prof)
         time1 = get_time()
         # means3D_deform, scales_deform, rotations_deform, opacity_deform = pc._deformation(means3D[deformation_point], scales[deformation_point], 
         #                                                                  rotations[deformation_point], opacity[deformation_point],
@@ -87,6 +97,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = pc._deformation(means3D, scales, 
                                                                  rotations, opacity, shs,
                                                                  time)
+        if profile_latency:
+            prof.mark("after_deformation")
     else:
         raise NotImplementedError
 
@@ -97,6 +109,9 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     scales_final = pc.scaling_activation(scales_final)
     rotations_final = pc.rotation_activation(rotations_final)
     opacity = pc.opacity_activation(opacity_final)
+    # activations are GPU ops too (exp/normalize/sigmoid)
+    if "fine" in stage and 'prof' in locals() and prof.enabled:
+        prof.mark("after_activations")
     # print(opacity.max())
     # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors
     # from SHs in Python, do it. If not, then SH -> RGB conversion will be done by rasterizer.
@@ -114,6 +129,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             # shs = 
     else:
         colors_precomp = override_color
+    if "fine" in stage and 'prof' in locals() and prof.enabled:
+        prof.mark("after_precompute")
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     time3 = get_time()
@@ -127,18 +144,46 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         rotations = rotations_final,
         cov3D_precomp = cov3D_precomp)
     time4 = get_time()
+    if "fine" in stage and 'prof' in locals() and prof.enabled:
+        prof.mark("after_rasterization")
+        # Synchronize once here to make all CUDA-event elapsed times valid for this frame.
+        prof.synchronize("after_rasterization")
+        # Clear hook to avoid keeping references across frames.
+        try:
+            delattr(pc._deformation.deformation_net, "_lat_profiler")
+        except Exception:
+            pass
     # print("rasterization:",time4-time3)
     # breakpoint()
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
+    gpu_breakdown = None
+    if "fine" in stage and 'prof' in locals() and prof.enabled:
+        gpu_breakdown = {
+            "gpu_frame_total_s": prof.elapsed_s("frame_start", "after_rasterization"),
+            "gpu_deformation_s": prof.elapsed_s("frame_start", "after_deformation"),
+            "gpu_activations_s": prof.elapsed_s("after_deformation", "after_activations"),
+            "gpu_precompute_s": prof.elapsed_s("after_activations", "after_precompute"),
+            "gpu_rasterization_s": prof.elapsed_s("after_precompute", "after_rasterization"),
+        }
+        # Optional: HexPlane interval marked inside deformation
+        hx = prof.elapsed_s("hexplane_start", "hexplane_end")
+        if hx is not None:
+            gpu_breakdown["gpu_hexplane_s"] = hx
+
+    # legacy: time breakdown using time1/2/3/4, not recommended
     return {"render": rendered_image,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
             "radii": radii,
             "depth":depth,
             "time":{"deformation":time2-time1,
+                    "precompute":time3-time2,
                     "rasterization":time4-time3,
                     "total":time4-time1,
+                    # GPU-event based timings (single sync); stable and comparable.
+                    "gpu_breakdown": gpu_breakdown,
+                    # legacy detailed breakdown (may include extra synchronizations if enabled elsewhere)
                     "deformation_breakdown": getattr(pc._deformation, "last_timing", None)
                     } if "fine" in stage else None
             }

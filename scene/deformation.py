@@ -96,7 +96,14 @@ class Deformation(nn.Module):
         if self.no_grid:
             h = torch.cat([rays_pts_emb[:,:3],time_emb[:,:1]],-1)
         else:
-            grid_feature = self.grid(rays_pts_emb[:,:3], time_emb[:,:1])
+            # Optional: mark HexPlane interval for GPU-event profiling (no sync here).
+            prof = getattr(self, "_lat_profiler", None)
+            if prof is not None and getattr(self.args, "profile_latency_hexplane", False):
+                prof.mark("hexplane_start")
+                grid_feature = self.grid(rays_pts_emb[:,:3], time_emb[:,:1])
+                prof.mark("hexplane_end")
+            else:
+                grid_feature = self.grid(rays_pts_emb[:,:3], time_emb[:,:1])
             # breakpoint()
             if self.grid_pe > 1:
                 grid_feature = poc_fre(grid_feature,self.grid_pe)

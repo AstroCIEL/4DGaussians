@@ -107,6 +107,10 @@ class ModelHiddenParams(ParamGroup):
         # NOTE: This adds synchronization overhead; enable only for analysis.
         self.profile_deformation=False
         self.profile_deformation_hexplane_detail=False # per-scale/per-plane breakdown inside HexPlane
+        # Stable latency profiling using CUDA events (single sync per frame).
+        # This is recommended for comparing stage latencies.
+        self.profile_latency=True
+        self.profile_latency_hexplane=False # measure HexPlane (grid query) interval within deformation
 
         
         super().__init__(parser, "ModelHiddenParams")

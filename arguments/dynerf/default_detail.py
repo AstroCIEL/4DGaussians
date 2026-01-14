@@ -18,7 +18,9 @@ ModelHiddenParams = dict(
     render_process=False,
     static_mlp=False,
     profile_deformation=True,
-    profile_deformation_hexplane_detail=False
+    profile_deformation_hexplane_detail=False,
+    profile_latency=True,
+    profile_latency_hexplane=False
 
 )
 OptimizationParams = dict(
