@@ -7,6 +7,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def _cuda_time_s(fn):
+    """
+    Time a block on GPU using cuda events and return (out, seconds).
+    Falls back to CPU wall time if CUDA is unavailable.
+    """
+    if not torch.cuda.is_available():
+        import time as _time
+        t0 = _time.perf_counter()
+        out = fn()
+        return out, _time.perf_counter() - t0
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    start.record()
+    out = fn()
+    end.record()
+    torch.cuda.synchronize()
+    return out, (start.elapsed_time(end) / 1000.0)
+
+
 def get_normalized_directions(directions):
     """SH encoding must be in the range [0, 1]
 
@@ -75,6 +94,7 @@ def interpolate_ms_features(pts: torch.Tensor,
                             grid_dimensions: int,
                             concat_features: bool,
                             num_levels: Optional[int],
+                            profile: Optional[Dict] = None,
                             ) -> torch.Tensor:
     coo_combs = list(itertools.combinations(
         range(pts.shape[-1]), grid_dimensions)
@@ -83,15 +103,29 @@ def interpolate_ms_features(pts: torch.Tensor,
         num_levels = len(ms_grids)
     multi_scale_interp = [] if concat_features else 0.
     grid: nn.ParameterList
+    if profile is not None:
+        profile.setdefault("hexplane_interpolate_grid_sample_s", 0.0)
+        profile.setdefault("hexplane_interpolate_per_scale_s", [])
+        profile.setdefault("hexplane_interpolate_per_plane_s", [0.0 for _ in range(len(coo_combs))])
+
     for scale_id,  grid in enumerate(ms_grids[:num_levels]):
         interp_space = 1.
+        per_scale_s = 0.0
         for ci, coo_comb in enumerate(coo_combs):
             # interpolate in plane
             feature_dim = grid[ci].shape[1]  # shape of grid[ci]: 1, out_dim, *reso
-            interp_out_plane = (
-                grid_sample_wrapper(grid[ci], pts[..., coo_comb])
-                .view(-1, feature_dim)
-            )
+            if profile is None:
+                interp_out_plane = (
+                    grid_sample_wrapper(grid[ci], pts[..., coo_comb])
+                    .view(-1, feature_dim)
+                )
+            else:
+                interp_out_plane, dt_s = _cuda_time_s(
+                    lambda: grid_sample_wrapper(grid[ci], pts[..., coo_comb]).view(-1, feature_dim)
+                )
+                profile["hexplane_interpolate_grid_sample_s"] += dt_s
+                per_scale_s += dt_s
+                profile["hexplane_interpolate_per_plane_s"][ci] += dt_s
             # compute product over planes
             interp_space = interp_space * interp_out_plane
 
@@ -100,6 +134,8 @@ def interpolate_ms_features(pts: torch.Tensor,
             multi_scale_interp.append(interp_space)
         else:
             multi_scale_interp = multi_scale_interp + interp_space
+        if profile is not None:
+            profile["hexplane_interpolate_per_scale_s"].append(per_scale_s)
 
     if concat_features:
         multi_scale_interp = torch.cat(multi_scale_interp, dim=-1)
@@ -112,7 +148,9 @@ class HexPlaneField(nn.Module):
         
         bounds,
         planeconfig,
-        multires
+        multires,
+        profile: bool = False,
+        profile_detail: bool = False,
     ) -> None:
         super().__init__()
         aabb = torch.tensor([[bounds,bounds,bounds],
@@ -121,6 +159,9 @@ class HexPlaneField(nn.Module):
         self.grid_config =  [planeconfig]
         self.multiscale_res_multipliers = multires
         self.concat_features = True
+        self.profile = bool(profile)
+        self.profile_detail = bool(profile_detail)
+        self.last_timing: Optional[Dict[str, float]] = None
 
         # 1. Init planes
         self.grids = nn.ModuleList()
@@ -160,14 +201,40 @@ class HexPlaneField(nn.Module):
     def get_density(self, pts: torch.Tensor, timestamps: Optional[torch.Tensor] = None):
         """Computes and returns the densities."""
         # breakpoint()
-        pts = normalize_aabb(pts, self.aabb)
-        pts = torch.cat((pts, timestamps), dim=-1)  # [n_rays, n_samples, 4]
+        if not self.profile:
+            pts = normalize_aabb(pts, self.aabb)
+            pts = torch.cat((pts, timestamps), dim=-1)  # [n_rays, n_samples, 4]
 
-        pts = pts.reshape(-1, pts.shape[-1])
-        features = interpolate_ms_features(
-            pts, ms_grids=self.grids,  # noqa
-            grid_dimensions=self.grid_config[0]["grid_dimensions"],
-            concat_features=self.concat_features, num_levels=None)
+            pts = pts.reshape(-1, pts.shape[-1])
+            features = interpolate_ms_features(
+                pts, ms_grids=self.grids,  # noqa
+                grid_dimensions=self.grid_config[0]["grid_dimensions"],
+                concat_features=self.concat_features, num_levels=None)
+        else:
+            timing: Dict[str, float] = {}
+            pts, timing["hexplane_normalize_aabb_s"] = _cuda_time_s(lambda: normalize_aabb(pts, self.aabb))
+            pts, timing["hexplane_concat_time_s"] = _cuda_time_s(lambda: torch.cat((pts, timestamps), dim=-1))
+            pts, timing["hexplane_reshape_s"] = _cuda_time_s(lambda: pts.reshape(-1, pts.shape[-1]))
+
+            interp_profile: Optional[Dict] = {} if self.profile_detail else None
+            features, timing["hexplane_interpolate_total_s"] = _cuda_time_s(
+                lambda: interpolate_ms_features(
+                    pts, ms_grids=self.grids,  # noqa
+                    grid_dimensions=self.grid_config[0]["grid_dimensions"],
+                    concat_features=self.concat_features, num_levels=None,
+                    profile=interp_profile,
+                )
+            )
+            if interp_profile is not None:
+                for k, v in interp_profile.items():
+                    timing[k] = v
+            timing["hexplane_total_s"] = (
+                timing.get("hexplane_normalize_aabb_s", 0.0)
+                + timing.get("hexplane_concat_time_s", 0.0)
+                + timing.get("hexplane_reshape_s", 0.0)
+                + timing.get("hexplane_interpolate_total_s", 0.0)
+            )
+            self.last_timing = timing
         if len(features) < 1:
             features = torch.zeros((0, 1)).to(features.device)
 

@@ -102,6 +102,11 @@ class ModelHiddenParams(ParamGroup):
         self.grid_pe=0 # useless, I was trying to add positional encoding to hexplane's features
         self.static_mlp=False # useless
         self.apply_rotation=False # useless
+        # Profiling (latency breakdown). When enabled, deformation will record a finer-grained
+        # timing breakdown (including HexPlane feature querying) into render outputs/statistics.
+        # NOTE: This adds synchronization overhead; enable only for analysis.
+        self.profile_deformation=False
+        self.profile_deformation_hexplane_detail=False # per-scale/per-plane breakdown inside HexPlane
 
         
         super().__init__(parser, "ModelHiddenParams")

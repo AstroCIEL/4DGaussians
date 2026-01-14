@@ -23,23 +23,10 @@ Old Colab demo:[![Open In Colab](https://colab.research.google.com/assets/colab-
 
 Light Gaussian implementation: [This link](https://github.com/pablodawson/4DGaussians) (Thanks [pablodawson](https://github.com/pablodawson))
 
-
-## News
-
-2024.6.25: we clean the code and add an explanation of the parameters.
-
-2024.3.25: Update guidance for hypernerf and dynerf dataset.
-
-2024.03.04: We change the hyperparameters of the Neu3D dataset, corresponding to our paper.
-
-2024.02.28: Update SIBR viewer guidance.
-
-2024.02.27: Accepted by CVPR 2024. We delete some logging settings for debugging, the corrected training time is only **8 mins** (20 mins before) in D-NeRF datasets and **30 mins** (1 hour before) in HyperNeRF datasets. The rendering quality is not affected.
-
 ## Environmental Setups
 
 For jetson platform, the arch is aarch64 which is not common, you should install compatible torch wheel according to you jetpack version, which you can refer to jetson official web (if you don't want to bother to build from source which will take lots of time).
-It is for jetson agx orin platform equipped with jetpack6.2, whose environment is:
+It is for jetson agx orin platform equipped with jetpack6.2.1, whose environment is:
 
 ![alt text](assets/jetpack.png)
 
@@ -164,11 +151,17 @@ You need to ensure that the data folder is organized as follows after running mu
 
 ## Training
 
+### dnerf
+
 For training synthetic scenes such as `bouncingballs`, run
 
 ```
 python train.py -s data/dnerf/bouncingballs --port 6017 --expname "dnerf/bouncingballs" --configs arguments/dnerf/bouncingballs.py 
 ```
+
+batch processing scripts are provided at scripts/.
+
+### dynerf
 
 For training dynerf scenes such as `cut_roasted_beef`, run
 ```python
@@ -181,6 +174,11 @@ python scripts/downsample_point.py data/dynerf/cut_roasted_beef/colmap/dense/wor
 # Finally, train.
 python train.py -s data/dynerf/cut_roasted_beef --port 6017 --expname "dynerf/cut_roasted_beef" --configs arguments/dynerf/cut_roasted_beef.py 
 ```
+
+batch processing scripts are provided at scripts/.
+
+### hypernerf
+
 For training hypernerf scenes such as `virg/broom`: Pregenerated point clouds by COLMAP are provided [here](https://drive.google.com/file/d/1fUHiSgimVjVQZ2OOzTFtz02E9EqCoWr5/view). Just download them and put them in to correspond folder, and you can skip the former two steps. Also, you can run the commands directly.
 
 ```python
@@ -191,6 +189,8 @@ python scripts/downsample_point.py data/hypernerf/virg/broom2/colmap/dense/works
 # Finally, train.
 python train.py -s  data/hypernerf/virg/broom2/ --port 6017 --expname "hypernerf/broom2" --configs arguments/hypernerf/broom2.py 
 ```
+
+### other datasets 
 
 For training multipleviews scenes,you are supposed to build a configuration file named (you dataset name).py under "./arguments/mutipleview",after that,run
 ```python
@@ -232,6 +232,8 @@ Run the following script to render the images.
 python render.py --model_path "output/dnerf/bouncingballs/"  --skip_train --configs arguments/dnerf/bouncingballs.py 
 ```
 
+`statistics.txt` generated will record some rendering information such as FPS.
+
 ## Evaluation
 
 You can just run the following script to evaluate the model.
@@ -239,6 +241,14 @@ You can just run the following script to evaluate the model.
 ```
 python metrics.py --model_path "output/dnerf/bouncingballs/" 
 ```
+
+## Profile
+
+We use Nsight Compute to profile cuda kernel. On Jetson, Nsight Compute are pre-installed with Jetpack. However, the installed Nsight Compute may not be the newest version, which may cause GUI breaking down. So you should first check the version and download the latest version if it's not. Also to launch it in priority to older version, you should carefully manage the PATH.
+
+Profiling generates a .ncu-rep file and to visulize it(locally in Jetson Desktop), you can go with `ncu-ui` and open file of .ncu-rep in GUI. If you don't have a Jetson GUI you can download Nsight Compute in your Windows host to use GUI to analyse .ncu-rep file via ssh.
+
+Note that kernel analysis does not contain deformation process since it only targets at cuda kernel. 
 
 
 ## Viewer

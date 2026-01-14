@@ -59,7 +59,7 @@ metrics_csv="$(
     echo "${metrics[*]}"
 )"
 
-for SCENE in "cut_roasted_beef" "sear_steak" "flame_steak" "flame_salmon_1" "cook_spinach" "coffee_martini"; do
+for SCENE in "sear_steak" "flame_steak" "flame_salmon_1" "cook_spinach" "coffee_martini" "cut_roasted_beef"; do
     target=$(generate_target $SCENE)
 
     $NCU_BIN \
@@ -86,3 +86,5 @@ for SCENE in "cut_roasted_beef" "sear_steak" "flame_steak" "flame_salmon_1" "coo
         --print-summary per-kernel \
         --log-file $OUTPUT_PATH/$SCENE/analysis_per_kernel.csv
 done
+
+$PYTHON_BIN $REPOSITORY_PATH/scripts/ana_latency.py

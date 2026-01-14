@@ -13,6 +13,26 @@ from utils.graphics_utils import apply_rotation, batch_quaternion_multiply
 from scene.hexplane import HexPlaneField
 from scene.grid import DenseGrid
 # from scene.grid import HashHexPlane
+
+def _cuda_time_s(fn):
+    """
+    Time a block on GPU using cuda events and return (out, seconds).
+    Falls back to CPU wall time if CUDA is unavailable.
+    """
+    if not torch.cuda.is_available():
+        import time as _time
+        t0 = _time.perf_counter()
+        out = fn()
+        return out, _time.perf_counter() - t0
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    start.record()
+    out = fn()
+    end.record()
+    torch.cuda.synchronize()
+    return out, (start.elapsed_time(end) / 1000.0)
+
+
 class Deformation(nn.Module):
     def __init__(self, D=8, W=256, input_ch=27, input_ch_time=9, grid_pe=0, skips=[], args=None):
         super(Deformation, self).__init__()
@@ -23,7 +43,13 @@ class Deformation(nn.Module):
         self.skips = skips
         self.grid_pe = grid_pe
         self.no_grid = args.no_grid
-        self.grid = HexPlaneField(args.bounds, args.kplanes_config, args.multires)
+        self.grid = HexPlaneField(
+            args.bounds,
+            args.kplanes_config,
+            args.multires,
+            profile=bool(getattr(args, "profile_deformation", False)),
+            profile_detail=bool(getattr(args, "profile_deformation_hexplane_detail", False)),
+        )
         # breakpoint()
         self.args = args
         # self.args.empty_voxel=True
@@ -34,6 +60,7 @@ class Deformation(nn.Module):
         
         self.ratio=0
         self.create_net()
+        self.last_timing = None
     @property
     def get_aabb(self):
         return self.grid.get_aabb
@@ -69,7 +96,6 @@ class Deformation(nn.Module):
         if self.no_grid:
             h = torch.cat([rays_pts_emb[:,:3],time_emb[:,:1]],-1)
         else:
-
             grid_feature = self.grid(rays_pts_emb[:,:3], time_emb[:,:1])
             # breakpoint()
             if self.grid_pe > 1:
@@ -77,7 +103,7 @@ class Deformation(nn.Module):
             hidden = torch.cat([grid_feature],-1) 
         
         
-        hidden = self.feature_out(hidden)   
+        hidden = self.feature_out(hidden)
  
 
         return hidden
@@ -95,56 +121,97 @@ class Deformation(nn.Module):
         dx = self.static_mlp(grid_feature)
         return rays_pts_emb[:, :3] + dx
     def forward_dynamic(self,rays_pts_emb, scales_emb, rotations_emb, opacity_emb, shs_emb, time_feature, time_emb):
-        hidden = self.query_time(rays_pts_emb, scales_emb, rotations_emb, time_feature, time_emb)
+        timing = None
+        if bool(getattr(self.args, "profile_deformation", False)):
+            timing = {}
+            hidden, timing["deform_query_time_s"] = _cuda_time_s(
+                lambda: self.query_time(rays_pts_emb, scales_emb, rotations_emb, time_feature, time_emb)
+            )
+            # merge HexPlane timing if present
+            if getattr(self.grid, "last_timing", None):
+                for k, v in (self.grid.last_timing or {}).items():
+                    timing[k] = v
+        else:
+            hidden = self.query_time(rays_pts_emb, scales_emb, rotations_emb, time_feature, time_emb)
+
         if self.args.static_mlp:
-            mask = self.static_mlp(hidden)
+            if timing is None:
+                mask = self.static_mlp(hidden)
+            else:
+                mask, timing["deform_mask_s"] = _cuda_time_s(lambda: self.static_mlp(hidden))
         elif self.args.empty_voxel:
-            mask = self.empty_voxel(rays_pts_emb[:,:3])
+            if timing is None:
+                mask = self.empty_voxel(rays_pts_emb[:,:3])
+            else:
+                mask, timing["deform_mask_s"] = _cuda_time_s(lambda: self.empty_voxel(rays_pts_emb[:,:3]))
         else:
             mask = torch.ones_like(opacity_emb[:,0]).unsqueeze(-1)
         # breakpoint()
         if self.args.no_dx:
             pts = rays_pts_emb[:,:3]
         else:
-            dx = self.pos_deform(hidden)
-            pts = torch.zeros_like(rays_pts_emb[:,:3])
-            pts = rays_pts_emb[:,:3]*mask + dx
+            if timing is None:
+                dx = self.pos_deform(hidden)
+                pts = torch.zeros_like(rays_pts_emb[:,:3])
+                pts = rays_pts_emb[:,:3]*mask + dx
+            else:
+                dx, timing["deform_dx_head_s"] = _cuda_time_s(lambda: self.pos_deform(hidden))
+                pts, timing["deform_dx_apply_s"] = _cuda_time_s(lambda: rays_pts_emb[:,:3]*mask + dx)
         if self.args.no_ds :
             
             scales = scales_emb[:,:3]
         else:
-            ds = self.scales_deform(hidden)
-
-            scales = torch.zeros_like(scales_emb[:,:3])
-            scales = scales_emb[:,:3]*mask + ds
+            if timing is None:
+                ds = self.scales_deform(hidden)
+                scales = torch.zeros_like(scales_emb[:,:3])
+                scales = scales_emb[:,:3]*mask + ds
+            else:
+                ds, timing["deform_ds_head_s"] = _cuda_time_s(lambda: self.scales_deform(hidden))
+                scales, timing["deform_ds_apply_s"] = _cuda_time_s(lambda: scales_emb[:,:3]*mask + ds)
             
         if self.args.no_dr :
             rotations = rotations_emb[:,:4]
         else:
-            dr = self.rotations_deform(hidden)
-
-            rotations = torch.zeros_like(rotations_emb[:,:4])
-            if self.args.apply_rotation:
-                rotations = batch_quaternion_multiply(rotations_emb, dr)
+            if timing is None:
+                dr = self.rotations_deform(hidden)
+                rotations = torch.zeros_like(rotations_emb[:,:4])
+                if self.args.apply_rotation:
+                    rotations = batch_quaternion_multiply(rotations_emb, dr)
+                else:
+                    rotations = rotations_emb[:,:4] + dr
             else:
-                rotations = rotations_emb[:,:4] + dr
+                dr, timing["deform_dr_head_s"] = _cuda_time_s(lambda: self.rotations_deform(hidden))
+                if self.args.apply_rotation:
+                    rotations, timing["deform_dr_apply_s"] = _cuda_time_s(lambda: batch_quaternion_multiply(rotations_emb, dr))
+                else:
+                    rotations, timing["deform_dr_apply_s"] = _cuda_time_s(lambda: rotations_emb[:,:4] + dr)
 
         if self.args.no_do :
             opacity = opacity_emb[:,:1] 
         else:
-            do = self.opacity_deform(hidden) 
-          
-            opacity = torch.zeros_like(opacity_emb[:,:1])
-            opacity = opacity_emb[:,:1]*mask + do
+            if timing is None:
+                do = self.opacity_deform(hidden) 
+                opacity = torch.zeros_like(opacity_emb[:,:1])
+                opacity = opacity_emb[:,:1]*mask + do
+            else:
+                do, timing["deform_do_head_s"] = _cuda_time_s(lambda: self.opacity_deform(hidden))
+                opacity, timing["deform_do_apply_s"] = _cuda_time_s(lambda: opacity_emb[:,:1]*mask + do)
         if self.args.no_dshs:
             shs = shs_emb
         else:
-            dshs = self.shs_deform(hidden).reshape([shs_emb.shape[0],16,3])
+            if timing is None:
+                dshs = self.shs_deform(hidden).reshape([shs_emb.shape[0],16,3])
+                shs = torch.zeros_like(shs_emb)
+                # breakpoint()
+                shs = shs_emb*mask.unsqueeze(-1) + dshs
+            else:
+                dshs, timing["deform_dshs_head_s"] = _cuda_time_s(
+                    lambda: self.shs_deform(hidden).reshape([shs_emb.shape[0],16,3])
+                )
+                shs, timing["deform_dshs_apply_s"] = _cuda_time_s(lambda: shs_emb*mask.unsqueeze(-1) + dshs)
 
-            shs = torch.zeros_like(shs_emb)
-            # breakpoint()
-            shs = shs_emb*mask.unsqueeze(-1) + dshs
-
+        if timing is not None:
+            self.last_timing = timing
         return pts, scales, rotations, opacity, shs
     def get_mlp_parameters(self):
         parameter_list = []
@@ -181,6 +248,7 @@ class deform_network(nn.Module):
         self.register_buffer('opacity_poc', torch.FloatTensor([(2**i) for i in range(opacity_pe)]))
         self.apply(initialize_weights)
         # print(self)
+        self.last_timing = None
 
     def forward(self, point, scales=None, rotations=None, opacity=None, shs=None, times_sel=None):
         return self.forward_dynamic(point, scales, rotations, opacity, shs, times_sel)
@@ -196,19 +264,50 @@ class deform_network(nn.Module):
         points = self.deformation_net(points)
         return points
     def forward_dynamic(self, point, scales=None, rotations=None, opacity=None, shs=None, times_sel=None):
-        # times_emb = poc_fre(times_sel, self.time_poc)
-        point_emb = poc_fre(point,self.pos_poc)
-        scales_emb = poc_fre(scales,self.rotation_scaling_poc)
-        rotations_emb = poc_fre(rotations,self.rotation_scaling_poc)
+        timing = None
+        if bool(getattr(self.deformation_net.args, "profile_deformation", False)):
+            timing = {}
+            (point_emb, scales_emb, rotations_emb), timing["deform_poc_fre_s"] = _cuda_time_s(
+                lambda: (
+                    poc_fre(point, self.pos_poc),
+                    poc_fre(scales, self.rotation_scaling_poc),
+                    poc_fre(rotations, self.rotation_scaling_poc),
+                )
+            )
+        else:
+            # times_emb = poc_fre(times_sel, self.time_poc)
+            point_emb = poc_fre(point,self.pos_poc)
+            scales_emb = poc_fre(scales,self.rotation_scaling_poc)
+            rotations_emb = poc_fre(rotations,self.rotation_scaling_poc)
         # time_emb = poc_fre(times_sel, self.time_poc)
         # times_feature = self.timenet(time_emb)
-        means3D, scales, rotations, opacity, shs = self.deformation_net( point_emb,
-                                                  scales_emb,
-                                                rotations_emb,
-                                                opacity,
-                                                shs,
-                                                None,
-                                                times_sel)
+        if timing is None:
+            means3D, scales, rotations, opacity, shs = self.deformation_net(
+                point_emb,
+                scales_emb,
+                rotations_emb,
+                opacity,
+                shs,
+                None,
+                times_sel,
+            )
+        else:
+            (means3D, scales, rotations, opacity, shs), timing["deform_net_forward_s"] = _cuda_time_s(
+                lambda: self.deformation_net(
+                    point_emb,
+                    scales_emb,
+                    rotations_emb,
+                    opacity,
+                    shs,
+                    None,
+                    times_sel,
+                )
+            )
+            # merge sub timings recorded inside Deformation/HexPlaneField
+            if getattr(self.deformation_net, "last_timing", None):
+                for k, v in (self.deformation_net.last_timing or {}).items():
+                    timing[k] = v
+            self.last_timing = timing
         return means3D, scales, rotations, opacity, shs
     def get_mlp_parameters(self):
         return self.deformation_net.get_mlp_parameters() + list(self.timenet.parameters())

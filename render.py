@@ -56,6 +56,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     deform_time_list=[] # deformation time statistics
     rasterization_time_list=[] # rasterization(full forward cuda kernel) time statistic
     total_time_list=[]
+    deform_breakdown_lists = {}
     print("point nums:",gaussians._xyz.shape[0])
     # When running under profilers (e.g., Nsight Compute), stdout/stderr may not be a TTY and tqdm
     # can spam one line per update. Use --quiet to disable the progress bar in those cases.
@@ -78,6 +79,12 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             deform_time_list.append(rendering_results["time"]["deformation"])
             rasterization_time_list.append(rendering_results["time"]["rasterization"])
             total_time_list.append(rendering_results["time"]["total"])
+            bd = rendering_results["time"].get("deformation_breakdown")
+            if isinstance(bd, dict):
+                for k, v in bd.items():
+                    if not isinstance(v, (int, float)):
+                        continue
+                    deform_breakdown_lists.setdefault(k, []).append(float(v))
         if name in ["train", "test"]:
             if cam_type != "PanopticSports":
                 gt = view.original_image[0:3, :, :]
@@ -86,11 +93,23 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             gt_list.append(gt)
 
     print("FPS:",1/np.mean(total_time_list))
-    with open(os.path.join(model_path, name, "ours_{}".format(iteration), "statistics.txt"), "w") as f:
+    if deform_breakdown_lists:    
+        sta_file=os.path.join(model_path, name, "ours_{}".format(iteration), "statistics_deform_detail.txt")
+    else:
+        sta_file=os.path.join(model_path, name, "ours_{}".format(iteration), "statistics.txt")
+    with open(sta_file, "w") as f:
         f.write("gaussian point nums: {}\n".format(gaussians._xyz.shape[0]))
         f.write("Deformation Time ave: {}\n".format(np.mean(deform_time_list)))
         f.write("Rasterization Time ave: {}\n".format(np.mean(rasterization_time_list)))
         f.write("FPS ave: {}\n".format(1/np.mean(total_time_list)))
+        if deform_breakdown_lists:
+            f.write("\n")
+            f.write("Deformation Breakdown (seconds, GPU-event based):\n")
+            for k in sorted(deform_breakdown_lists.keys()):
+                vals = deform_breakdown_lists[k]
+                if len(vals) == 0:
+                    continue
+                f.write("  {} ave: {}\n".format(k, float(np.mean(vals))))
         if (np.mean(rasterization_time_list)>1.0):
             f.write("WARNING: Detected rasterization Time ave > 1.0s\n")
             f.write("You may running nsight compute. FPS data invalid\n")
