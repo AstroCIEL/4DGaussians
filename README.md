@@ -250,6 +250,7 @@ Profiling generates a .ncu-rep file and to visulize it(locally in Jetson Desktop
 
 Note that kernel analysis does not contain deformation process since it only targets at cuda kernel. 
 
+For latency profiling, statistics based on cuda event method is enabled by default(i.e. `profile_latency` in ModelHiddenParams is set True by default). Therefore without nsight compute, latency breakdown are recorded in generated file `statistics.txt`. However, enabling latency analysis using cuda event will introduce several times of `cuda.syncronize()` which may affect the smooth pass of each render, since monitoring cause behavior, which is inevitable. If you manually turn off `profile_latency` in ModelHiddenParams, fps will increase theoretically.
 
 ## Viewer
 [Watch me](./docs/viewer_usage.md)

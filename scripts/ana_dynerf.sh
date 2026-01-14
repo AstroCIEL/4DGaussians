@@ -87,4 +87,9 @@ for SCENE in "sear_steak" "flame_steak" "flame_salmon_1" "cook_spinach" "coffee_
         --log-file $OUTPUT_PATH/$SCENE/analysis_per_kernel.csv
 done
 
-$PYTHON_BIN $REPOSITORY_PATH/scripts/ana_latency.py
+$PYTHON_BIN $REPOSITORY_PATH/scripts/ana_latency.py \
+    --output_dir $OUTPUT_PATH \
+    --statistics_relpath "test/ours_14000/statistics.txt" \
+    --out_png $OUTPUT_PATH/dynerf_latency_breakdown.png \
+    --out_csv $OUTPUT_PATH/dynerf_latency_breakdown.csv \
+    --unit ms

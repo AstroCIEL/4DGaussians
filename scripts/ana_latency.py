@@ -293,7 +293,7 @@ def _default_out_csv(base_dir: str) -> str:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Analyze DyNeRF latency breakdown per scene.")
     parser.add_argument(
-        "--dynerf_dir",
+        "--output_dir",
         default=os.path.join(_repo_root(), "output", "dynerf"),
         help="Directory containing scene folders (default: <repo>/output/dynerf)",
     )
@@ -302,17 +302,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=os.path.join("test", "ours_14000", "statistics.txt"),
         help="Path to statistics.txt relative to each scene dir",
     )
-    parser.add_argument("--out_png", default=None, help="Output png path (default: <dynerf_dir>/latency_breakdown.png)")
-    parser.add_argument("--out_csv", default=None, help="Output csv path (default: <dynerf_dir>/latency_breakdown.csv)")
+    parser.add_argument("--out_png", default=None, help="Output png path (default: <output_dir>/latency_breakdown.png)")
+    parser.add_argument("--out_csv", default=None, help="Output csv path (default: <output_dir>/latency_breakdown.csv)")
     parser.add_argument("--unit", choices=["ms", "s"], default="ms", help="Plot y-axis unit")
     parser.add_argument("--only_scene", default=None, help="Only analyze this scene name (optional)")
     args = parser.parse_args(argv)
 
-    dynerf_dir = os.path.abspath(args.dynerf_dir)
-    out_png = os.path.abspath(args.out_png) if args.out_png else _default_out_png(dynerf_dir)
-    out_csv = os.path.abspath(args.out_csv) if args.out_csv else _default_out_csv(dynerf_dir)
+    output_dir = os.path.abspath(args.output_dir)
+    out_png = os.path.abspath(args.out_png) if args.out_png else _default_out_png(output_dir)
+    out_csv = os.path.abspath(args.out_csv) if args.out_csv else _default_out_csv(output_dir)
 
-    scene_dirs = _list_scene_dirs(dynerf_dir)
+    scene_dirs = _list_scene_dirs(output_dir)
     if args.only_scene:
         scene_dirs = [d for d in scene_dirs if os.path.basename(d) == args.only_scene]
 
