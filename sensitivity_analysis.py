@@ -319,13 +319,17 @@ if __name__ == "__main__":
                         help="Number of time samples for deformation analysis")
     parser.add_argument("--output_dir", type=str, default=None,
                         help="Output directory for results")
-    parser.add_argument("--lambda_min", type=float, default=None,
+    parser.add_argument("--lambda_min", type=float, default=0.0035,
                         help="Minimum lambda value")
-    parser.add_argument("--lambda_max", type=float, default=None,
+    parser.add_argument("--lambda_max", type=float, default=0.10,
                         help="Maximum lambda value")
     
     args = get_combined_args(parser)
     print("Analyzing:", args.model_path)
+
+    # Save custom args before merge (merge_hparams may overwrite them)
+    output_dir = getattr(args, 'output_dir', None)
+    num_time_samples = getattr(args, 'num_time_samples', 50)
     
     if args.configs:
         import mmcv
@@ -347,6 +351,6 @@ if __name__ == "__main__":
         args.iteration,
         pipeline.extract(args),
         lambda_values=lambda_values,
-        num_time_samples=args.num_time_samples,
-        output_dir=args.output_dir,
+        num_time_samples=num_time_samples,
+        output_dir=output_dir,
     )

@@ -5,12 +5,12 @@
 # 默认参数
 SCENE=${1:-"coffee_martini"}
 DATASET=${2:-"dynerf"}
-NUM_LAMBDAS=${3:-25}
+NUM_LAMBDAS=${3:-20}
 NUM_TIME_SAMPLES=${4:-50}
 
 # 根据数据集选择配置文件
 if [ "$DATASET" = "dynerf" ]; then
-    CONFIG="arguments/dynerf/default.py"
+    CONFIG="arguments/dynerf/${SCENE}.py"
     DATA_PATH="data/dynerf/${SCENE}"
     MODEL_PATH="output/dynerf/${SCENE}"
 elif [ "$DATASET" = "dnerf" ]; then

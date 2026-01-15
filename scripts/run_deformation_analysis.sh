@@ -9,7 +9,7 @@ NUM_TIME_SAMPLES=${3:-50}
 
 # 根据数据集选择配置文件
 if [ "$DATASET" = "dynerf" ]; then
-    CONFIG="arguments/dynerf/default.py"
+    CONFIG="arguments/dynerf/${SCENE}.py"
     DATA_PATH="data/dynerf/${SCENE}"
     MODEL_PATH="output/dynerf/${SCENE}"
 elif [ "$DATASET" = "dnerf" ]; then

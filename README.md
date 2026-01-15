@@ -244,13 +244,19 @@ python metrics.py --model_path "output/dnerf/bouncingballs/"
 
 ## Profile
 
+### Latency
+
 We use Nsight Compute to profile cuda kernel. On Jetson, Nsight Compute are pre-installed with Jetpack. However, the installed Nsight Compute may not be the newest version, which may cause GUI breaking down. So you should first check the version and download the latest version if it's not. Also to launch it in priority to older version, you should carefully manage the PATH.
 
 Profiling generates a .ncu-rep file and to visulize it(locally in Jetson Desktop), you can go with `ncu-ui` and open file of .ncu-rep in GUI. If you don't have a Jetson GUI you can download Nsight Compute in your Windows host to use GUI to analyse .ncu-rep file via ssh.
 
 Note that kernel analysis does not contain deformation process since it only targets at cuda kernel. 
 
-For latency profiling, statistics based on cuda event method is enabled by default(i.e. `profile_latency` in ModelHiddenParams is set True by default). Therefore without nsight compute, latency breakdown are recorded in generated file `statistics.txt`. However, enabling latency analysis using cuda event will introduce several times of `cuda.syncronize()` which may affect the smooth pass of each render, since monitoring cause behavior, which is inevitable. If you manually turn off `profile_latency` in ModelHiddenParams, fps will increase theoretically.
+For latency profiling, statistics based on cuda event method is enabled by default(i.e. `profile_latency` in ModelHiddenParams is set True by default). Therefore without nsight compute, latency breakdown are recorded in generated file `statistics.txt`. However, enabling latency analysis using cuda event will introduce several times of `cuda.syncronize()` which may affect the smooth pass of each render, since monitoring cause behavior change, which is inevitable. If you manually turn off `profile_latency` in ModelHiddenParams, fps will increase theoretically.
+
+### Deformation
+
+To utilize the staticness of Gaussians, we want to analysis deformation of all Gaussians. First we get max deformation along time of Gaussians and designate a threshold. If max deformation exceeds threshold, the Gaussian is considered as static, which means deformation computations can be skipped. `run_deformation_analysis.sh` in scripts dir provides deformation analysis(compute position max deformation of Gaussians and visulaize). You can check the results and decide what thresholds candidates you'll pick in the subsequent sensitivity analysis. `run_sensitivity_analysis.sh` provides script to measure the PSNR of different thresholds.
 
 ## Viewer
 [Watch me](./docs/viewer_usage.md)
