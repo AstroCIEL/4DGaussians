@@ -15,6 +15,7 @@ from scene import Scene
 import os
 import cv2
 from tqdm import tqdm
+import sys
 from os import makedirs
 from gaussian_renderer import render
 import torchvision
@@ -22,7 +23,7 @@ from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
 from gaussian_renderer import GaussianModel
-from time import time
+from time import time as get_time
 import threading
 import concurrent.futures
 def multithread_write(image_list, path):
@@ -43,7 +44,7 @@ def multithread_write(image_list, path):
             write_image(image_list[index], index, path)
     
 to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
-def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type):
+def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type, quiet: bool = False, render_num: int = 9999999, save_image: bool = True):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
 
@@ -52,13 +53,50 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     render_images = []
     gt_list = []
     render_list = []
+    deform_time_list=[] # deformation time statistics
+    rasterization_time_list=[] # rasterization(full forward cuda kernel) time statistic
+    precompute_time_list=[] # precompute color from shs via pytorch time statistic
+    total_time_list=[]
+    deform_breakdown_lists = {}
+    gpu_breakdown_lists = {}
+    postprocess_cpu_s_list = []
     print("point nums:",gaussians._xyz.shape[0])
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        if idx == 0:time1 = time()
-        
-        rendering = render(view, gaussians, pipeline, background,cam_type=cam_type)["render"]
+    # When running under profilers (e.g., Nsight Compute), stdout/stderr may not be a TTY and tqdm
+    # can spam one line per update. Use --quiet to disable the progress bar in those cases.
+    progress = tqdm(
+        views,
+        desc="Rendering progress",
+        disable=bool(quiet),
+        file=sys.stderr,
+        dynamic_ncols=True,
+        leave=not bool(quiet),
+    )
+    for idx, view in enumerate(progress):
+        if idx >= min(render_num, len(views)):
+            break
+        rendering_results = render(view, gaussians, pipeline, background,cam_type=cam_type)
+        rendering = rendering_results["render"]
+        t0 = get_time()
         render_images.append(to8b(rendering).transpose(1,2,0))
+        postprocess_cpu_s_list.append(get_time() - t0)
         render_list.append(rendering)
+        if rendering_results["time"] is not None:
+            deform_time_list.append(rendering_results["time"]["deformation"])
+            rasterization_time_list.append(rendering_results["time"]["rasterization"])
+            precompute_time_list.append(rendering_results["time"]["precompute"])
+            total_time_list.append(rendering_results["time"]["total"])
+            gb = rendering_results["time"].get("gpu_breakdown")
+            if isinstance(gb, dict):
+                for k, v in gb.items():
+                    if not isinstance(v, (int, float)) or v is None:
+                        continue
+                    gpu_breakdown_lists.setdefault(k, []).append(float(v))
+            bd = rendering_results["time"].get("deformation_breakdown")
+            if isinstance(bd, dict):
+                for k, v in bd.items():
+                    if not isinstance(v, (int, float)):
+                        continue
+                    deform_breakdown_lists.setdefault(k, []).append(float(v))
         if name in ["train", "test"]:
             if cam_type != "PanopticSports":
                 gt = view.original_image[0:3, :, :]
@@ -66,16 +104,50 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
                 gt  = view['image'].cuda()
             gt_list.append(gt)
 
-    time2=time()
-    print("FPS:",(len(views)-1)/(time2-time1))
+    print("FPS:",1/np.mean(total_time_list))
+    if deform_breakdown_lists:    
+        sta_file=os.path.join(model_path, name, "ours_{}".format(iteration), "statistics_deform_detail.txt")
+    else:
+        sta_file=os.path.join(model_path, name, "ours_{}".format(iteration), "statistics.txt")
+    with open(sta_file, "w") as f:
+        f.write("gaussian point nums: {}\n".format(gaussians._xyz.shape[0]))
 
-    multithread_write(gt_list, gts_path)
+        if gpu_breakdown_lists:
+            f.write("\nGPU Breakdown (seconds, CUDA events, 1 sync/frame):\n")
+            f.write("Activation Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_activations_s"])))
+            f.write("Deformation Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_deformation_s"])))
+            f.write("Precompute Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_precompute_s"])))
+            f.write("Rasterization Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_rasterization_s"])))
+            f.write("Total Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_frame_total_s"])))
+            f.write("\nActual FPS ave: {}\n".format(1/np.mean(total_time_list)))
+        else:
+            f.write("Naive time breakdown, not using CUDA events\n")
+            f.write("Results may be inaccurate. To use CUDA events, \n")
+            f.write("Enable **profile_latency** in ModelHiddenParams\n")
+            f.write("Deformation Time ave: {}\n".format(np.mean(deform_time_list)))
+            f.write("Precompute Time ave: {}\n".format(np.mean(precompute_time_list)))
+            f.write("Rasterization Time ave: {}\n".format(np.mean(rasterization_time_list)))
+            f.write("Actual FPS ave: {}\n".format(1/np.mean(total_time_list)))
+        if postprocess_cpu_s_list:
+            f.write("Postprocess(to8b) CPU Time ave: {}\n".format(np.mean(postprocess_cpu_s_list)))
+        if deform_breakdown_lists:
+            f.write("\n")
+            f.write("Deformation Breakdown (seconds, GPU-event based):\n")
+            for k in sorted(deform_breakdown_lists.keys()):
+                vals = deform_breakdown_lists[k]
+                if len(vals) == 0:
+                    continue
+                f.write("  {} ave: {}\n".format(k, float(np.mean(vals))))
+        if (np.mean(rasterization_time_list)>1.0):
+            f.write("\n**WARNING**: Detected rasterization Time ave > 1.0s\n")
+            f.write("You may running nsight compute. FPS data invalid\n")
 
-    multithread_write(render_list, render_path)
+    if save_image:
+        multithread_write(gt_list, gts_path)
+        multithread_write(render_list, render_path)
+        imageio.mimwrite(os.path.join(model_path, name, "ours_{}".format(iteration), 'video_rgb.mp4'), render_images, fps=30)
 
-    
-    imageio.mimwrite(os.path.join(model_path, name, "ours_{}".format(iteration), 'video_rgb.mp4'), render_images, fps=30)
-def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, skip_video: bool):
+def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, skip_video: bool, quiet: bool = False, render_num: int = 9999999, save_image: bool = True):
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree, hyperparam)
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
@@ -84,12 +156,12 @@ def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : P
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
         if not skip_train:
-            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background,cam_type)
+            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background, cam_type, quiet=quiet, render_num=render_num, save_image=save_image)
 
         if not skip_test:
-            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background,cam_type)
+            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background, cam_type, quiet=quiet, render_num=render_num, save_image=save_image)
         if not skip_video:
-            render_set(dataset.model_path,"video",scene.loaded_iter,scene.getVideoCameras(),gaussians,pipeline,background,cam_type)
+            render_set(dataset.model_path, "video", scene.loaded_iter, scene.getVideoCameras(), gaussians, pipeline, background, cam_type, quiet=quiet, render_num=render_num, save_image=save_image)
 if __name__ == "__main__":
     # Set up command line argument parser
     parser = ArgumentParser(description="Testing script parameters")
@@ -102,6 +174,8 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--skip_video", action="store_true")
     parser.add_argument("--configs", type=str)
+    parser.add_argument("--render_num", type=int, default=9999999)
+    parser.add_argument("--save_image", type=bool, default=False)
     args = get_combined_args(parser)
     print("Rendering " , args.model_path)
     if args.configs:
@@ -112,4 +186,15 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    render_sets(model.extract(args), hyperparam.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.skip_video)
+    render_sets(
+        model.extract(args),
+        hyperparam.extract(args),
+        args.iteration,
+        pipeline.extract(args),
+        args.skip_train,
+        args.skip_test,
+        args.skip_video,
+        quiet=args.quiet,
+        render_num=args.render_num,
+        save_image=args.save_image,
+    )
