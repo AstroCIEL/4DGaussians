@@ -119,7 +119,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             f.write("Precompute Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_precompute_s"])))
             f.write("Rasterization Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_rasterization_s"])))
             f.write("Total Time ave: {}\n".format(np.mean(gpu_breakdown_lists["gpu_frame_total_s"])))
-            f.write("FPS ave: {}\n".format(1/np.mean(gpu_breakdown_lists["gpu_frame_total_s"])))
+            f.write("\nActual FPS ave: {}\n".format(1/np.mean(total_time_list)))
         else:
             f.write("Naive time breakdown, not using CUDA events\n")
             f.write("Results may be inaccurate. To use CUDA events, \n")
@@ -127,7 +127,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             f.write("Deformation Time ave: {}\n".format(np.mean(deform_time_list)))
             f.write("Precompute Time ave: {}\n".format(np.mean(precompute_time_list)))
             f.write("Rasterization Time ave: {}\n".format(np.mean(rasterization_time_list)))
-            f.write("FPS ave: {}\n".format(1/np.mean(total_time_list)))
+            f.write("Actual FPS ave: {}\n".format(1/np.mean(total_time_list)))
         if postprocess_cpu_s_list:
             f.write("Postprocess(to8b) CPU Time ave: {}\n".format(np.mean(postprocess_cpu_s_list)))
         if deform_breakdown_lists:

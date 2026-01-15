@@ -256,9 +256,30 @@ class deform_network(nn.Module):
         self.apply(initialize_weights)
         # print(self)
         self.last_timing = None
+        
+        # Static gaussian optimization: mask for gaussians that don't need deformation
+        self._static_mask = None  # (N,) bool tensor, True = static (skip deformation)
 
     def forward(self, point, scales=None, rotations=None, opacity=None, shs=None, times_sel=None):
         return self.forward_dynamic(point, scales, rotations, opacity, shs, times_sel)
+    
+    def set_static_mask(self, static_mask):
+        """
+        Set the static mask for skipping deformation on static gaussians.
+        
+        Args:
+            static_mask: (N,) bool tensor, True = static (skip deformation)
+        """
+        self._static_mask = static_mask
+        
+    def get_static_mask(self):
+        """Get the current static mask"""
+        return self._static_mask
+    
+    def clear_static_mask(self):
+        """Clear the static mask (enable deformation for all gaussians)"""
+        self._static_mask = None
+    
     @property
     def get_aabb(self):
         
@@ -272,6 +293,90 @@ class deform_network(nn.Module):
         return points
     def forward_dynamic(self, point, scales=None, rotations=None, opacity=None, shs=None, times_sel=None):
         timing = None
+        
+        # Check if we have a static mask to skip deformation for some gaussians
+        static_mask = self._static_mask
+        use_static_optimization = static_mask is not None and static_mask.any()
+        
+        if use_static_optimization:
+            # Only compute deformation for non-static (dynamic) gaussians
+            dynamic_mask = ~static_mask
+            num_dynamic = dynamic_mask.sum().item()
+            num_total = point.shape[0]
+            
+            if num_dynamic == 0:
+                # All gaussians are static, skip deformation entirely
+                return point, scales, rotations, opacity, shs
+            
+            # Extract dynamic gaussians
+            point_dyn = point[dynamic_mask]
+            scales_dyn = scales[dynamic_mask]
+            rotations_dyn = rotations[dynamic_mask]
+            opacity_dyn = opacity[dynamic_mask]
+            shs_dyn = shs[dynamic_mask]
+            times_sel_dyn = times_sel[dynamic_mask]
+            
+            # Compute deformation only for dynamic gaussians
+            if bool(getattr(self.deformation_net.args, "profile_deformation", False)):
+                timing = {}
+                timing["num_dynamic_gaussians"] = num_dynamic
+                timing["num_total_gaussians"] = num_total
+                timing["static_ratio"] = 1.0 - num_dynamic / num_total
+                (point_emb, scales_emb, rotations_emb), timing["deform_poc_fre_s"] = _cuda_time_s(
+                    lambda: (
+                        poc_fre(point_dyn, self.pos_poc),
+                        poc_fre(scales_dyn, self.rotation_scaling_poc),
+                        poc_fre(rotations_dyn, self.rotation_scaling_poc),
+                    )
+                )
+            else:
+                point_emb = poc_fre(point_dyn, self.pos_poc)
+                scales_emb = poc_fre(scales_dyn, self.rotation_scaling_poc)
+                rotations_emb = poc_fre(rotations_dyn, self.rotation_scaling_poc)
+            
+            if timing is None:
+                means3D_dyn, scales_dyn_out, rotations_dyn_out, opacity_dyn_out, shs_dyn_out = self.deformation_net(
+                    point_emb,
+                    scales_emb,
+                    rotations_emb,
+                    opacity_dyn,
+                    shs_dyn,
+                    None,
+                    times_sel_dyn,
+                )
+            else:
+                (means3D_dyn, scales_dyn_out, rotations_dyn_out, opacity_dyn_out, shs_dyn_out), timing["deform_net_forward_s"] = _cuda_time_s(
+                    lambda: self.deformation_net(
+                        point_emb,
+                        scales_emb,
+                        rotations_emb,
+                        opacity_dyn,
+                        shs_dyn,
+                        None,
+                        times_sel_dyn,
+                    )
+                )
+                if getattr(self.deformation_net, "last_timing", None):
+                    for k, v in (self.deformation_net.last_timing or {}).items():
+                        timing[k] = v
+                self.last_timing = timing
+            
+            # Merge results: static gaussians keep original values, dynamic gaussians use deformed values
+            means3D_out = point.clone()
+            scales_out = scales.clone()
+            rotations_out = rotations.clone()
+            opacity_out = opacity.clone()
+            shs_out = shs.clone()
+            
+            means3D_out[dynamic_mask] = means3D_dyn
+            scales_out[dynamic_mask] = scales_dyn_out
+            rotations_out[dynamic_mask] = rotations_dyn_out
+            opacity_out[dynamic_mask] = opacity_dyn_out
+            shs_out[dynamic_mask] = shs_dyn_out
+            
+            return means3D_out, scales_out, rotations_out, opacity_out, shs_out
+        
+        # Original path: compute deformation for all gaussians
         if bool(getattr(self.deformation_net.args, "profile_deformation", False)):
             timing = {}
             (point_emb, scales_emb, rotations_emb), timing["deform_poc_fre_s"] = _cuda_time_s(
