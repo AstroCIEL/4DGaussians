@@ -166,8 +166,28 @@ def run_sensitivity_analysis(
         if lambda_values is None:
             _, _, suggested = analyzer.suggest_lambda_range()
             # 添加0和一些额外的点以获得更完整的曲线
-            lambda_values = [0.0] + list(suggested) + [stats['max'] * 1.5]
+            max_val = stats['max']
+            if np.isfinite(max_val) and max_val > 0:
+                lambda_values = [0.0] + list(suggested) + [max_val * 1.5]
+            else:
+                # 如果 max 不是有限值，只使用 suggested
+                lambda_values = [0.0] + list(suggested)
+        
+        # 过滤掉 NaN 和 Inf 值，然后去重并排序
+        lambda_values = [v for v in lambda_values if np.isfinite(v)]
         lambda_values = sorted(set(lambda_values))
+        
+        # 确保至少有 2 个不同的 lambda 值
+        if len(lambda_values) < 2:
+            print(f"Warning: Only {len(lambda_values)} lambda value(s) generated!")
+            print(f"   Deformation stats: min={stats['min']:.6e}, max={stats['max']:.6e}, std={stats['std']:.6e}")
+            # 如果只有一个值或没有值，使用默认范围
+            if len(lambda_values) == 0:
+                lambda_values = [0.0, stats['max'] * 1.5] if np.isfinite(stats['max']) else [0.0, 1e-3]
+            elif len(lambda_values) == 1:
+                # 添加一些额外的值
+                val = lambda_values[0]
+                lambda_values = [0.0, val * 0.5, val, val * 1.5, val * 2.0] if val > 0 else [0.0, 1e-4, 1e-3]
         
         print(f"\n   Testing {len(lambda_values)} lambda values")
         print(f"   Range: [{min(lambda_values):.6f}, {max(lambda_values):.6f}]")

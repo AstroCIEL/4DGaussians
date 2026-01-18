@@ -9,10 +9,122 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from typing import Optional, Tuple
+from utils.general_utils import build_scaling_rotation
 
 
 class StaticGaussianAnalyzer:
     """分析训练后的高斯球是否静止的分析器"""
+    
+    @staticmethod
+    def _compute_kl_divergence(
+        mean1: torch.Tensor,
+        scales1: torch.Tensor,
+        rotations1: torch.Tensor,
+        mean2: torch.Tensor,
+        scales2: torch.Tensor,
+        rotations2: torch.Tensor,
+        epsilon: float = 1e-6
+    ) -> torch.Tensor:
+        """
+        计算两个3D高斯分布之间的对称KL散度
+        
+        KL散度公式：KL(P₁||P₂) = 0.5 * [tr(Σ₂⁻¹Σ₁) + (μ₂ - μ₁)ᵀΣ₂⁻¹(μ₂ - μ₁) - k + ln(det(Σ₂)/det(Σ₁))]
+        使用对称KL散度：D_KL = 0.5 * (KL(P₁||P₂) + KL(P₂||P₁))
+        
+        Args:
+            mean1: (N, 3) 第一个高斯分布的均值
+            scales1: (N, 3) 第一个高斯分布的尺度 (log空间)
+            rotations1: (N, 4) 第一个高斯分布的旋转四元数
+            mean2: (N, 3) 第二个高斯分布的均值
+            scales2: (N, 3) 第二个高斯分布的尺度 (log空间)
+            rotations2: (N, 4) 第二个高斯分布的旋转四元数
+            epsilon: 数值稳定性参数
+            
+        Returns:
+            kl_divergences: (N,) 每个高斯分布的对称KL散度
+        """
+        # scales 是 log 空间的，需要应用 exp 获得实际尺度值
+        scales1_exp = torch.exp(scales1)  # (N, 3)
+        scales2_exp = torch.exp(scales2)  # (N, 3)
+        
+        # 构建协方差矩阵
+        # L = R @ diag(s), Σ = L @ L^T = R @ diag(s²) @ R^T
+        L1 = build_scaling_rotation(scales1_exp, rotations1)  # (N, 3, 3)
+        L2 = build_scaling_rotation(scales2_exp, rotations2)  # (N, 3, 3)
+        
+        cov1 = L1 @ L1.transpose(1, 2)  # (N, 3, 3)
+        cov2 = L2 @ L2.transpose(1, 2)  # (N, 3, 3)
+        
+        # 添加正则化以确保数值稳定性
+        eye = torch.eye(3, device=cov1.device, dtype=cov1.dtype).unsqueeze(0)  # (1, 3, 3)
+        cov1_reg = cov1 + epsilon * eye
+        cov2_reg = cov2 + epsilon * eye
+        
+        k = 3  # 维度
+        
+        # 计算 KL(P₁||P₂) 和 KL(P₂||P₁)
+        kl_12_list = []
+        kl_21_list = []
+        
+        for i in range(cov1.shape[0]):
+            try:
+                # 计算 KL(P₁||P₂)
+                cov2_inv = torch.linalg.inv(cov2_reg[i])  # (3, 3)
+                
+                # tr(Σ₂⁻¹Σ₁)
+                trace_term = torch.trace(cov2_inv @ cov1_reg[i])
+                
+                # (μ₂ - μ₁)ᵀΣ₂⁻¹(μ₂ - μ₁)
+                mean_diff = mean2[i] - mean1[i]  # (3,)
+                quad_term = mean_diff @ cov2_inv @ mean_diff
+                
+                # ln(det(Σ₂)/det(Σ₁))
+                det1 = torch.linalg.det(cov1_reg[i])
+                det2 = torch.linalg.det(cov2_reg[i])
+                # 确保行列式为正
+                det1 = torch.clamp(det1, min=epsilon)
+                det2 = torch.clamp(det2, min=epsilon)
+                log_det_term = torch.log(det2 / det1)
+                
+                kl_12 = 0.5 * (trace_term + quad_term - k + log_det_term)
+                
+                # 计算 KL(P₂||P₁)
+                cov1_inv = torch.linalg.inv(cov1_reg[i])  # (3, 3)
+                
+                # tr(Σ₁⁻¹Σ₂)
+                trace_term = torch.trace(cov1_inv @ cov2_reg[i])
+                
+                # (μ₁ - μ₂)ᵀΣ₁⁻¹(μ₁ - μ₂)
+                mean_diff = mean1[i] - mean2[i]  # (3,)
+                quad_term = mean_diff @ cov1_inv @ mean_diff
+                
+                # ln(det(Σ₁)/det(Σ₂))
+                log_det_term = torch.log(det1 / det2)
+                
+                kl_21 = 0.5 * (trace_term + quad_term - k + log_det_term)
+                
+                kl_12_list.append(kl_12)
+                kl_21_list.append(kl_21)
+                
+            except RuntimeError:
+                # 如果矩阵求逆失败，使用简化近似
+                # 使用均值差和Frobenius范数的组合
+                mean_diff_norm = (mean1[i] - mean2[i]).norm() ** 2
+                cov_diff_norm = (cov1_reg[i] - cov2_reg[i]).norm('fro') ** 2
+                kl_approx = 0.5 * (mean_diff_norm + cov_diff_norm)
+                kl_12_list.append(kl_approx)
+                kl_21_list.append(kl_approx)
+        
+        kl_12 = torch.stack(kl_12_list)  # (N,)
+        kl_21 = torch.stack(kl_21_list)  # (N,)
+        
+        # 计算对称KL散度
+        kl_symmetric = 0.5 * (kl_12 + kl_21)
+        
+        # 确保非负（数值稳定性）
+        kl_symmetric = torch.clamp(kl_symmetric, min=epsilon)
+        
+        return kl_symmetric  # (N,)
     
     def __init__(self, gaussians, num_time_samples: int = 50):
         """
@@ -45,6 +157,7 @@ class StaticGaussianAnalyzer:
         device = means3D.device
         
         # 存储每个高斯球在所有时间点的形变量
+        #max_kl_divergence = torch.zeros(N, device=device)
         max_dx = torch.zeros(N, device=device)
         max_ds = torch.zeros(N, device=device)
         max_dr = torch.zeros(N, device=device)
@@ -61,6 +174,14 @@ class StaticGaussianAnalyzer:
             means3D_deformed, scales_deformed, rotations_deformed, _, _ = \
                 self.gaussians._deformation(means3D, scales, rotations, opacity, shs, time)
             
+            # 计算KL散度（综合考虑位置、尺度、旋转）
+            # kl_divergence = self._compute_kl_divergence(
+            #     means3D, scales, rotations,
+            #     means3D_deformed, scales_deformed, rotations_deformed
+            # )
+            # max_kl_divergence = torch.maximum(max_kl_divergence, kl_divergence)
+            
+            # 同时保留单独的指标用于详细分析
             # 计算位置形变量
             dx = (means3D_deformed - means3D).norm(dim=-1)
             max_dx = torch.maximum(max_dx, dx)
@@ -73,8 +194,7 @@ class StaticGaussianAnalyzer:
             dr = (rotations_deformed - rotations).norm(dim=-1)
             max_dr = torch.maximum(max_dr, dr)
         
-        # 综合考虑位置、尺度、旋转的形变量
-        # 位置形变是最主要的指标
+        # 使用x作为综合指标来衡量形变
         self._max_deformation = max_dx
         
         # 同时保存详细信息
@@ -133,11 +253,23 @@ class StaticGaussianAnalyzer:
         min_lambda = stats['percentiles']['10%']
         max_lambda = stats['percentiles']['99%']
         
+        # 确保 min_lambda < max_lambda，避免采样时出现问题
+        if max_lambda <= min_lambda:
+            # 如果最大值和最小值相同或更小，使用 min 和 max 作为范围
+            if stats['max'] > stats['min']:
+                min_lambda = stats['min']
+                max_lambda = stats['max']
+            else:
+                # 如果所有值都相同，使用一个小的默认范围
+                min_lambda = 0.0
+                max_lambda = max(stats['max'] * 1.1, 1e-4)
+        
         # 在log空间均匀采样
-        if min_lambda > 0:
+        if min_lambda > 0 and max_lambda > min_lambda * 1.01:  # 确保有足够的范围
             suggested_lambdas = np.geomspace(min_lambda, max_lambda, 20)
         else:
-            suggested_lambdas = np.linspace(0, max_lambda, 20)
+            # 如果范围太小或包含0，使用线性采样
+            suggested_lambdas = np.linspace(min_lambda, max_lambda, 20)
             
         return min_lambda, max_lambda, suggested_lambdas
     
