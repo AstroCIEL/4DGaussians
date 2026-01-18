@@ -1,12 +1,17 @@
 #!/bin/bash
 # Static Gaussian Sensitivity Analysis Script
 # 运行静止高斯球阈值敏感性分析
+export CUDA_VISIBLE_DEVICES=3
 
 # 默认参数
 SCENE=${1:-"coffee_martini"}
 DATASET=${2:-"dynerf"}
-NUM_LAMBDAS=${3:-20}
-NUM_TIME_SAMPLES=${4:-50}
+MODE=${3:-"ratio"}           # ratio | lambda
+RATIO_STEP=${4:-5}
+NUM_LAMBDAS=${5:-20}
+NUM_TIME_SAMPLES=${6:-60}
+METRICS=${7:-"psnr,ssim,lpips"}
+LPIPS_NET=${8:-"vgg"}
 
 # 根据数据集选择配置文件
 if [ "$DATASET" = "dynerf" ]; then
@@ -34,8 +39,12 @@ echo "Scene: $SCENE"
 echo "Dataset: $DATASET"
 echo "Config: $CONFIG"
 echo "Model Path: $MODEL_PATH"
+echo "Mode: $MODE"
+echo "Static Ratio Step: ${RATIO_STEP}%"
 echo "Num Lambdas: $NUM_LAMBDAS"
 echo "Num Time Samples: $NUM_TIME_SAMPLES"
+echo "Metrics: $METRICS"
+echo "LPIPS Net: $LPIPS_NET"
 echo "=========================================="
 
 # 检查模型是否存在
@@ -46,12 +55,29 @@ if [ ! -d "$MODEL_PATH" ]; then
 fi
 
 # 运行分析
-python sensitivity_analysis.py \
-    -m "$MODEL_PATH" \
-    -s "$DATA_PATH" \
-    --configs "$CONFIG" \
-    --num_lambdas "$NUM_LAMBDAS" \
-    --num_time_samples "$NUM_TIME_SAMPLES"
+if [ "$MODE" = "ratio" ]; then
+    python sensitivity_analysis.py \
+        -m "$MODEL_PATH" \
+        -s "$DATA_PATH" \
+        --configs "$CONFIG" \
+        --static_ratio_step "$RATIO_STEP" \
+        --num_time_samples "$NUM_TIME_SAMPLES" \
+        --metrics "$METRICS" \
+        --lpips_net "$LPIPS_NET"
+elif [ "$MODE" = "lambda" ]; then
+    python sensitivity_analysis.py \
+        -m "$MODEL_PATH" \
+        -s "$DATA_PATH" \
+        --configs "$CONFIG" \
+        --num_lambdas "$NUM_LAMBDAS" \
+        --num_time_samples "$NUM_TIME_SAMPLES" \
+        --metrics "$METRICS" \
+        --lpips_net "$LPIPS_NET"
+else
+    echo "Unknown mode: $MODE"
+    echo "Supported: ratio, lambda"
+    exit 1
+fi
 
 echo ""
 echo "Analysis complete!"

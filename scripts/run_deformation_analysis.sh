@@ -5,7 +5,7 @@
 # 默认参数
 SCENE=${1:-"coffee_martini"}
 DATASET=${2:-"dynerf"}
-NUM_TIME_SAMPLES=${3:-50}
+NUM_TIME_SAMPLES=${3:-60}
 
 # 根据数据集选择配置文件
 if [ "$DATASET" = "dynerf" ]; then
