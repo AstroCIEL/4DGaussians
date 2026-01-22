@@ -22,10 +22,14 @@ elif [ "$DATASET" = "dnerf" ]; then
     CONFIG="arguments/dnerf/${SCENE}.py"
     DATA_PATH="data/dnerf/${SCENE}"
     MODEL_PATH="output/dnerf/${SCENE}"
-elif [ "$DATASET" = "hypernerf" ]; then
+elif [ "$DATASET" = "hypernerf/interp" ]; then
     CONFIG="arguments/hypernerf/default.py"
     DATA_PATH="data/hypernerf/interp/${SCENE}"
-    MODEL_PATH="output/hypernerf/${SCENE}"
+    MODEL_PATH="output/hypernerf/interp/${SCENE}"
+elif [ "$DATASET" = "hypernerf/vrig" ]; then
+    CONFIG="arguments/hypernerf/${SCENE}.py"
+    DATA_PATH="data/hypernerf/vrig/${SCENE}"
+    MODEL_PATH="output/hypernerf/vrig/${SCENE}"
 else
     echo "Unknown dataset: $DATASET"
     echo "Supported: dynerf, dnerf, hypernerf"

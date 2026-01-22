@@ -171,7 +171,7 @@ def create_summary_table(aggregated_data, output_path):
     return all_scenes, all_ratios
 
 
-def plot_aggregated_results(aggregated_data, output_dir, scenes, ratios):
+def plot_aggregated_results(aggregated_data, output_dir, scenes, ratios,dataset_name="dynerf"):
     """生成汇总可视化图表"""
     metrics_info = {
         'psnr': {'label': 'PSNR Drop (dB)', 'title': 'PSNR Deterioration', 'color': '#2E86AB'},
@@ -209,7 +209,7 @@ def plot_aggregated_results(aggregated_data, output_dir, scenes, ratios):
         
         ax.set_xlabel('Static Gaussians Ratio (%)', fontsize=12)
         ax.set_ylabel(info['label'], fontsize=12)
-        ax.set_title(f'{info["title"]} Across Scenes (DyNeRF Dataset)', fontsize=14, fontweight='bold')
+        ax.set_title(f'{info["title"]} Across Scenes ({dataset_name} Dataset)', fontsize=14, fontweight='bold')
         ax.legend(loc='best', fontsize=9, ncol=2)
         ax.grid(True, alpha=0.3)
         
@@ -257,7 +257,7 @@ def plot_aggregated_results(aggregated_data, output_dir, scenes, ratios):
         
         ax.set_xlabel('Static Gaussians Ratio (%)', fontsize=12)
         ax.set_ylabel('Scene', fontsize=12)
-        ax.set_title(f'{info["title"]} Heatmap (DyNeRF Dataset)', fontsize=14, fontweight='bold')
+        ax.set_title(f'{info["title"]} Heatmap ({dataset_name} Dataset)', fontsize=14, fontweight='bold')
         
         # 添加颜色条
         cbar = plt.colorbar(im, ax=ax)
@@ -270,7 +270,7 @@ def plot_aggregated_results(aggregated_data, output_dir, scenes, ratios):
         plt.close(fig)
 
 
-def plot_statistics_summary(aggregated_data, output_dir, scenes, ratios):
+def plot_statistics_summary(aggregated_data, output_dir, scenes, ratios,dataset_name="dynerf"):
     """生成统计汇总图（均值、标准差等）"""
     metrics_info = {
         'psnr': {'label': 'PSNR Drop (dB)', 'title': 'PSNR Deterioration Statistics'},
@@ -320,7 +320,7 @@ def plot_statistics_summary(aggregated_data, output_dir, scenes, ratios):
         
         ax.set_xlabel('Static Gaussians Ratio (%)', fontsize=12)
         ax.set_ylabel(info['label'], fontsize=12)
-        ax.set_title(f'{info["title"]} Across All Scenes (DyNeRF Dataset)', fontsize=14, fontweight='bold')
+        ax.set_title(f'{info["title"]} Across All Scenes ({dataset_name} Dataset)', fontsize=14, fontweight='bold')
         ax.legend(loc='best', fontsize=11)
         ax.grid(True, alpha=0.3)
         
@@ -397,11 +397,11 @@ def main():
     
     # 创建可视化图表
     print("\n[2/3] Creating aggregated plots...")
-    plot_aggregated_results(aggregated, output_dir, scenes, all_ratios)
+    plot_aggregated_results(aggregated, output_dir, scenes, all_ratios,args.dataset)
     
     # 创建统计汇总
     print("\n[3/3] Creating statistics summary...")
-    plot_statistics_summary(aggregated, output_dir, scenes, all_ratios)
+    plot_statistics_summary(aggregated, output_dir, scenes, all_ratios,args.dataset)
     
     # 保存汇总数据
     summary_data = {
