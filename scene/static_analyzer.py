@@ -219,6 +219,101 @@ class StaticGaussianAnalyzer:
         max_deformation = self.compute_max_deformation(verbose=False)
         return max_deformation < lambda_threshold
     
+    @torch.no_grad()
+    def compute_max_deformation_per_time_segment(self, num_segments: int, verbose: bool = True) -> dict:
+        """
+        计算每个时间段内的最大形变量
+        
+        Args:
+            num_segments: 将时间轴[0, 1]均分成多少段
+            verbose: 是否显示进度
+            
+        Returns:
+            dict: {
+                'segments': [(t_start, t_end), ...],
+                'max_deformations': [(N,) tensor, ...],  # 每个时间段的max deformation
+            }
+        """
+        means3D = self.gaussians._xyz
+        scales = self.gaussians._scaling
+        rotations = self.gaussians._rotation
+        opacity = self.gaussians._opacity
+        shs = self.gaussians.get_features
+        
+        N = means3D.shape[0]
+        device = means3D.device
+        
+        # 计算时间段边界
+        segment_bounds = np.linspace(0, 1, num_segments + 1)
+        segments = [(segment_bounds[i], segment_bounds[i+1]) for i in range(num_segments)]
+        
+        max_deformations_per_segment = []
+        
+        iterator = tqdm(segments, desc="Analyzing deformation per time segment") if verbose else segments
+        
+        for t_start, t_end in iterator:
+            # 在当前时间段内采样
+            num_samples = max(10, self.num_time_samples // num_segments)
+            time_samples = torch.linspace(t_start, t_end, num_samples, device=device)
+            
+            max_dx = torch.zeros(N, device=device)
+            
+            for t in time_samples:
+                time = t.repeat(N, 1)
+                
+                # 通过deformation网络计算形变后的属性
+                means3D_deformed, scales_deformed, rotations_deformed, _, _ = \
+                    self.gaussians._deformation(means3D, scales, rotations, opacity, shs, time)
+                
+                # 计算位置形变量
+                dx = (means3D_deformed - means3D).norm(dim=-1)
+                max_dx = torch.maximum(max_dx, dx)
+            
+            max_deformations_per_segment.append(max_dx)
+        
+        return {
+            'segments': segments,
+            'max_deformations': max_deformations_per_segment,
+        }
+    
+    def get_static_mask_per_time_segment(self, lambda_threshold, num_segments: int, verbose: bool = True) -> dict:
+        """
+        获取每个时间段内的静止高斯球掩码
+        
+        Args:
+            lambda_threshold: 形变阈值，可以是标量（所有时间段使用相同阈值）或列表（每个时间段一个阈值）
+            num_segments: 时间段数量
+            verbose: 是否显示进度
+            
+        Returns:
+            dict: {
+                'segments': [(t_start, t_end), ...],
+                'static_masks': [(N,) bool tensor, ...],  # 每个时间段的static mask
+            }
+        """
+        deformation_data = self.compute_max_deformation_per_time_segment(num_segments, verbose=verbose)
+        
+        # 处理lambda_threshold：如果是标量，转换为列表
+        if isinstance(lambda_threshold, (int, float)):
+            lambda_thresholds = [lambda_threshold] * num_segments
+        elif isinstance(lambda_threshold, (list, tuple, np.ndarray)):
+            if len(lambda_threshold) != num_segments:
+                raise ValueError(f"lambda_threshold length ({len(lambda_threshold)}) must match num_segments ({num_segments})")
+            lambda_thresholds = lambda_threshold
+        else:
+            raise TypeError(f"lambda_threshold must be scalar or list/tuple/array, got {type(lambda_threshold)}")
+        
+        static_masks = []
+        for seg_idx, max_def in enumerate(deformation_data['max_deformations']):
+            lambda_val = lambda_thresholds[seg_idx]
+            static_mask = max_def < lambda_val
+            static_masks.append(static_mask)
+        
+        return {
+            'segments': deformation_data['segments'],
+            'static_masks': static_masks,
+        }
+    
     def get_statistics(self) -> dict:
         """获取形变量的统计信息"""
         max_deformation = self.compute_max_deformation(verbose=False)

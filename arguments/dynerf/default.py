@@ -19,7 +19,7 @@ ModelHiddenParams = dict(
     static_mlp=False,
     profile_deformation=False,
     profile_deformation_hexplane_detail=False,
-    profile_latency=True,
+    profile_latency=False,
     profile_latency_hexplane=False
 
 )

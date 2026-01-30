@@ -270,7 +270,13 @@ For latency profiling, statistics based on cuda event method is enabled by defau
 
 Recommended run on RTX rather than Jetson considering evaluation time.
 
-To utilize the staticness of Gaussians, we want to analysis deformation of all Gaussians. First we get max deformation along time of Gaussians and designate a threshold. If max deformation exceeds threshold, the Gaussian is considered as static, which means deformation computations can be skipped. `run_deformation_analysis.sh` in scripts dir provides deformation analysis(compute position max deformation of Gaussians and visulaize). You can check the results and decide what thresholds candidates you'll pick in the subsequent sensitivity analysis. `run_sensitivity_analysis.sh` provides script to measure the PSNR of different thresholds.
+To utilize the staticness of Gaussians, we want to analysis deformation of all Gaussians. First we get max deformation along time of Gaussians and designate a threshold. If max deformation exceeds threshold, the Gaussian is considered as static, which means deformation computations can be skipped. `run_deformation_analysis.sh` in scripts dir provides deformation analysis(compute position max deformation of Gaussians and visulaize). 
+
+You can check the results and decide what thresholds candidates you'll pick in the subsequent sensitivity analysis. Moreover, if you don't want to focus on the deformation value and threshold, you can directly analyze sensitivy based on static ratio. `run_sensitivity_analysis.sh` provides script to measure the PSNR/SSIM/LPIPS of different thresholds/static-ratio for designated scene and dataset. To get the results of all scenes of the dataset and analyse the dataset from an overall perspective, you can use `deformation_dynerf.sh`/`deformation_dnerf.sh`.
+
+### frustrum culling
+
+To look into the culling ratio of each scene/dataset, `run_frustrum_culling_analysis.sh` is provided. It uses video split of each dataset to observe culling ratio.
 
 ## Viewer
 [Watch me](./docs/viewer_usage.md)

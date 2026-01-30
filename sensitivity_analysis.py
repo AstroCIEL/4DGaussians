@@ -27,11 +27,42 @@ from utils.loss_utils import ssim
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
 
 
-def compute_metrics_for_views(views, gaussians, pipeline, background, cam_type, metrics, lpips_model=None):
-    """计算给定视图集的平均指标"""
+def compute_metrics_for_views(views, gaussians, pipeline, background, cam_type, metrics, lpips_model=None, time_segment_masks=None):
+    """
+    计算给定视图集的平均指标
+    
+    Args:
+        views: 视图列表
+        gaussians: 高斯模型
+        pipeline: 渲染管道
+        background: 背景颜色
+        cam_type: 相机类型
+        metrics: 指标列表
+        lpips_model: LPIPS模型（可选）
+        time_segment_masks: 时间段mask字典，格式为 {(t_start, t_end): static_mask}
+    """
     metrics = [m.lower() for m in metrics]
     values = {m: [] for m in metrics}
+    
     for view in views:
+        # 如果使用时间段模式，根据视图时间设置对应的static mask
+        if time_segment_masks is not None:
+            view_time = getattr(view, 'time', None)
+            if view_time is not None:
+                # 找到视图时间所在的时间段
+                mask_set = False
+                for (t_start, t_end), static_mask in time_segment_masks.items():
+                    if t_start <= view_time <= t_end:
+                        gaussians._deformation.set_static_mask(static_mask)
+                        mask_set = True
+                        break
+                if not mask_set:
+                    # 如果没找到对应时间段，清除mask
+                    gaussians._deformation.clear_static_mask()
+            else:
+                # 如果视图没有时间信息，清除mask
+                gaussians._deformation.clear_static_mask()
+        
         rendering_results = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_results["render"]
         
@@ -99,6 +130,7 @@ def run_sensitivity_analysis(
     output_dir: str = None,
     metrics: list = None,
     lpips_net: str = "alex",
+    num_time_segments: int = None,
 ):
     """
     运行静止高斯球阈值敏感性分析
@@ -109,8 +141,12 @@ def run_sensitivity_analysis(
         iteration: 加载的迭代次数
         pipeline: 管道参数
         lambda_values: 要测试的lambda阈值列表
+        static_ratios: 静态比例列表（百分比）
         num_time_samples: 时间采样点数量
         output_dir: 输出目录
+        metrics: 指标列表
+        lpips_net: LPIPS网络类型
+        num_time_segments: 时间段数量（None表示使用全局模式，否则使用时间段模式）
     """
     print("=" * 60)
     print("Static Gaussian Sensitivity Analysis")
@@ -142,9 +178,36 @@ def run_sensitivity_analysis(
         # 分析静止性
         print("\n[2/4] Analyzing gaussian deformation...")
         analyzer = StaticGaussianAnalyzer(gaussians, num_time_samples=num_time_samples)
-        max_deformation = analyzer.compute_max_deformation(verbose=True)
         
-        stats = analyzer.get_statistics()
+        # 判断是否使用时间段模式
+        use_time_segments = num_time_segments is not None and num_time_segments > 1
+        if use_time_segments:
+            print(f"   Using time-segmented analysis with {num_time_segments} segments")
+            segment_data = analyzer.compute_max_deformation_per_time_segment(num_time_segments, verbose=True)
+            # 对于时间段模式，使用所有时间段的最大值作为全局统计
+            all_max_defs = torch.stack(segment_data['max_deformations'])
+            max_deformation = all_max_defs.max(dim=0)[0]  # 每个高斯在所有时间段的最大值
+        else:
+            print("   Using global time analysis")
+            max_deformation = analyzer.compute_max_deformation(verbose=True)
+        
+        # 计算统计信息（使用全局max_deformation）
+        stats = {
+            'min': max_deformation.min().item(),
+            'max': max_deformation.max().item(),
+            'mean': max_deformation.mean().item(),
+            'std': max_deformation.std().item(),
+            'median': max_deformation.median().item(),
+            'percentiles': {
+                '10%': torch.quantile(max_deformation, 0.1).item(),
+                '25%': torch.quantile(max_deformation, 0.25).item(),
+                '50%': torch.quantile(max_deformation, 0.5).item(),
+                '75%': torch.quantile(max_deformation, 0.75).item(),
+                '90%': torch.quantile(max_deformation, 0.9).item(),
+                '95%': torch.quantile(max_deformation, 0.95).item(),
+                '99%': torch.quantile(max_deformation, 0.99).item(),
+            }
+        }
         print(f"\n   Deformation Statistics:")
         print(f"   - Min:    {stats['min']:.6f}")
         print(f"   - Max:    {stats['max']:.6f}")
@@ -154,43 +217,118 @@ def run_sensitivity_analysis(
         
         # 确定lambda值范围
         target_ratios = None
-        if static_ratios:
-            max_def_np = max_deformation.cpu().numpy()
-            target_ratios = [r for r in static_ratios if 0 < r < 100]
-            if 0 in static_ratios:
-                target_ratios = [0] + target_ratios
-            if 100 in static_ratios:
-                target_ratios = target_ratios + [100]
-            if target_ratios:
-                lambda_values = np.percentile(max_def_np, target_ratios).tolist()
-        if lambda_values is None:
-            _, _, suggested = analyzer.suggest_lambda_range()
-            # 添加0和一些额外的点以获得更完整的曲线
-            max_val = stats['max']
-            if np.isfinite(max_val) and max_val > 0:
-                lambda_values = [0.0] + list(suggested) + [max_val * 1.5]
+        lambda_values = None
+        lambda_vectors = None  # 时间段模式下的lambda向量列表
+        
+        if use_time_segments:
+            # 时间段模式：为每个目标静态比例计算每个时间段的lambda
+            if static_ratios:
+                target_ratios = [r for r in static_ratios if 0 < r < 100]
+                if 0 in static_ratios:
+                    target_ratios = [0] + target_ratios
+                if 100 in static_ratios:
+                    target_ratios = target_ratios + [100]
+                
+                if target_ratios:
+                    # 为每个时间段计算lambda向量
+                    lambda_vectors = []
+                    for seg_idx, max_def_seg in enumerate(segment_data['max_deformations']):
+                        max_def_np = max_def_seg.cpu().numpy()
+                        lambdas_for_seg = np.percentile(max_def_np, target_ratios).tolist()
+                        # 过滤无效值
+                        lambdas_for_seg = [v for v in lambdas_for_seg if np.isfinite(v)]
+                        lambda_vectors.append(lambdas_for_seg)
+                    
+                    # lambda_vectors 是 [num_segments, num_target_ratios] 的形状
+                    # 转置为 [num_target_ratios, num_segments]，每个目标比例对应一个lambda向量
+                    lambda_vectors = list(zip(*lambda_vectors))
+                    print(f"\n   Computed lambda vectors for {len(target_ratios)} target ratios")
+                    print(f"   Each lambda vector has {num_time_segments} values (one per time segment)")
             else:
-                # 如果 max 不是有限值，只使用 suggested
-                lambda_values = [0.0] + list(suggested)
-        
-        # 过滤掉 NaN 和 Inf 值，然后去重并排序
-        lambda_values = [v for v in lambda_values if np.isfinite(v)]
-        lambda_values = sorted(set(lambda_values))
-        
-        # 确保至少有 2 个不同的 lambda 值
-        if len(lambda_values) < 2:
-            print(f"Warning: Only {len(lambda_values)} lambda value(s) generated!")
-            print(f"   Deformation stats: min={stats['min']:.6e}, max={stats['max']:.6e}, std={stats['std']:.6e}")
-            # 如果只有一个值或没有值，使用默认范围
-            if len(lambda_values) == 0:
-                lambda_values = [0.0, stats['max'] * 1.5] if np.isfinite(stats['max']) else [0.0, 1e-3]
-            elif len(lambda_values) == 1:
-                # 添加一些额外的值
-                val = lambda_values[0]
-                lambda_values = [0.0, val * 0.5, val, val * 1.5, val * 2.0] if val > 0 else [0.0, 1e-4, 1e-3]
-        
-        print(f"\n   Testing {len(lambda_values)} lambda values")
-        print(f"   Range: [{min(lambda_values):.6f}, {max(lambda_values):.6f}]")
+                # 如果没有指定static_ratios，使用建议的范围
+                # 为每个时间段生成建议的lambda范围，然后使用第一个时间段的lambda作为基准
+                lambda_vectors = []
+                for seg_idx, max_def_seg in enumerate(segment_data['max_deformations']):
+                    seg_stats = {
+                        'min': max_def_seg.min().item(),
+                        'max': max_def_seg.max().item(),
+                        'percentiles': {
+                            '10%': torch.quantile(max_def_seg, 0.1).item(),
+                            '99%': torch.quantile(max_def_seg, 0.99).item(),
+                        }
+                    }
+                    min_lambda = seg_stats['percentiles']['10%']
+                    max_lambda = seg_stats['percentiles']['99%']
+                    if max_lambda > min_lambda * 1.01:
+                        suggested = np.geomspace(min_lambda, max_lambda, 20)
+                    else:
+                        suggested = np.linspace(min_lambda, max_lambda, 20)
+                    max_val = seg_stats['max']
+                    if np.isfinite(max_val) and max_val > 0:
+                        lambdas = [0.0] + list(suggested) + [max_val * 1.5]
+                    else:
+                        lambdas = [0.0] + list(suggested)
+                    lambdas = [v for v in lambdas if np.isfinite(v)]
+                    lambdas = sorted(set(lambdas))
+                    lambda_vectors.append(lambdas)
+                
+                # 使用第一个时间段的lambda作为基准，为每个时间段使用相同的lambda值
+                # 但实际使用时会在每个时间段内分别计算mask
+                if lambda_vectors:
+                    base_lambdas = lambda_vectors[0]
+                    # 为每个目标lambda值创建一个向量（所有时间段使用相同的lambda）
+                    lambda_vectors = [[l] * num_time_segments for l in base_lambdas]
+                    # 同时设置lambda_values用于显示
+                    lambda_values = base_lambdas
+                else:
+                    lambda_vectors = None
+                    lambda_values = [0.0, 1e-3]
+        else:
+            # 全局模式：使用原来的逻辑
+            if static_ratios:
+                max_def_np = max_deformation.cpu().numpy()
+                target_ratios = [r for r in static_ratios if 0 < r < 100]
+                if 0 in static_ratios:
+                    target_ratios = [0] + target_ratios
+                if 100 in static_ratios:
+                    target_ratios = target_ratios + [100]
+                if target_ratios:
+                    lambda_values = np.percentile(max_def_np, target_ratios).tolist()
+            
+            if lambda_values is None:
+                # 使用统计信息建议lambda范围
+                min_lambda = stats['percentiles']['10%']
+                max_lambda = stats['percentiles']['99%']
+                if max_lambda > min_lambda * 1.01:
+                    suggested = np.geomspace(min_lambda, max_lambda, 20)
+                else:
+                    suggested = np.linspace(min_lambda, max_lambda, 20)
+                # 添加0和一些额外的点以获得更完整的曲线
+                max_val = stats['max']
+                if np.isfinite(max_val) and max_val > 0:
+                    lambda_values = [0.0] + list(suggested) + [max_val * 1.5]
+                else:
+                    # 如果 max 不是有限值，只使用 suggested
+                    lambda_values = [0.0] + list(suggested)
+            
+            # 过滤掉 NaN 和 Inf 值，然后去重并排序
+            lambda_values = [v for v in lambda_values if np.isfinite(v)]
+            lambda_values = sorted(set(lambda_values))
+            
+            # 确保至少有 2 个不同的 lambda 值
+            if len(lambda_values) < 2:
+                print(f"Warning: Only {len(lambda_values)} lambda value(s) generated!")
+                print(f"   Deformation stats: min={stats['min']:.6e}, max={stats['max']:.6e}, std={stats['std']:.6e}")
+                # 如果只有一个值或没有值，使用默认范围
+                if len(lambda_values) == 0:
+                    lambda_values = [0.0, stats['max'] * 1.5] if np.isfinite(stats['max']) else [0.0, 1e-3]
+                elif len(lambda_values) == 1:
+                    # 添加一些额外的值
+                    val = lambda_values[0]
+                    lambda_values = [0.0, val * 0.5, val, val * 1.5, val * 2.0] if val > 0 else [0.0, 1e-4, 1e-3]
+            
+            print(f"\n   Testing {len(lambda_values)} lambda values")
+            print(f"   Range: [{min(lambda_values):.6f}, {max(lambda_values):.6f}]")
         
         # 设置输出目录
         if output_dir is None:
@@ -233,26 +371,106 @@ def run_sensitivity_analysis(
         print("\n[4/4] Running sensitivity analysis...")
         results = []
         
-        for idx, lambda_val in enumerate(tqdm(lambda_values, desc="Testing lambda values")):
-            # 获取静止掩码
-            static_mask = analyzer.get_static_mask(lambda_val)
-            static_ratio = static_mask.float().mean().item()
-            
-            # 设置静止掩码
-            gaussians._deformation.set_static_mask(static_mask)
+        # 确定要测试的lambda配置
+        if use_time_segments:
+            if lambda_vectors:
+                # 时间段模式 + 有目标比例：遍历每个lambda向量
+                test_configs = [
+                    (lambda_vec, target_ratios[idx] if target_ratios and idx < len(target_ratios) else None)
+                    for idx, lambda_vec in enumerate(lambda_vectors)
+                ]
+                print(f"\n   Testing {len(test_configs)} lambda vector configurations")
+            else:
+                # 时间段模式但没有目标比例：使用建议的lambda（为每个时间段使用相同的值）
+                # 这种情况下，lambda_values应该已经设置了
+                if lambda_values is None:
+                    lambda_values = [0.0, 1e-3]
+                test_configs = [(lambda_val, None) for lambda_val in lambda_values]
+                print(f"\n   Testing {len(test_configs)} lambda values (same for all segments)")
+        else:
+            # 全局模式：遍历lambda值
+            test_configs = [
+                (lambda_val, target_ratios[idx] if target_ratios and idx < len(target_ratios) else None)
+                for idx, lambda_val in enumerate(lambda_values)
+            ]
+            print(f"\n   Testing {len(test_configs)} lambda values")
+        
+        for idx, (lambda_config, target_ratio) in enumerate(tqdm(test_configs, desc="Testing lambda configurations")):
+            if use_time_segments:
+                # 时间段模式：lambda_config 是一个向量（每个时间段一个lambda值）
+                if isinstance(lambda_config, (list, tuple, np.ndarray)):
+                    lambda_vec = list(lambda_config)
+                else:
+                    # 如果是标量，为所有时间段使用相同的值
+                    lambda_vec = [lambda_config] * num_time_segments
+                
+                # 获取每个时间段的static mask（使用对应的lambda值）
+                segment_mask_data = analyzer.get_static_mask_per_time_segment(
+                    lambda_vec, num_time_segments, verbose=False
+                )
+                # 构建时间段mask字典
+                time_segment_masks = {
+                    tuple(seg): mask for seg, mask in zip(
+                        segment_mask_data['segments'],
+                        segment_mask_data['static_masks']
+                    )
+                }
+                # 计算平均静态比例（所有时间段的平均值）
+                avg_static_ratio = np.mean([
+                    mask.float().mean().item() for mask in segment_mask_data['static_masks']
+                ])
+                # 不设置全局mask，而是在compute_metrics_for_views中根据时间动态设置
+                gaussians._deformation.clear_static_mask()
+                lambda_val = lambda_vec  # 保存lambda向量
+            else:
+                # 全局模式：获取静止掩码
+                lambda_val = lambda_config
+                static_mask = analyzer.get_static_mask(lambda_val)
+                static_ratio = static_mask.float().mean().item()
+                # 设置静止掩码
+                gaussians._deformation.set_static_mask(static_mask)
+                time_segment_masks = None
+                avg_static_ratio = static_ratio
             
             # 计算指标
             metrics_summary = compute_metrics_for_views(
-                test_views, gaussians, pipeline, background, cam_type, metrics, lpips_model
+                test_views, gaussians, pipeline, background, cam_type, metrics, lpips_model,
+                time_segment_masks=time_segment_masks
             )
 
-            result = {
-                'lambda': lambda_val,
-                'static_ratio': static_ratio,
-                'num_static': static_mask.sum().item(),
-                'num_total': static_mask.shape[0],
-                'metrics': metrics_summary,
-            }
+            if use_time_segments:
+                # 时间段模式：记录每个时间段的信息
+                num_total = segment_mask_data['static_masks'][0].shape[0]
+                # lambda_val 是一个向量，需要转换为可序列化的格式
+                if isinstance(lambda_val, (list, tuple, np.ndarray)):
+                    lambda_val_serializable = [float(v) for v in lambda_val]
+                else:
+                    lambda_val_serializable = float(lambda_val)
+                
+                result = {
+                    'lambda': lambda_val_serializable,  # 保存lambda向量
+                    'lambda_mean': float(np.mean(lambda_val)) if isinstance(lambda_val, (list, tuple, np.ndarray)) else float(lambda_val),
+                    'static_ratio': avg_static_ratio,
+                    'num_static': int(avg_static_ratio * num_total),
+                    'num_total': num_total,
+                    'metrics': metrics_summary,
+                    'time_segments': {
+                        'num_segments': num_time_segments,
+                        'segments': segment_mask_data['segments'],
+                        'lambda_per_segment': lambda_val_serializable if isinstance(lambda_val, (list, tuple, np.ndarray)) else [float(lambda_val)] * num_time_segments,
+                        'static_ratios_per_segment': [
+                            mask.float().mean().item() for mask in segment_mask_data['static_masks']
+                        ],
+                    },
+                }
+            else:
+                result = {
+                    'lambda': lambda_val,
+                    'static_ratio': static_ratio,
+                    'num_static': static_mask.sum().item(),
+                    'num_total': static_mask.shape[0],
+                    'metrics': metrics_summary,
+                }
             if 'psnr' in metrics_summary:
                 result['psnr_mean'] = metrics_summary['psnr']['mean']
                 result['psnr_std'] = metrics_summary['psnr']['std']
@@ -265,7 +483,9 @@ def run_sensitivity_analysis(
             if 'lpips' in metrics_summary:
                 result['lpips_mean'] = metrics_summary['lpips']['mean']
                 result['lpips_std'] = metrics_summary['lpips']['std']
-            if target_ratios and idx < len(target_ratios):
+            if target_ratio is not None:
+                result['target_static_ratio'] = target_ratio / 100.0
+            elif target_ratios and idx < len(target_ratios):
                 result['target_static_ratio'] = target_ratios[idx] / 100.0
             results.append(result)
         
@@ -286,6 +506,7 @@ def run_sensitivity_analysis(
             'model_path': dataset.model_path,
             'iteration': iteration,
             'num_time_samples': num_time_samples,
+            'num_time_segments': num_time_segments if use_time_segments else None,
         }
         
         results_path = os.path.join(output_dir, "sensitivity_results.json")
@@ -315,7 +536,15 @@ def run_sensitivity_analysis(
                 valid_results = [r for r in results if r.get('psnr_drop') is not None and r['psnr_drop'] < threshold]
                 if valid_results:
                     best = max(valid_results, key=lambda x: x['static_ratio'])
-                    print(f"   PSNR drop < {threshold} dB: λ = {best['lambda']:.6f} "
+                    # 处理lambda：如果是向量，转换为标量（使用平均值）
+                    lambda_val = best['lambda']
+                    if isinstance(lambda_val, (list, tuple, np.ndarray)):
+                        lambda_display = np.mean(lambda_val)
+                        lambda_str = f"[{', '.join([f'{v:.6f}' for v in lambda_val])}] (mean: {lambda_display:.6f})"
+                    else:
+                        lambda_display = float(lambda_val)
+                        lambda_str = f"{lambda_display:.6f}"
+                    print(f"   PSNR drop < {threshold} dB: λ = {lambda_str} "
                           f"(static: {best['static_ratio']*100:.1f}%, PSNR: {best['psnr_mean']:.2f})")
 
         if "ssim" in metrics:
@@ -342,10 +571,22 @@ def run_sensitivity_analysis(
 
 def plot_metric_curve(results, baseline_value, output_dir, metric_name, ylabel, filename):
     """生成指标-lambda曲线图"""
-    lambdas = [r['lambda'] for r in results]
+    lambdas_raw = [r['lambda'] for r in results]
     static_ratios = [r['static_ratio'] * 100 for r in results]
     values = [r['metrics'][metric_name]['mean'] for r in results]
     stds = [r['metrics'][metric_name]['std'] for r in results]
+
+    # 处理lambdas：如果是向量，转换为标量（使用平均值）
+    lambdas = []
+    for lam in lambdas_raw:
+        if isinstance(lam, (list, tuple, np.ndarray)):
+            # 如果是向量，使用平均值
+            lambdas.append(float(np.mean(lam)))
+        elif isinstance(lam, (int, float)):
+            lambdas.append(float(lam))
+        else:
+            # 尝试从结果中获取lambda_mean（如果存在）
+            lambdas.append(float(lam) if lam is not None else 0.0)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.errorbar(lambdas, values, yerr=stds, fmt='o-', capsize=3,
@@ -385,8 +626,20 @@ def plot_metric_curve(results, baseline_value, output_dir, metric_name, ylabel, 
 def plot_results(results, baseline_metrics, output_dir, metrics):
     """生成综合可视化图表"""
     metrics = [m.lower() for m in metrics] if metrics else ["psnr"]
-    lambdas = [r['lambda'] for r in results]
+    lambdas_raw = [r['lambda'] for r in results]
     static_ratios = [r['static_ratio'] * 100 for r in results]
+    
+    # 处理lambdas：如果是向量，转换为标量（使用平均值或lambda_mean）
+    lambdas = []
+    for lam in lambdas_raw:
+        if isinstance(lam, (list, tuple, np.ndarray)):
+            # 如果是向量，使用平均值
+            lambdas.append(float(np.mean(lam)))
+        elif isinstance(lam, (int, float)):
+            lambdas.append(float(lam))
+        else:
+            # 尝试从结果中获取lambda_mean
+            lambdas.append(float(lam) if lam is not None else 0.0)
 
     # 如果包含SSIM/LPIPS，主图改为2x2：PSNR/SSIM/LPIPS/Static Ratio
     if "ssim" in metrics or "lpips" in metrics:
@@ -407,8 +660,10 @@ def plot_results(results, baseline_metrics, output_dir, metrics):
         for idx, (name, ylabel, baseline) in enumerate(panels[:4]):
             ax = axes_flat[idx]
             if name == "static_ratio":
-                ax.plot(lambdas, static_ratios, 'o-', color='#28A745', linewidth=2, markersize=4)
-                ax.fill_between(lambdas, 0, static_ratios, alpha=0.3, color='#28A745')
+                # 对于static_ratio图，使用lambda标量
+                lambda_for_plot = [float(np.mean(lam)) if isinstance(lam, (list, tuple, np.ndarray)) else float(lam) for lam in lambdas_raw]
+                ax.plot(lambda_for_plot, static_ratios, 'o-', color='#28A745', linewidth=2, markersize=4)
+                ax.fill_between(lambda_for_plot, 0, static_ratios, alpha=0.3, color='#28A745')
                 ax.set_ylabel('Static Gaussians (%)', fontsize=11)
                 ax.set_title('Static Ratio vs Threshold', fontsize=12)
                 ax.set_ylim(0, 100)
@@ -500,7 +755,16 @@ def plot_results(results, baseline_metrics, output_dir, metrics):
 
     # 4. Trade-off: PSNR Drop vs Static Ratio
     ax4 = axes[1, 1]
-    scatter = ax4.scatter(static_ratios, psnr_drops, c=lambdas, cmap='viridis',
+    # 处理lambdas：如果是向量，转换为标量（使用平均值）
+    lambda_scalars = []
+    for lam in lambdas:
+        if isinstance(lam, (list, tuple, np.ndarray)):
+            # 如果是向量，使用平均值
+            lambda_scalars.append(float(np.mean(lam)))
+        else:
+            lambda_scalars.append(float(lam))
+    
+    scatter = ax4.scatter(static_ratios, psnr_drops, c=lambda_scalars, cmap='viridis',
                           s=60, alpha=0.8, edgecolors='white', linewidth=0.5)
     cbar = plt.colorbar(scatter, ax=ax4)
     cbar.set_label('Lambda (λ)', fontsize=10)
@@ -512,8 +776,8 @@ def plot_results(results, baseline_metrics, output_dir, metrics):
     ax4.grid(True, alpha=0.3)
 
     # 在trade-off图上标注一些关键点
-    for i, (sr, pd, lam) in enumerate(zip(static_ratios, psnr_drops, lambdas)):
-        if i % max(1, len(lambdas) // 5) == 0:  # 只标注部分点
+    for i, (sr, pd, lam) in enumerate(zip(static_ratios, psnr_drops, lambda_scalars)):
+        if i % max(1, len(lambda_scalars) // 5) == 0:  # 只标注部分点
             ax4.annotate(f'λ={lam:.1e}', (sr, pd), fontsize=7,
                          xytext=(5, 5), textcoords='offset points')
 
@@ -555,6 +819,8 @@ if __name__ == "__main__":
                         help="Comma-separated static ratios in percent, e.g. 5,10,15,...,95")
     parser.add_argument("--static_ratio_step", type=int, default=None,
                         help="Step size in percent for static ratios (5 -> 5,10,...,95)")
+    parser.add_argument("--num_time_segments", type=int, default=None,
+                        help="Number of time segments for time-segmented analysis (None = global mode)")
     
     args = get_combined_args(parser)
     print("Analyzing:", args.model_path)
@@ -587,6 +853,8 @@ if __name__ == "__main__":
         lambda_values = lambda_values + np.geomspace(lambda_mid, args.lambda_max, int(args.num_lambdas / 3)).tolist()
         lambda_values = [0.0] + lambda_values  # 始终包含0
     
+    num_time_segments = getattr(args, 'num_time_segments', None)
+    
     run_sensitivity_analysis(
         model.extract(args),
         hyperparam.extract(args),
@@ -598,4 +866,5 @@ if __name__ == "__main__":
         output_dir=output_dir,
         metrics=parse_metrics(getattr(args, 'metrics', None)),
         lpips_net=getattr(args, 'lpips_net', "alex"),
+        num_time_segments=num_time_segments,
     )
