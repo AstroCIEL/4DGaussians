@@ -13,8 +13,6 @@ from collections import defaultdict
 from utils.graphics_utils import fov2focal
 from utils.sh_utils import eval_sh
 
-sys.path.append("/home/hyoh/shape-aware-GS-processor/")
-
 from test_gpu import analytic_2x2_eigendecomp
 from preprocessing import in_frustum, compute_cov3d, project_3d_to_2d
 
