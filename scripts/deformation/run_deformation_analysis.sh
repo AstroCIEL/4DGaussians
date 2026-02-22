@@ -19,7 +19,7 @@ elif [ "$DATASET" = "dnerf" ]; then
 elif [ "$DATASET" = "hypernerf" ]; then
     CONFIG="arguments/hypernerf/default.py"
     DATA_PATH="data/hypernerf/interp/${SCENE}"
-    MODEL_PATH="output/hypernerf/${SCENE}"
+    MODEL_PATH="output/hypernerf/interp/${SCENE}"
 else
     echo "Unknown dataset: $DATASET"
     echo "Supported: dynerf, dnerf, hypernerf"
@@ -44,7 +44,7 @@ if [ ! -d "$MODEL_PATH" ]; then
 fi
 
 # 运行分析
-python analyze_deformation.py \
+python scripts/deformation/analyze_deformation.py \
     -m "$MODEL_PATH" \
     -s "$DATA_PATH" \
     --configs "$CONFIG" \

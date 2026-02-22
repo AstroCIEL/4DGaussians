@@ -87,7 +87,7 @@ for SCENE in "interp/aleks-teapot" "interp/slice-banana" "interp/interp-chicken"
         --log-file $OUTPUT_PATH/$SCENE/analysis_per_kernel.csv
 done
 
-$PYTHON_BIN $REPOSITORY_PATH/scripts/ana_latency.py \
+$PYTHON_BIN $REPOSITORY_PATH/scripts/latency/ana_latency.py \
     --output_dir $OUTPUT_PATH \
     --statistics_relpath "test/ours_14000/statistics.txt" \
     --out_png $OUTPUT_PATH/hypernerf_latency_breakdown.png \

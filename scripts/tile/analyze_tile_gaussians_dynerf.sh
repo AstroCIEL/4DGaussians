@@ -1,22 +1,22 @@
 #!/bin/bash
-# HyperNeRF/Interp Tile Gaussians Analysis - 分析hypernerf/interp数据集中各场景test view的tile高斯球统计
+# DyNeRF Tile Gaussians Analysis - 分析dynerf数据集中各场景test view的tile高斯球统计
 export CUDA_VISIBLE_DEVICES=3
 
 SCENES=(
-    "aleks-teapot"
-    "cut-lemon1"
-    "hand1-dense-v2"
-    "interp-chicken"
-    "slice-banana"
-    "torchocolate"
+    "cut_roasted_beef"
+    "coffee_martini"
+    "cook_spinach"
+    "flame_salmon_1"
+    "flame_steak"
+    "sear_steak"
 )
 
-DATASET="hypernerf/interp"
+DATASET="dynerf"
 ITERATION=14000
 FRAME_IDX=${1:-}  # 可选：指定要分析的帧索引，如果不指定则分析所有test view
 
 echo "=========================================="
-echo "HyperNeRF/Interp Tile Gaussians Analysis"
+echo "DyNeRF Tile Gaussians Analysis"
 echo "=========================================="
 echo "Dataset: $DATASET"
 echo "Iteration: $ITERATION"
@@ -29,7 +29,7 @@ echo "Scenes: ${SCENES[@]}"
 echo "=========================================="
 
 # 运行分析
-python scripts/analyze_tile_gaussians.py \
+python scripts/tile/analyze_tile_gaussians.py \
     --dataset "$DATASET" \
     --base_dir output \
     --iteration "$ITERATION" \

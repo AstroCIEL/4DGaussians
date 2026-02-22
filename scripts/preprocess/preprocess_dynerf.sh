@@ -30,7 +30,7 @@ for scene in "${SCENES[@]}"; do
     # Step 1: 提取视频帧 (Extract frames)
     # ----------------------------------------
     echo "[1/3] 正在提取视频帧..."
-    python scripts/preprocess_dynerf.py --datadir "$scene_dir"
+    python scripts/preprocess/preprocess_dynerf.py --datadir "$scene_dir"
 
     # ----------------------------------------
     # Step 2: 生成点云 (COLMAP)

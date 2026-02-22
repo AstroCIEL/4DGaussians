@@ -1,22 +1,22 @@
 #!/bin/bash
-# DyNeRF Tile Actual Gaussians Analysis - 分析dynerf数据集中各场景test view的tile实际处理高斯球统计（考虑early stop）
+# HyperNeRF/Interp Tile Actual Gaussians Analysis - 分析hypernerf/interp数据集中各场景test view的tile实际处理高斯球统计（考虑early stop）
 export CUDA_VISIBLE_DEVICES=3
 
 SCENES=(
-    "cut_roasted_beef"
-    "coffee_martini"
-    "cook_spinach"
-    "flame_salmon_1"
-    "flame_steak"
-    "sear_steak"
+    "aleks-teapot"
+    "cut-lemon1"
+    "hand1-dense-v2"
+    "interp-chicken"
+    "slice-banana"
+    "torchocolate"
 )
 
-DATASET="dynerf"
+DATASET="hypernerf/interp"
 ITERATION=14000
 FRAME_IDX=${1:-}  # 可选：指定要分析的帧索引，如果不指定则分析所有test view
 
 echo "=========================================="
-echo "DyNeRF Tile Actual Gaussians Analysis (with Early Stop)"
+echo "HyperNeRF/Interp Tile Actual Gaussians Analysis (with Early Stop)"
 echo "=========================================="
 echo "Dataset: $DATASET"
 echo "Iteration: $ITERATION"
@@ -35,7 +35,7 @@ echo "  pip install . --force-reinstall --no-deps"
 echo "=========================================="
 
 # 运行分析
-python scripts/analyze_tile_actual_gaussians.py \
+python scripts/tile/analyze_tile_actual_gaussians.py \
     --dataset "$DATASET" \
     --base_dir output \
     --iteration "$ITERATION" \

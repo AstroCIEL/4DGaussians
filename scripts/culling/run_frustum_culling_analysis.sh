@@ -79,14 +79,14 @@ fi
 # 运行分析脚本
 if [ -n "$DATASET" ]; then
     echo "分析数据集: $DATASET"
-    python scripts/analyze_frustum_culling.py \
+    python scripts/culling/analyze_frustum_culling.py \
         --dataset "$DATASET" \
         --base_dir "$BASE_DIR" \
         --iteration "$ITERATION" \
         --output_dir "$OUTPUT_DIR"
 else
     echo "分析场景: $MODEL_PATH"
-    python scripts/analyze_frustum_culling.py \
+    python scripts/culling/analyze_frustum_culling.py \
         --model_path "$MODEL_PATH" \
         --source_path "$SOURCE_PATH" \
         --iteration "$ITERATION" \

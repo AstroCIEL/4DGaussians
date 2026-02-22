@@ -2,17 +2,15 @@
 # DyNeRF Sensitivity Analysis - Run analysis for all scenes and aggregate results
 
 SCENES=(
-    "bouncingballs"
-    "hellwarrior"
-    "hook"
-    "jumpingjacks"
-    "lego"
-    "mutant"
-    "standup"
-    "trex"
+    "aleks-teapot"
+    "cut-lemon1"
+    "hand1-dense-v2"
+    "interp-chicken"
+    "slice-banana"
+    "torchocolate"
 )
 
-DATASET="dnerf"
+DATASET="hypernerf/interp"
 MODE="ratio"
 RATIO_STEP=5
 NUM_LAMBDAS=20
@@ -35,7 +33,7 @@ for scene in "${SCENES[@]}"; do
     echo ""
     echo "Processing scene: $scene"
     echo "----------------------------------------"
-    bash ./scripts/run_sensitivity_analysis.sh "$scene" "$DATASET" "$MODE" "$RATIO_STEP" "$NUM_LAMBDAS" "$NUM_TIME_SAMPLES" "$METRICS" "$LPIPS_NET"
+    bash ./scripts/deform_sensitivity/run_sensitivity_analysis.sh "$scene" "$DATASET" "$MODE" "$RATIO_STEP" "$NUM_LAMBDAS" "$NUM_TIME_SAMPLES" "$METRICS" "$LPIPS_NET"
 done
 
 # Aggregate results
@@ -43,7 +41,7 @@ echo ""
 echo "=========================================="
 echo "Aggregating results across all scenes..."
 echo "=========================================="
-python scripts/aggregate_sensitivity_results.py \
+python scripts/deform_sensitivity/aggregate_sensitivity_results.py \
     --dataset "$DATASET" \
     --scenes "${SCENES[@]}"
 

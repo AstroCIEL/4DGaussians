@@ -62,7 +62,7 @@ fi
 
 # 运行分析
 if [ "$MODE" = "ratio" ]; then
-    python sensitivity_analysis.py \
+    python ./scripts/deform_sensitivity/sensitivity_analysis.py \
         -m "$MODEL_PATH" \
         -s "$DATA_PATH" \
         --configs "$CONFIG" \
@@ -72,7 +72,7 @@ if [ "$MODE" = "ratio" ]; then
         --lpips_net "$LPIPS_NET" \
         --num_time_segments "$NUM_TIME_SEGMENTS"
 elif [ "$MODE" = "lambda" ]; then
-    python sensitivity_analysis.py \
+    python ./scripts/deform_sensitivity/sensitivity_analysis.py \
         -m "$MODEL_PATH" \
         -s "$DATA_PATH" \
         --configs "$CONFIG" \
