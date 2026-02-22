@@ -6,7 +6,7 @@ simulation:
   scene: "sear_steak"
   # 要仿真的帧（camera/view）索引，单帧写 0，多帧写 0,1,2
   frames: 0
-  resolution: "1440x1024"   # 仅合成 workload 时使用；真实 workload 由视图分辨率决定
+  resolution: "1408x1080"   # 仅合成 workload 时使用；真实 workload 由视图分辨率决定
   # 可选：直接指定模型与数据路径；不填则用 base_output/dataset/scene 与 data/dataset/scene
   # model_path: "output/dynerf/sear_steak"
   # source_path: "data/dynerf/sear_steak"
@@ -19,7 +19,7 @@ base_output: "output"
 hardware:
   preprocessing_units: 4
   sorting_units: 4
-  rasterizing_units: 16
+  rasterizing_units: 4
   memory_bandwidth: 51.2  # GB/s
   cache_size: 1048576    # bytes
   clock_frequency: 1.0  # GHz
@@ -27,7 +27,7 @@ hardware:
 algorithm:
   # tile_size 32 means 32x32px
   tile_size: 32
-  subtile_size: 2
+  subtile_size: 4
 
 # workload：不设 use_synthetic 且存在模型时使用真实负载；否则合成
 workload:
