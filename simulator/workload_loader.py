@@ -22,6 +22,7 @@ from simulator.structures import (
     WorkloadFrame,
     _classify_region,
 )
+from simulator.generate_labels import generate_motion_labels
 
 
 def _extract_gaussian_attrs(gaussians) -> Dict[int, GaussianAttr]:
@@ -48,8 +49,8 @@ def _extract_gaussian_attrs(gaussians) -> Dict[int, GaussianAttr]:
 def _compute_tile_cover(
     means2d,
     radii,
-    image_width: int,
-    image_height: int,
+    effective_width: int,
+    effective_height: int,
     tile_size: int,
 ) -> Tuple[Dict[Tuple[int, int], List[int]], Dict[int, List[Tuple[int, int]]], int, int]:
     """
@@ -67,18 +68,20 @@ def _compute_tile_cover(
     visible_radii = radii[visible_mask]
     visible_indices = np.nonzero(visible_mask)[0]
 
-    num_tiles_x = math.ceil(image_width / tile_size)
-    num_tiles_y = math.ceil(image_height / tile_size)
+    num_tiles_x = effective_width // tile_size
+    num_tiles_y = effective_height // tile_size
+    if num_tiles_x <= 0 or num_tiles_y <= 0:
+        return defaultdict(list), defaultdict(list), 0, 0
     tile_to_gaussians: Dict[Tuple[int, int], List[int]] = defaultdict(list)
     gaussian_to_tiles: Dict[int, List[Tuple[int, int]]] = defaultdict(list)
 
     for i, gid in enumerate(visible_indices):
         x, y = float(visible_means2d[i, 0]), float(visible_means2d[i, 1])
         radius = float(visible_radii[i])
-        min_x = max(0, x - radius)
-        max_x = min(image_width, x + radius)
-        min_y = max(0, y - radius)
-        max_y = min(image_height, y + radius)
+        min_x = max(0, min(effective_width, x - radius))
+        max_x = max(0, min(effective_width, x + radius))
+        min_y = max(0, min(effective_height, y - radius))
+        max_y = max(0, min(effective_height, y + radius))
         tile_min_x = max(0, min(int(min_x // tile_size), num_tiles_x - 1))
         tile_max_x = max(0, min(int(max_x // tile_size), num_tiles_x - 1))
         tile_min_y = max(0, min(int(min_y // tile_size), num_tiles_y - 1))
@@ -96,9 +99,10 @@ def _build_workload_frame(
     num_tiles_x: int,
     num_tiles_y: int,
     gaussian_attrs: Dict[int, GaussianAttr],
+    gaussian_labels: Optional[np.ndarray],
     tile_size: int,
-    width: int,
-    height: int,
+    eff_width: int,
+    eff_height: int,
     chunk_size: int,
 ) -> WorkloadFrame:
     tiles: Dict[int, TileWorkload] = {}
@@ -109,34 +113,59 @@ def _build_workload_frame(
             ids = tile_to_gauss.get((tx, ty), [])
             total_gaussians += len(ids)
             chunks: List[int] = []
-            remaining = len(ids)
-            idx = 0
-            while remaining > 0:
-                take = min(chunk_size, remaining)
-                chunks.append(take)
-                remaining -= take
-                idx += 1
+            chunk_label_counts: List[Dict[int, int]] = []
+            label_counts = {0: 0, 1: 0, 2: 0}
+            # 按顺序分 chunk，计算每个 chunk 内的标签计数
+            if len(ids) > 0:
+                if gaussian_labels is not None:
+                    for gid in ids:
+                        lb = int(gaussian_labels[gid]) if gid < len(gaussian_labels) else None
+                        if lb is not None and lb in (0, 1, 2):
+                            label_counts[lb] = label_counts.get(lb, 0) + 1
+                pos = 0
+                while pos < len(ids):
+                    take = min(chunk_size, len(ids) - pos)
+                    chunk_ids = ids[pos:pos + take]
+                    pos += take
+                    chunks.append(take)
+                    if gaussian_labels is not None:
+                        c_counts = {0: 0, 1: 0, 2: 0}
+                        for gid in chunk_ids:
+                            lb = int(gaussian_labels[gid]) if gid < len(gaussian_labels) else None
+                            if lb is not None and lb in (0, 1, 2):
+                                c_counts[lb] = c_counts.get(lb, 0) + 1
+                        chunk_label_counts.append(c_counts)
+                    else:
+                        chunk_label_counts.append({})
             tiles[tile_id] = TileWorkload(
                 tile_id=tile_id,
                 gaussian_ids=ids,
                 chunk_sizes=chunks,
+                chunk_label_counts=chunk_label_counts,
+                label_counts=label_counts,
                 region=_classify_region(tx, ty, num_tiles_x, num_tiles_y),
             )
+    labels_dict = {}
+    if gaussian_labels is not None:
+        labels_dict = {int(i): int(gaussian_labels[i]) for i in range(len(gaussian_labels))}
+
     return WorkloadFrame(
         frame_id=frame_id,
-        width=width,
-        height=height,
+        width=eff_width,
+        height=eff_height,
         tile_size=tile_size,
         num_gaussians=total_gaussians,
         num_tiles=num_tiles_x * num_tiles_y,
         tiles=tiles,
         gaussian_attrs=gaussian_attrs,
+        gaussian_labels=labels_dict,
     )
 
 
 def load_workload_from_scene(
     config: dict,
-    tile_size: int,
+    config_path: str = None,
+    tile_size: int = 32,
     chunk_size: int = 256,
     verbose: bool = True,
 ) -> Optional[List[WorkloadFrame]]:
@@ -248,6 +277,35 @@ def load_workload_from_scene(
     cam_type = getattr(scene_obj, "dataset_type", None)
 
     gaussian_attrs = _extract_gaussian_attrs(gaussians)
+    # 读取或生成动静标签
+    gaussian_labels = None
+    label_cfg = config.get("labeling", {})
+    label_npy = label_cfg.get("output_npy", "motion_labels.npy")
+    label_path = os.path.join(model_path, label_npy)
+    if os.path.isfile(label_path):
+        try:
+            gaussian_labels = np.load(label_path)
+            if verbose:
+                print(f"[workload_loader] loaded labels from {label_path}")
+        except Exception as e:
+            if verbose:
+                print(f"[workload_loader] 读取标签失败: {e}")
+    if gaussian_labels is None and config_path:
+        try:
+            if verbose:
+                print("[workload_loader] 标签缺失，自动生成...")
+            labels, _ = generate_motion_labels(config_path)
+            gaussian_labels = labels
+            if gaussian_labels is None and os.path.isfile(label_path):
+                gaussian_labels = np.load(label_path)
+        except Exception as e:
+            if verbose:
+                print(f"[workload_loader] 自动生成标签失败: {e}")
+            gaussian_labels = None
+    if gaussian_labels is not None and len(gaussian_labels) != gaussians._xyz.shape[0]:
+        if verbose:
+            print(f"[workload_loader] 标签长度与高斯数不匹配，忽略标签 ({len(gaussian_labels)} vs {gaussians._xyz.shape[0]})")
+        gaussian_labels = None
     workloads: List[WorkloadFrame] = []
     for fid in frame_ids:
         if fid < 0 or fid >= len(cameras):
@@ -276,17 +334,24 @@ def load_workload_from_scene(
                 print(f"[workload_loader] frame {fid} 缺少 viewspace_points/radii")
             continue
 
-        width, height = int(view.image_width), int(view.image_height)
-        tile_map, _, ntx, nty = _compute_tile_cover(viewspace_points, radii, width, height, tile_size)
+        full_w, full_h = int(view.image_width), int(view.image_height)
+        eff_w = (full_w // tile_size) * tile_size
+        eff_h = (full_h // tile_size) * tile_size
+        if eff_w <= 0 or eff_h <= 0:
+            if verbose:
+                print(f"[workload_loader] frame {fid} 有效尺寸为0，跳过")
+            continue
+        tile_map, _, ntx, nty = _compute_tile_cover(viewspace_points, radii, eff_w, eff_h, tile_size)
         wl = _build_workload_frame(
             frame_id=fid,
             tile_to_gauss=tile_map,
             num_tiles_x=ntx,
             num_tiles_y=nty,
             gaussian_attrs=gaussian_attrs,
+            gaussian_labels=gaussian_labels,
             tile_size=tile_size,
-            width=width,
-            height=height,
+            eff_width=eff_w,
+            eff_height=eff_h,
             chunk_size=chunk_size,
         )
         workloads.append(wl)
@@ -298,9 +363,10 @@ def load_workload_from_scene(
 
 if __name__ == "__main__":
     import yaml
-    with open("simulator/configs/default.yaml", "r") as f:
+    config_path = "simulator/configs/default.yaml"  
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    workloads = load_workload_from_scene(config, tile_size=32, chunk_size=256, verbose=True)
+    workloads = load_workload_from_scene(config, config_path=config_path, tile_size=32, chunk_size=256, verbose=True)
     if workloads is None:
         print("failed to load workloads (returned None)")
     else:

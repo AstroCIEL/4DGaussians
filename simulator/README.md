@@ -31,6 +31,7 @@
 * `memory.py`: 简化的DRAM带宽与延迟模型。
 * `analyzer.py`: 统计总周期数、FIFO满/空时间占比、各Raster Core利用率，并生成图表。
 * `main.py`: 仿真入口，负责加载 Workload 数据并启动仿真。
+* `generate_labels.py`: 离线动静标签生成，自动与 simulator 集成（运行时若无标签会触发生成）。
 
 ## ASIC 数据流与微架构要求 (Cursor 核心实现参考)
 
@@ -61,8 +62,24 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 
 **基于 Tile 的中央凹渲染 (Foveated Rendering)，改变传统 Workload 计算。**
 
-* 接收到 Tile 任务的 Raster Core，会首先检查该 Tile 所在的视野区域（根据配置读取）：
+* 接收到 Tile 任务的 Raster Core，会首先检查该 Tile 所在的视野区域（根据配置读取）。真实画幅若无法被 `tile_size` 整除，将直接舍弃右侧/底部不足一整 tile 的区域，仅对可整除区域生成/排序/光栅化任务：
 * **Fovea (中心区)**：1x 原始分辨率计算（Workload 不变）。
 * **Transition (过渡区)**：2x 降采样（每个 Subtile/Tile 实际需要并行处理的像素减少一半，计算 Latency 相应缩短）。
 * **Periphery (外围区)**：4x 降采样（处理像素减少至四分之一）。
 * **插值重建 (Interpolation)**：对于经历过降采样的 Tile，在流水线末端需加上轻量级的插值重建周期（主要为移位和加法延迟），然后再写回 Frame Buffer。
+
+## 使用说明（含动静标签生成）
+
+1) 配置：编辑 `simulator/configs/default.yaml`，至少设置 `simulation.dataset` / `simulation.scene`，可选 `simulation.model_path` / `simulation.source_path`；`workload.static_ratio` / `quasi_ratio` 指定动静比例；`labeling.output_npy` / `output_json` 控制标签文件名。
+
+2) 运行仿真：  
+```bash
+python -m simulator.main --config simulator/configs/default.yaml
+```
+运行时会尝试读取模型目录下的标签文件（默认 `motion_labels.npy`）；若缺失则自动调用 `simulator.generate_labels` 离线生成后再继续仿真。
+
+3) 单独生成标签（可选，手动先行）：  
+```bash
+python -m simulator.generate_labels --config simulator/configs/default.yaml
+```
+生成结果会写入模型目录并在后续仿真中复用。

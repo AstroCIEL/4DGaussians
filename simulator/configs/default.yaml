@@ -3,7 +3,7 @@
 # 若 model_path 不存在或 workload.use_synthetic=true，则使用合成（平均分配）workload。
 simulation:
   dataset: "dynerf"
-  scene: "sear_steak"
+  scene: "cook_spinach"
   # 要仿真的帧（camera/view）索引，单帧写 0，多帧写 0,1,2
   frames: 0
   resolution: "1440x1024"   # 仅合成 workload 时使用；真实 workload 由视图分辨率决定
@@ -46,6 +46,11 @@ workload:
   # num_gaussians: 100000  # 仅合成时有效
   static_ratio: 0.4
   quasi_ratio: 0.4
+  
+labeling:
+  num_time_samples: 50
+  output_npy: "motion_labels.npy"
+  output_json: "motion_labels.json"
   
 output:
   stats_file: "results/stats.json"

@@ -28,7 +28,14 @@ class UnifiedDeformPreprocessEngine:
         random.seed(0)
 
     def classify_counts(self, task: TileTask):
-        """根据比例拆分 chunk 内的高斯数量。"""
+        """根据标签计数或比例拆分 chunk 内的高斯数量。"""
+        if task.label_counts:
+            static_n = task.label_counts.get(0, 0)
+            quasi_n = task.label_counts.get(1, 0)
+            dynamic_n = task.label_counts.get(2, 0)
+            remaining = max(0, task.num_gaussians - static_n - quasi_n - dynamic_n)
+            dynamic_n += remaining  # 兜底
+            return static_n, quasi_n, dynamic_n
         n = task.num_gaussians
         static_n = int(n * self.config.static_ratio)
         quasi_n = int(n * self.config.quasi_ratio)

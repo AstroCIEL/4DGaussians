@@ -20,6 +20,8 @@ class TileWorkload:
     tile_id: int
     gaussian_ids: List[int] = field(default_factory=list)
     chunk_sizes: List[int] = field(default_factory=list)
+    chunk_label_counts: List[Dict[int, int]] = field(default_factory=list)  # 每个 chunk 内标签计数
+    label_counts: Dict[int, int] = field(default_factory=dict)  # tile 粒度标签计数
     region: str = "fovea"  # fovea | transition | periphery
 
     @property
@@ -42,6 +44,7 @@ class WorkloadFrame:
     num_tiles: int
     tiles: Dict[int, TileWorkload] = field(default_factory=dict)
     gaussian_attrs: Dict[int, GaussianAttr] = field(default_factory=dict)
+    gaussian_labels: Dict[int, int] = field(default_factory=dict)  # id -> label (0=静止,1=微动,2=巨变)
 
 
 @dataclass
@@ -53,6 +56,7 @@ class TileTask:
     region: str
     chunk_index: int = 0
     gaussian_ids: Optional[List[int]] = None
+    label_counts: Optional[Dict[int, int]] = None
 
 
 @dataclass

@@ -37,7 +37,7 @@ class Simulator:
         tile_size = algo.get("tile_size", 32)
         chunk_size = self.config.get("workload", {}).get("chunk_size", 256)
         verbose = self.config.get("output", {}).get("verbose", True)
-        workloads = load_workload_from_scene(self.config, tile_size=tile_size, chunk_size=chunk_size, verbose=verbose)
+        workloads = load_workload_from_scene(self.config, config_path=self.config_path, tile_size=tile_size, chunk_size=chunk_size, verbose=verbose)
         if workloads:
             return workloads
 
@@ -110,6 +110,9 @@ class Simulator:
             # 若 chunk_sizes 为空但有高斯列表，退化为一个 chunk
             chunk_sizes = tile.chunk_sizes or ([len(tile.gaussian_ids)] if tile.gaussian_ids else [])
             for idx, csize in enumerate(chunk_sizes):
+                c_labels = None
+                if tile.chunk_label_counts and idx < len(tile.chunk_label_counts):
+                    c_labels = tile.chunk_label_counts[idx]
                 task = TileTask(
                     frame_id=frame.frame_id,
                     tile_id=tile.tile_id,
@@ -117,6 +120,7 @@ class Simulator:
                     region=tile.region,
                     chunk_index=idx,
                     gaussian_ids=tile.gaussian_ids,
+                    label_counts=c_labels,
                 )
                 try:
                     yield udpe.in_queue.put(task)
