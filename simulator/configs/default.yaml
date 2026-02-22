@@ -23,6 +23,16 @@ hardware:
   memory_bandwidth: 51.2  # GB/s
   cache_size: 1048576    # bytes
   clock_frequency: 1.0  # GHz
+  # 关键时序参数（cycle）
+  cull_cycles: 2.0
+  deform_cycles: 4.0
+  intersection_cycles: 1.0
+  coarse_sort_cycles: 4.0
+  fine_sort_cycles: 0.05
+  raster_cycles: 1.0
+  interpolation_cycles: 8.0
+  fifo_depth: 32
+  window_size_k: 8
   
 algorithm:
   # tile_size 32 means 32x32px
@@ -34,7 +44,9 @@ workload:
   chunk_size: 256
   # use_synthetic: true   # 设为 true 强制使用合成 workload
   # num_gaussians: 100000  # 仅合成时有效
+  static_ratio: 0.4
+  quasi_ratio: 0.4
   
 output:
   stats_file: "results/stats.json"
-  verbose: true
+  verbose: True

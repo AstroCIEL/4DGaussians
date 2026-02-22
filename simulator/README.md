@@ -4,6 +4,7 @@
 
 * **simulator源码位置**：`/DISK1/home/rh_xu30/4DGaussians/simulator`
 * **算法源码根目录**：`/DISK1/home/rh_xu30/4DGaussians`
+* **完整创新点说明文件**：`/DISK1/home/rh_xu30/4DGaussians/simulator/4DGS行文逻辑.pdf`（重要）
 
 该Simulator是一个基于Python的离散事件驱动（Discrete-Event Driven）的Cycle-Accurate模拟器。它专门用于验证和评估一种**面向边缘端低功耗、高帧率的创新型4DGS（4D Gaussian Splatting）渲染ASIC架构**。
 
@@ -38,7 +39,7 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 ### 1. 预处理阶段 (UDPE: Unified Deformation-Preprocess Engine)
 
 **非传统的固定流水线，而是基于 2-bit 标签的动态路由结构。**
-给定时间步 ，UDPE 的 Dispatcher 首先读取高斯的 2-bit 离线标签，并将其路由到不同的并发数据通路：
+给定时间步t，UDPE 的 Dispatcher 首先读取高斯的 2-bit 离线标签，并将其路由到不同的并发数据通路：
 
 * **静止高斯 (Static, 约40%)**：直接进入 Cull Module (视锥剔除)，完成后**完全跳过** Deform Module，通过零开销旁路 (Bypass) 直接输出。
 * **微动高斯 (Quasi-static, 约40%)**：先进入 Cull Module 做粗剔除 -> 进入 `FIFO_cull_to_deform` -> 存活者进入 Deform Module 计算形变。
@@ -53,19 +54,15 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 * **HSE 排序**：基于上一步的相交测试结果，在 Tile 内部进行 Chunk-based 的二阶段深度排序（App. sort -> Acc. bitonic sort）。
 * **WBS 调度器 (关键)**：
 1. **空间重排**：Tile 列表最初按照 Hilbert 曲线或 Z-order 进行空间连续性排序进入等待队列。
-2. **滑动窗口 (Sliding Window)**：维护一个大小为  的指令窗口 (Instruction Window)。
-3. **局部贪心分发 (Greedy Dispatch)**：当后端的 Raster Core 出现空闲时，WBS 检查这  个窗口内的 Tile，选出 **Workload（高斯球数量）最大**的 Tile 发送给空闲 Core，然后窗口向前滑动补充新的 Tile。
-
-
+2. **滑动窗口 (Sliding Window)**：维护一个大小为 K的指令窗口 (Instruction Window)。
+3. **局部贪心分发 (Greedy Dispatch)**：当后端的 Raster Core 出现空闲时，WBS 检查这 K个窗口内的 Tile，选出 **Workload（高斯球数量）最大**的 Tile 发送给空闲 Core，然后窗口向前滑动补充新的 Tile。
 
 ### 3. 多分辨率光栅化阶段 (FRE: Foveated Rasterizing Engine)
 
 **基于 Tile 的中央凹渲染 (Foveated Rendering)，改变传统 Workload 计算。**
 
 * 接收到 Tile 任务的 Raster Core，会首先检查该 Tile 所在的视野区域（根据配置读取）：
-* **Fovea (中心区)**： 原始分辨率计算（Workload 不变）。
-* **Transition (过渡区)**： 降采样（每个 Subtile/Tile 实际需要并行处理的像素减少一半，计算 Latency 相应缩短）。
-* **Periphery (外围区)**： 降采样（处理像素减少至四分之一）。
-
-
+* **Fovea (中心区)**：1x 原始分辨率计算（Workload 不变）。
+* **Transition (过渡区)**：2x 降采样（每个 Subtile/Tile 实际需要并行处理的像素减少一半，计算 Latency 相应缩短）。
+* **Periphery (外围区)**：4x 降采样（处理像素减少至四分之一）。
 * **插值重建 (Interpolation)**：对于经历过降采样的 Tile，在流水线末端需加上轻量级的插值重建周期（主要为移位和加法延迟），然后再写回 Frame Buffer。
