@@ -39,6 +39,8 @@ algorithm:
   # tile_size 32 means 32x32px
   tile_size: 32
   subtile_size: 2
+  fov_x: 90          # 水平视场角(度)用于区域划分
+  foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
 
 # workload：不设 use_synthetic 且存在模型时使用真实负载；否则合成
 workload:

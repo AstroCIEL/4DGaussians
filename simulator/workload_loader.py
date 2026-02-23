@@ -104,6 +104,8 @@ def _build_workload_frame(
     eff_width: int,
     eff_height: int,
     chunk_size: int,
+    fov_x: float,
+    foveated_enabled: bool,
 ) -> WorkloadFrame:
     tiles: Dict[int, TileWorkload] = {}
     total_gaussians = 0
@@ -143,7 +145,7 @@ def _build_workload_frame(
                 chunk_sizes=chunks,
                 chunk_label_counts=chunk_label_counts,
                 label_counts=label_counts,
-                region=_classify_region(tx, ty, num_tiles_x, num_tiles_y),
+                region=_classify_region(tx, ty, tile_size, eff_width, eff_height, fov_x=fov_x, foveated_enabled=foveated_enabled),
             )
     labels_dict = {}
     if gaussian_labels is not None:
@@ -174,6 +176,7 @@ def load_workload_from_scene(
     若模型缺失或出错，返回 None。
     """
     sim_cfg = config.get("simulation", {})
+    algo = config.get("algorithm", {})
     use_synthetic = config.get("workload", {}).get("use_synthetic", False)
     if use_synthetic:
         return None
@@ -353,6 +356,8 @@ def load_workload_from_scene(
             eff_width=eff_w,
             eff_height=eff_h,
             chunk_size=chunk_size,
+            fov_x=algo.get("fov_x", 90.0),
+            foveated_enabled=algo.get("foveated_enabled", True),
         )
         workloads.append(wl)
         if verbose:
@@ -363,6 +368,7 @@ def load_workload_from_scene(
 
 if __name__ == "__main__":
     import yaml
+    from simulator.utils.visualize_tiles import visualize_tile_regions
     config_path = "simulator/configs/default.yaml"  
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
@@ -371,3 +377,16 @@ if __name__ == "__main__":
         print("failed to load workloads (returned None)")
     else:
         print(f"successfully loaded {len(workloads)} workloads of {config['simulation']['scene']}")
+        # 可视化第一个帧的 tile 区域及高斯数
+        out_img = "simulator/results/workload_tile_regions.png"
+        visualize_tile_regions(workloads[0], out_img)
+        # 打印汇总
+        region_counts = {"fovea": 0, "transition": 0, "periphery": 0}
+        region_gauss = {"fovea": 0, "transition": 0, "periphery": 0}
+        for tile in workloads[0].tiles.values():
+            r = tile.region
+            region_counts[r] = region_counts.get(r, 0) + 1
+            region_gauss[r] = region_gauss.get(r, 0) + tile.num_gaussians
+        print(f"[viz] saved tile region map to {out_img}")
+        print(f"[viz] tile counts: {region_counts}")
+        print(f"[viz] gaussian counts per region: {region_gauss}")

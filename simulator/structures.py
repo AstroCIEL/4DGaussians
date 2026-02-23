@@ -103,12 +103,14 @@ def build_synthetic_workload(
     num_gaussians: int,
     chunk_size: int = 256,
     frame_id: int = 0,
+    fov_x: float = 90.0,
+    foveated_enabled: bool = True,
 ) -> WorkloadFrame:
     """根据分辨率与总高斯数生成均匀分布的合成 workload。"""
-    ntx = math.ceil(width / tile_size)
-    nty = math.ceil(height / tile_size)
+    ntx = width // tile_size
+    nty = height // tile_size
     num_tiles = ntx * nty
-    avg = max(1, num_gaussians // num_tiles)
+    avg = max(1, num_gaussians // max(num_tiles, 1))
     remaining = num_gaussians
     tiles: Dict[int, TileWorkload] = {}
     for ty in range(nty):
@@ -118,7 +120,12 @@ def build_synthetic_workload(
             n = max(0, n)
             remaining -= n
             chunk_sizes = [min(chunk_size, n - i * chunk_size) for i in range((n + chunk_size - 1) // chunk_size)] if n > 0 else []
-            tiles[tile_id] = TileWorkload(tile_id=tile_id, gaussian_ids=[], chunk_sizes=chunk_sizes, region=_classify_region(tx, ty, ntx, nty))
+            tiles[tile_id] = TileWorkload(
+                tile_id=tile_id,
+                gaussian_ids=[],
+                chunk_sizes=chunk_sizes,
+                region=_classify_region(tx, ty, tile_size, width, height, fov_x=fov_x, foveated_enabled=foveated_enabled),
+            )
     return WorkloadFrame(
         frame_id=frame_id,
         width=width,
@@ -131,14 +138,34 @@ def build_synthetic_workload(
     )
 
 
-def _classify_region(tx: int, ty: int, ntx: int, nty: int) -> str:
-    """基于 tile 网格距离划分 fovea/transition/periphery。"""
-    cx, cy = (ntx - 1) / 2.0, (nty - 1) / 2.0
-    dx = (tx - cx) / max(ntx, 1)
-    dy = (ty - cy) / max(nty, 1)
-    dist = math.sqrt(dx * dx + dy * dy)
-    if dist <= 0.15:
+def _classify_region(
+    tx: int,
+    ty: int,
+    tile_size: int,
+    width: int,
+    height: int,
+    fov_x: float = 90.0,
+    foveated_enabled: bool = True,
+) -> str:
+    """
+    基于偏心角划分 fovea/transition/periphery。
+    - tx/ty: tile 索引（从 0 开始）
+    - tile_size: tile 边长（像素）
+    - width/height: 画幅有效分辨率（像素）
+    - fov_x: 水平视场角（度）
+    - foveated_enabled: False 时直接视为 fovea（关闭多分辨率）
+    """
+    if not foveated_enabled:
         return "fovea"
-    if dist <= 0.35:
+    px = (tx + 0.5) * tile_size
+    py = (ty + 0.5) * tile_size
+    cx = width / 2.0
+    cy = height / 2.0
+    dist_pixel = math.hypot(px - cx, py - cy)
+    focal_length = (width / 2.0) / math.tan(math.radians(fov_x / 2.0))
+    eccentricity_angle = math.degrees(math.atan(dist_pixel / focal_length))
+    if eccentricity_angle <= 18.0:
+        return "fovea"
+    if eccentricity_angle <= 30.0:
         return "transition"
     return "periphery"

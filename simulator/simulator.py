@@ -45,11 +45,24 @@ class Simulator:
         sim_cfg = self.config.get("simulation", {})
         res_str = sim_cfg.get("resolution", "1440x1024")
         width, height = parse_resolution(res_str)
+        width = (width // tile_size) * tile_size
+        height = (height // tile_size) * tile_size
         frames_cfg = sim_cfg.get("frames", 0)
         frame_ids = [frames_cfg] if isinstance(frames_cfg, int) else [int(x) for x in str(frames_cfg).replace(" ", "").split(",")]
         num_gaussians = self.config.get("workload", {}).get("num_gaussians", 100_000)
+        fov_x = self.config.get("algorithm", {}).get("fov_x", 90.0)
+        foveated_enabled = self.config.get("algorithm", {}).get("foveated_enabled", True)
         return [
-            build_synthetic_workload(width, height, tile_size, num_gaussians, chunk_size=chunk_size, frame_id=fid)
+            build_synthetic_workload(
+                width,
+                height,
+                tile_size,
+                num_gaussians,
+                chunk_size=chunk_size,
+                frame_id=fid,
+                fov_x=fov_x,
+                foveated_enabled=foveated_enabled,
+            )
             for fid in frame_ids
         ]
 
