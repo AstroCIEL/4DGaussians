@@ -70,7 +70,7 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 
 ## 使用说明（含动静标签生成）
 
-1) 配置：编辑 `simulator/configs/default.yaml`，至少设置 `simulation.dataset` / `simulation.scene`，可选 `simulation.model_path` / `simulation.source_path`；`workload.static_ratio` / `quasi_ratio` 指定动静比例；`labeling.output_npy` / `output_json` 控制标签文件名。
+1) 配置：编辑 `simulator/configs/default.yaml`，至少设置 `simulation.dataset` / `simulation.scene`，可选 `simulation.model_path` / `simulation.source_path`；`workload.static_ratio` / `quasi_ratio` 指定动静比例；`labeling.output_npy` / `output_json` 控制标签文件名。内存模型估计使用 `hardware.bytes_per_gaussian`（单高斯读写字节数）。
 
 2) 运行仿真：  
 ```bash

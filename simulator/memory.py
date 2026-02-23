@@ -22,3 +22,7 @@ class MemorySystem:
         if self.bytes_per_cycle <= 0:
             return 0.0
         return max(0.0, bytes_accessed / self.bytes_per_cycle)
+
+    def estimate_bytes_for_gaussians(self, num_gaussians: int, bytes_per_gaussian: int) -> float:
+        """简单估计：每个高斯读写若干字节。"""
+        return float(num_gaussians * max(0, bytes_per_gaussian))

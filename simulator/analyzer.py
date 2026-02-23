@@ -16,6 +16,7 @@ class Analyzer:
             "udpe": "preprocess_cycles",
             "hse": "sort_cycles",
             "fre": "rasterize_cycles",
+            "memory": "memory_stall_cycles",
         }
 
     def record_busy(self, module: str, cycles: float) -> None:

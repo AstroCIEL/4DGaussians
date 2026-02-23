@@ -156,7 +156,17 @@ class Simulator:
         self._wire_modules(env, udpe, hse, wbs)
         env.process(self._feed_workload(env, frame, udpe))
         env.run()
-        return env.now
+        mem_cycles = self._estimate_memory_cycles(mem, frame)
+        if mem_cycles > 0:
+            self.analyzer.record_busy("memory", mem_cycles)
+        return env.now + mem_cycles
+
+    def _estimate_memory_cycles(self, mem: MemorySystem, frame: WorkloadFrame) -> float:
+        """基于高斯数估算一次帧的内存 stall 周期。"""
+        bytes_per_gaussian = self.config.get("hardware", {}).get("bytes_per_gaussian", 64)
+        total_gaussians = sum(t.num_gaussians for t in frame.tiles.values())
+        bytes_accessed = mem.estimate_bytes_for_gaussians(total_gaussians, bytes_per_gaussian)
+        return mem.estimate_cycles(bytes_accessed)
 
     def run(self):
         total = 0.0
