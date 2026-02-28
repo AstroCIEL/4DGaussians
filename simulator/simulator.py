@@ -86,6 +86,7 @@ class Simulator:
                 fifo_depth=hw.get("fifo_depth", 32),
                 static_ratio=self.config.get("workload", {}).get("static_ratio", 0.4),
                 quasi_ratio=self.config.get("workload", {}).get("quasi_ratio", 0.4),
+                culling_survival_rate=self.config.get("workload", {}).get("culling_survival_rate", 0.8),
             ),
             self.analyzer,
         )

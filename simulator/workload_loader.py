@@ -25,8 +25,8 @@ from simulator.structures import (
 from simulator.generate_labels import generate_motion_labels
 
 
-def _extract_gaussian_attrs(gaussians) -> Dict[int, GaussianAttr]:
-    """从 GaussianModel 提取关键属性（位置/尺度/旋转/不透明度/SH）。"""
+def _extract_gaussian_attrs(gaussians, gaussian_labels: Optional[np.ndarray] = None) -> Dict[int, GaussianAttr]:
+    """从 GaussianModel 提取关键属性（位置/尺度/旋转/不透明度/SH/标签）。"""
     attrs: Dict[int, GaussianAttr] = {}
     xyz = gaussians._xyz.detach().cpu().numpy()
     scaling = gaussians._scaling.detach().cpu().numpy() if hasattr(gaussians, "_scaling") else np.zeros_like(xyz)
@@ -35,6 +35,11 @@ def _extract_gaussian_attrs(gaussians) -> Dict[int, GaussianAttr]:
     sh_dc = gaussians._features_dc.detach().cpu().numpy() if hasattr(gaussians, "_features_dc") else None
     for i in range(xyz.shape[0]):
         sh_values = sh_dc[i].flatten().tolist() if sh_dc is not None else None
+        label = None
+        if gaussian_labels is not None and i < len(gaussian_labels):
+            lb = int(gaussian_labels[i])
+            if lb in (0, 1, 2):
+                label = lb
         attrs[i] = GaussianAttr(
             idx=i,
             position=tuple(map(float, xyz[i])),
@@ -42,6 +47,7 @@ def _extract_gaussian_attrs(gaussians) -> Dict[int, GaussianAttr]:
             rotation=tuple(map(float, rotation[i])) if len(rotation.shape) > 1 else (0.0, 0.0, 0.0, 0.0),
             opacity=float(opacity[i][0]) if opacity.ndim > 1 else float(opacity[i]),
             sh=sh_values,
+            label=label,
         )
     return attrs
 
@@ -99,7 +105,6 @@ def _build_workload_frame(
     num_tiles_x: int,
     num_tiles_y: int,
     gaussian_attrs: Dict[int, GaussianAttr],
-    gaussian_labels: Optional[np.ndarray],
     tile_size: int,
     eff_width: int,
     eff_height: int,
@@ -119,10 +124,11 @@ def _build_workload_frame(
             label_counts = {0: 0, 1: 0, 2: 0}
             # 按顺序分 chunk，计算每个 chunk 内的标签计数
             if len(ids) > 0:
-                if gaussian_labels is not None:
-                    for gid in ids:
-                        lb = int(gaussian_labels[gid]) if gid < len(gaussian_labels) else None
-                        if lb is not None and lb in (0, 1, 2):
+                for gid in ids:
+                    attr = gaussian_attrs.get(gid)
+                    if attr is not None and attr.label is not None:
+                        lb = attr.label
+                        if lb in (0, 1, 2):
                             label_counts[lb] = label_counts.get(lb, 0) + 1
                 pos = 0
                 while pos < len(ids):
@@ -130,15 +136,14 @@ def _build_workload_frame(
                     chunk_ids = ids[pos:pos + take]
                     pos += take
                     chunks.append(take)
-                    if gaussian_labels is not None:
-                        c_counts = {0: 0, 1: 0, 2: 0}
-                        for gid in chunk_ids:
-                            lb = int(gaussian_labels[gid]) if gid < len(gaussian_labels) else None
-                            if lb is not None and lb in (0, 1, 2):
+                    c_counts = {0: 0, 1: 0, 2: 0}
+                    for gid in chunk_ids:
+                        attr = gaussian_attrs.get(gid)
+                        if attr is not None and attr.label is not None:
+                            lb = attr.label
+                            if lb in (0, 1, 2):
                                 c_counts[lb] = c_counts.get(lb, 0) + 1
-                        chunk_label_counts.append(c_counts)
-                    else:
-                        chunk_label_counts.append({})
+                    chunk_label_counts.append(c_counts)
             tiles[tile_id] = TileWorkload(
                 tile_id=tile_id,
                 gaussian_ids=ids,
@@ -147,9 +152,6 @@ def _build_workload_frame(
                 label_counts=label_counts,
                 region=_classify_region(tx, ty, tile_size, eff_width, eff_height, fov_x=fov_x, foveated_enabled=foveated_enabled),
             )
-    labels_dict = {}
-    if gaussian_labels is not None:
-        labels_dict = {int(i): int(gaussian_labels[i]) for i in range(len(gaussian_labels))}
 
     return WorkloadFrame(
         frame_id=frame_id,
@@ -160,7 +162,6 @@ def _build_workload_frame(
         num_tiles=num_tiles_x * num_tiles_y,
         tiles=tiles,
         gaussian_attrs=gaussian_attrs,
-        gaussian_labels=labels_dict,
     )
 
 
@@ -279,7 +280,6 @@ def load_workload_from_scene(
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
     cam_type = getattr(scene_obj, "dataset_type", None)
 
-    gaussian_attrs = _extract_gaussian_attrs(gaussians)
     # 读取或生成动静标签
     gaussian_labels = None
     label_cfg = config.get("labeling", {})
@@ -309,6 +309,9 @@ def load_workload_from_scene(
         if verbose:
             print(f"[workload_loader] 标签长度与高斯数不匹配，忽略标签 ({len(gaussian_labels)} vs {gaussians._xyz.shape[0]})")
         gaussian_labels = None
+    
+    # 提取高斯属性（包含标签）
+    gaussian_attrs = _extract_gaussian_attrs(gaussians, gaussian_labels)
     workloads: List[WorkloadFrame] = []
     for fid in frame_ids:
         if fid < 0 or fid >= len(cameras):
@@ -351,7 +354,6 @@ def load_workload_from_scene(
             num_tiles_x=ntx,
             num_tiles_y=nty,
             gaussian_attrs=gaussian_attrs,
-            gaussian_labels=gaussian_labels,
             tile_size=tile_size,
             eff_width=eff_w,
             eff_height=eff_h,

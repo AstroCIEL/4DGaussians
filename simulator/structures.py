@@ -12,6 +12,7 @@ class GaussianAttr:
     rotation: Tuple[float, float, float, float]
     opacity: float
     sh: Optional[List[float]] = None
+    label: Optional[int] = None  # 0=静止,1=微动,2=巨变
 
 
 @dataclass
@@ -44,7 +45,6 @@ class WorkloadFrame:
     num_tiles: int
     tiles: Dict[int, TileWorkload] = field(default_factory=dict)
     gaussian_attrs: Dict[int, GaussianAttr] = field(default_factory=dict)
-    gaussian_labels: Dict[int, int] = field(default_factory=dict)  # id -> label (0=静止,1=微动,2=巨变)
 
 
 @dataclass

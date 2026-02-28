@@ -49,6 +49,7 @@ workload:
   # num_gaussians: 100000  # 仅合成时有效
   static_ratio: 0.4
   quasi_ratio: 0.4
+  culling_survival_rate: 0.8
   
 labeling:
   num_time_samples: 50
