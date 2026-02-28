@@ -40,6 +40,42 @@ from utils.general_utils import safe_state
 TILE_SIZE = 16
 
 
+def _project_3d_to_2d(means3D: torch.Tensor, projmatrix: torch.Tensor, width: int, height: int) -> torch.Tensor:
+    """
+    将 3D 点投影到 2D 屏幕空间。
+    参考 CUDA 代码中的实现：forward.cu 的 preprocessCUDA 函数。
+    
+    Args:
+        means3D: (N, 3) 3D 点坐标
+        projmatrix: (4, 4) 投影矩阵
+        width: 图像宽度
+        height: 图像高度
+    
+    Returns:
+        means2D: (N, 3) 2D 屏幕空间坐标（像素坐标），第三列为 0，保持与原始 viewspace_points 形状一致
+    """
+    device = means3D.device
+    N = means3D.shape[0]
+    
+    # 转换为齐次坐标
+    ones = torch.ones((N, 1), device=device, dtype=means3D.dtype)
+    p_orig_h = torch.cat([means3D, ones], dim=-1)  # (N, 4)
+    
+    # 投影到齐次屏幕空间
+    p_hom = p_orig_h @ projmatrix.T  # (N, 4)
+    p_w = 1.0 / (p_hom[:, 3:4] + 1e-7)  # (N, 1)
+    p_proj = p_hom[:, :3] * p_w  # (N, 3) - NDC 坐标
+    
+    # NDC 到像素坐标转换 (参考 auxiliary.h 的 ndc2Pix)
+    # ndc2Pix: ((v + 1.0) * S - 1.0) * 0.5
+    x_pix = ((p_proj[:, 0] + 1.0) * width - 1.0) * 0.5
+    y_pix = ((p_proj[:, 1] + 1.0) * height - 1.0) * 0.5
+    
+    # 返回 (N, 3) 形状，第三列为 0，与原始 viewspace_points 形状一致
+    z_zero = torch.zeros((N, 1), device=device, dtype=means3D.dtype)
+    return torch.cat([x_pix.unsqueeze(1), y_pix.unsqueeze(1), z_zero], dim=1)  # (N, 3)
+
+
 def compute_tile_gaussians(means2D, radii, image_width, image_height, tile_size=TILE_SIZE):
     """
     计算每个tile需要处理的高斯球数量
@@ -238,6 +274,22 @@ def analyze_scene_tile_gaussians(model_path, source_path, iteration, dataset_typ
         
         # 获取屏幕空间坐标
         screenspace_points = rendering_results["viewspace_points"]
+        
+        # 检查 viewspace_points 是否全零（CUDA 代码不会修改传入的 means2D）
+        # 如果是全零，则需要手动从 means3D 计算 2D 投影
+        # 只检查前两列（x, y），因为第三列本来就是 0
+        if screenspace_points.shape[1] >= 2:
+            xy_zeros = torch.allclose(screenspace_points[:, :2], torch.zeros_like(screenspace_points[:, :2]), atol=1e-6)
+        else:
+            xy_zeros = torch.allclose(screenspace_points, torch.zeros_like(screenspace_points), atol=1e-6)
+        
+        if xy_zeros:
+            # 获取 3D 点坐标
+            means3D = gaussians.get_xyz  # (N, 3)
+            # 获取投影矩阵
+            projmatrix = view.full_proj_transform.cuda()  # (4, 4)
+            # 手动计算 2D 投影
+            screenspace_points = _project_3d_to_2d(means3D, projmatrix, int(view.image_width), int(view.image_height))
         
         # 计算每个tile的高斯球数量
         tile_gaussians, tile_stats = compute_tile_gaussians(

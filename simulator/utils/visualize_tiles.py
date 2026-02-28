@@ -53,7 +53,7 @@ def visualize_tile_regions(workload: WorkloadFrame, outfile: str) -> None:
     # 覆盖高斯数用文本标注
     for ty in range(nty):
         for tx in range(ntx):
-            ax.text(tx, ty, str(gaussian_map[ty, tx]), ha="center", va="center", fontsize=6, color="black")
+            ax.text(tx, ty, str(gaussian_map[ty, tx]), ha="center", va="center", fontsize=3, color="black")
 
     # 自定义图例
     from matplotlib.patches import Patch
@@ -67,5 +67,5 @@ def visualize_tile_regions(workload: WorkloadFrame, outfile: str) -> None:
     plt.tight_layout()
 
     os.makedirs(os.path.dirname(outfile), exist_ok=True)
-    fig.savefig(outfile, dpi=300)
+    fig.savefig(outfile, dpi=400)
     plt.close(fig)
