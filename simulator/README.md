@@ -53,16 +53,23 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 **引入了结合空间局部性与贪心负载均衡的 WSLAS (Windowed Spatial-Locality Aware Scheduling)。**
 
 * **数据流**：UDPE 处理完成后，将 frame 拆分为 TileTask 列表，直接送入 WBS 的等待队列。
-* **HSE+FRE 配对核架构**：
-  - HSE 和 FRE 具有相同的核数，并一一对应形成配对核。
-  - 每对核（一个 HSE 核 + 一个 FRE 核）作为一个整体，负责一个 TileTask 的完整处理流程。
-  - 处理流程：HSE 核进行排序 -> FRE 核进行光栅化（同一对核内顺序执行）。
-  - 不同配对核之间没有数据依赖，可以完全并行处理不同的 TileTask。
+* **HSE+FRE 解耦流水线架构**：
+  - HSE 和 FRE 核独立调度，实现流水线处理以提高硬件利用率。
+  - **HSE 核调度**：当 HSE 核有空闲时，WBS 从等待队列中选择 workload 最大的 TileTask 分配给空闲的 HSE 核进行排序。
+  - **中间队列**：排序完成的 TileTask 进入中间队列（sorted_queue），等待 FRE 核处理。
+  - **FRE 核调度**：当 FRE 核有空闲时，WBS 从中间队列（FIFO）取出 TileTask 分配给空闲的 FRE 核进行光栅化。
+  - **流水线优势**：HSE 和 FRE 核可以并行工作，排序完成的任务可以立即进入光栅化阶段，避免了配对核架构中核之间相互等待的问题。
 * **WBS 调度器 (关键)**：
 1. **空间重排**：TileTask 列表最初按照 Hilbert 曲线或 Z-order 进行空间连续性排序进入等待队列。
-2. **滑动窗口 (Sliding Window)**：维护一个大小为 K 的指令窗口 (Instruction Window)。
-3. **配对核资源管理**：WBS 监视所有 HSE+FRE 配对核的工作状态。
-4. **局部贪心分发 (Greedy Dispatch)**：当存在空闲的配对核时，WBS 检查窗口内 K 个 TileTask，选出 **Workload（高斯球数量）最大**的 TileTask 分配给空闲的配对核，然后窗口向前滑动补充新的 TileTask。
+2. **滑动窗口 (Sliding Window)**：维护一个大小为 K 的指令窗口 (Instruction Window)，用于 HSE 核的贪心调度。
+3. **双队列管理**：
+   - `pending` 队列：等待排序的 TileTask（使用滑动窗口贪心调度）
+   - `sorted_queue` 队列：排序完成等待光栅化的 TileTask（FIFO 顺序）
+4. **独立资源管理**：WBS 分别监视 HSE 和 FRE 核的工作状态，独立调度两个阶段。
+5. **局部贪心分发 (Greedy Dispatch)**：
+   - **HSE 阶段**：当 HSE 核空闲时，从窗口内 K 个 TileTask 中选出 **Workload（高斯球数量）最大**的分配给空闲的 HSE 核。
+   - **FRE 阶段**：当 FRE 核空闲时，从 `sorted_queue` 中按 FIFO 顺序取出 TileTask 分配给空闲的 FRE 核。
+   - 窗口在 HSE 调度时向前滑动补充新的 TileTask。
 
 ### 3. 多分辨率光栅化阶段 (FRE: Foveated Rasterizing Engine)
 
