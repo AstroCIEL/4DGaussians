@@ -12,28 +12,31 @@ simulation:
   # source_path: "data/dynerf/sear_steak"
   iteration: -1
   camera_split: "video"   # video | test | train
-
-# 模型根目录，用于推导 model_path = base_output/dataset/scene
-base_output: "output"
+  base_output: "output"  # 模型根目录，用于推导 model_path = base_output/dataset/scene
 
 hardware:
-  preprocessing_units: 4
-  sorting_units: 4
-  rasterizing_units: 16
-  memory_bandwidth: 51.2  # GB/s
-  cache_size: 1048576    # bytes
-  clock_frequency: 1.0  # GHz
-  bytes_per_gaussian: 64  # 内存估算用的单高斯读写字节
-  # 关键时序参数（cycle）
-  cull_cycles: 2.0
-  deform_cycles: 4.0
-  intersection_cycles: 1.0
-  coarse_sort_cycles: 4.0
-  fine_sort_cycles: 0.05
-  raster_cycles: 1.0
-  interpolation_cycles: 8.0
-  fifo_depth: 32
-  window_size_k: 8
+  udpe: 
+    cull_cycles: 1.0
+    deform_cycles: 5.0
+    intersection_cycles: 2.0
+    fifo_depth: 16
+  hse:
+    num_units: 16
+    coarse_sort_cycles: 4.0
+    fine_sort_cycles: 4.0
+    early_stop_ratio: 0.3
+  fre:
+    num_units: 16
+    base_cycles_per_gaussian: 2.0
+    interpolation_cycles: 8.0
+  wbs:
+    window_size_k: 8
+    fifo_depth: 32
+  memory:
+    memory_bandwidth: 51.2  # GB/s
+    cache_size: 1048576    # bytes
+    clock_frequency: 1.0  # GHz
+    bytes_per_gaussian: 64  # 内存估算用的单高斯读写字节
   
 algorithm:
   # tile_size 32 means 32x32px

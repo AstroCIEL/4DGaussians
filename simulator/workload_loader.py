@@ -222,7 +222,7 @@ def load_workload_from_scene(
     scene = sim_cfg.get("scene")
     model_path = sim_cfg.get("model_path") or config.get("model_path")
     if not model_path and dataset and scene:
-        base = config.get("base_output", "output")
+        base = sim_cfg.get("base_output", "output")
         model_path = os.path.join(base, dataset, scene)
     if not model_path or not os.path.isdir(model_path):
         if verbose:

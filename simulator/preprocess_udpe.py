@@ -15,7 +15,6 @@ class UDPEConfig:
     fifo_depth: int = 16
     static_ratio: float = 0.4
     quasi_ratio: float = 0.4  # 其余视为 dynamic
-    culling_survival_rate: float = 0.8     # cull 后存活率，用于保守估计
 
 
 class UnifiedDeformPreprocessEngine:
@@ -207,7 +206,6 @@ def main():
         fifo_depth=16,
         static_ratio=0.4,
         quasi_ratio=0.4,
-        culling_survival_rate=0.8,
     )
     
     # 创建统计和分析器

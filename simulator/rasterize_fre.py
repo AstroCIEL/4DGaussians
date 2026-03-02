@@ -7,8 +7,8 @@ from simulator.structures import TileTask
 
 @dataclass
 class FREConfig:
-    num_cores: int = 4
-    base_cycles_per_gaussian: float = 1.0
+    num_cores: int = 16
+    base_cycles_per_gaussian: float = 2.0
     interpolation_cycles: float = 8.0
 
 

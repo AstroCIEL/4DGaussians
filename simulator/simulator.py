@@ -80,38 +80,37 @@ class Simulator:
         udpe = UnifiedDeformPreprocessEngine(
             env,
             UDPEConfig(
-                cull_cycles=hw.get("cull_cycles", 2.0),
-                deform_cycles=hw.get("deform_cycles", 4.0),
-                intersection_cycles=hw.get("intersection_cycles", 1.0),
-                fifo_depth=hw.get("fifo_depth", 32),
+                cull_cycles=hw.get("udpe", {}).get("cull_cycles", 1.0),
+                deform_cycles=hw.get("udpe", {}).get("deform_cycles", 5.0),
+                intersection_cycles=hw.get("udpe", {}).get("intersection_cycles", 2.0),
+                fifo_depth=hw.get("udpe", {}).get("fifo_depth", 16),
                 static_ratio=self.config.get("workload", {}).get("static_ratio", 0.4),
                 quasi_ratio=self.config.get("workload", {}).get("quasi_ratio", 0.4),
-                culling_survival_rate=self.config.get("workload", {}).get("culling_survival_rate", 0.8),
             ),
             self.analyzer,
         )
-        num_cores = hw.get("rasterizing_units", 16)  # HSE 和 FRE 使用相同的核数
         hse = HierarchicalSortEngine(
             env,
             HSEConfig(
-                num_cores=num_cores,
-                coarse_cycles_per_chunk=hw.get("coarse_sort_cycles", 4.0),
-                fine_cycles_per_gaussian=hw.get("fine_sort_cycles", 0.05),
+                num_cores=hw.get("hse", {}).get("num_units", 16),
+                coarse_cycles_per_chunk=hw.get("hse", {}).get("coarse_sort_cycles", 4.0),
+                fine_cycles_per_chunk=hw.get("hse", {}).get("fine_sort_cycles", 4.0),
+                early_stop_ratio=hw.get("hse", {}).get("early_stop_ratio", 0.3),
             ),
             self.analyzer,
         )
         fre = FoveatedRasterEngine(
             env,
             FREConfig(
-                num_cores=num_cores,
-                base_cycles_per_gaussian=hw.get("raster_cycles", 1.0),
-                interpolation_cycles=hw.get("interpolation_cycles", 8.0),
+                num_cores=hw.get("fre", {}).get("num_units", 16),
+                base_cycles_per_gaussian=hw.get("fre", {}).get("base_cycles_per_gaussian", 2.0),
+                interpolation_cycles=hw.get("fre", {}).get("interpolation_cycles", 8.0),
             ),
             self.analyzer,
         )
         wbs = WorkloadBalancingScheduler(
             env,
-            WBSConfig(window_size=hw.get("window_size_k", 8), fifo_depth=hw.get("fifo_depth", 32)),
+            WBSConfig(window_size=hw.get("wbs", {}).get("window_size_k", 8), fifo_depth=hw.get("wbs", {}).get("fifo_depth", 32)),
             sort_engine=hse,
             raster_engine=fre,
             analyzer=self.analyzer,

@@ -8,9 +8,10 @@ from simulator.structures import TileTask
 
 @dataclass
 class HSEConfig:
-    num_cores: int = 4  # 排序核心数量，需与 FRE 核心数一致
+    num_cores: int = 16  # 排序核心数量，需与 FRE 核心数一致
     coarse_cycles_per_chunk: float = 4.0  # 粗排
-    fine_cycles_per_gaussian: float = 0.05  # 双调排序近似
+    fine_cycles_per_chunk: float = 4.0  # 每 chunk 内双调排序近似
+    early_stop_ratio: float = 0.3  # 早停比例
 
 
 class HierarchicalSortEngine:
@@ -22,12 +23,16 @@ class HierarchicalSortEngine:
         self.analyzer = analyzer
         self.resource = simpy.Resource(env, capacity=config.num_cores)
 
-    def sort_cycles(self, task: TileTask) -> float:
-        n = max(1, task.num_gaussians)
+    def sort_cycles(self, task: TileTask = None) -> float:
+        '''
+        like GSCore, the actual latency of sorting before rasterization begins
+        is approximately sorting one chunk and precisely sorting one chunk
+        '''
         c = self.config
+        #n = max(1, task.num_gaussians * c.early_stop_ratio)
         coarse = c.coarse_cycles_per_chunk
-        fine = c.fine_cycles_per_gaussian * math.log2(max(2, n))  # log2(1) = 0，避免除零
-        return coarse + fine * n
+        fine = c.fine_cycles_per_chunk
+        return coarse + fine
 
     def has_free_core(self) -> bool:
         return self.resource.count < self.resource.capacity
