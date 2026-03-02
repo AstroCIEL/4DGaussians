@@ -90,19 +90,20 @@ class Simulator:
             ),
             self.analyzer,
         )
+        num_cores = hw.get("rasterizing_units", 16)  # HSE 和 FRE 使用相同的核数
         hse = HierarchicalSortEngine(
             env,
             HSEConfig(
+                num_cores=num_cores,
                 coarse_cycles_per_chunk=hw.get("coarse_sort_cycles", 4.0),
                 fine_cycles_per_gaussian=hw.get("fine_sort_cycles", 0.05),
-                fifo_depth=hw.get("fifo_depth", 32),
             ),
             self.analyzer,
         )
         fre = FoveatedRasterEngine(
             env,
             FREConfig(
-                num_cores=hw.get("rasterizing_units", 16),
+                num_cores=num_cores,
                 base_cycles_per_gaussian=hw.get("raster_cycles", 1.0),
                 interpolation_cycles=hw.get("interpolation_cycles", 8.0),
             ),
@@ -111,6 +112,7 @@ class Simulator:
         wbs = WorkloadBalancingScheduler(
             env,
             WBSConfig(window_size=hw.get("window_size_k", 8), fifo_depth=hw.get("fifo_depth", 32)),
+            sort_engine=hse,
             raster_engine=fre,
             analyzer=self.analyzer,
         )
@@ -126,14 +128,12 @@ class Simulator:
         # 发送结束信号
         yield udpe.in_queue.put(None)
 
-    def _wire_modules(self, env: simpy.Environment, udpe, hse, wbs):
+    def _wire_modules(self, env: simpy.Environment, udpe, wbs):
         udpe.start()
-        hse.start()
         wbs.start()
 
-        # 链接 FIFO：udpe -> hse -> wbs
-        env.process(self._pipe(env, udpe.out_queue, hse.in_queue, "udpe_to_hse"))
-        env.process(self._pipe(env, hse.out_queue, wbs.in_queue, "hse_to_wbs"))
+        # 链接 FIFO：udpe -> wbs（UDPE 输出直接送到 WBS）
+        env.process(self._pipe(env, udpe.out_queue, wbs.in_queue, "udpe_to_wbs"))
 
     def _pipe(self, env: simpy.Environment, src, dst, name: str):
         while True:
@@ -149,7 +149,7 @@ class Simulator:
     def _run_single_frame(self, frame: WorkloadFrame) -> float:
         env = simpy.Environment()
         mem, udpe, hse, wbs, fre = self._build_components(env)
-        self._wire_modules(env, udpe, hse, wbs)
+        self._wire_modules(env, udpe, wbs)
         env.process(self._feed_workload(env, frame, udpe))
         env.run()
         mem_cycles = self._estimate_memory_cycles(mem, frame)

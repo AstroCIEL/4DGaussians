@@ -52,11 +52,17 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 
 **引入了结合空间局部性与贪心负载均衡的 WSLAS (Windowed Spatial-Locality Aware Scheduling)。**
 
-* **HSE 排序**：基于上一步的相交测试结果，在 Tile 内部进行 Chunk-based 的二阶段深度排序（App. sort -> Acc. bitonic sort）。
+* **数据流**：UDPE 处理完成后，将 frame 拆分为 TileTask 列表，直接送入 WBS 的等待队列。
+* **HSE+FRE 配对核架构**：
+  - HSE 和 FRE 具有相同的核数，并一一对应形成配对核。
+  - 每对核（一个 HSE 核 + 一个 FRE 核）作为一个整体，负责一个 TileTask 的完整处理流程。
+  - 处理流程：HSE 核进行排序 -> FRE 核进行光栅化（同一对核内顺序执行）。
+  - 不同配对核之间没有数据依赖，可以完全并行处理不同的 TileTask。
 * **WBS 调度器 (关键)**：
-1. **空间重排**：Tile 列表最初按照 Hilbert 曲线或 Z-order 进行空间连续性排序进入等待队列。
-2. **滑动窗口 (Sliding Window)**：维护一个大小为 K的指令窗口 (Instruction Window)。
-3. **局部贪心分发 (Greedy Dispatch)**：当后端的 Raster Core 出现空闲时，WBS 检查这 K个窗口内的 Tile，选出 **Workload（高斯球数量）最大**的 Tile 发送给空闲 Core，然后窗口向前滑动补充新的 Tile。
+1. **空间重排**：TileTask 列表最初按照 Hilbert 曲线或 Z-order 进行空间连续性排序进入等待队列。
+2. **滑动窗口 (Sliding Window)**：维护一个大小为 K 的指令窗口 (Instruction Window)。
+3. **配对核资源管理**：WBS 监视所有 HSE+FRE 配对核的工作状态。
+4. **局部贪心分发 (Greedy Dispatch)**：当存在空闲的配对核时，WBS 检查窗口内 K 个 TileTask，选出 **Workload（高斯球数量）最大**的 TileTask 分配给空闲的配对核，然后窗口向前滑动补充新的 TileTask。
 
 ### 3. 多分辨率光栅化阶段 (FRE: Foveated Rasterizing Engine)
 

@@ -20,7 +20,6 @@ class FoveatedRasterEngine:
         self.config = config
         self.analyzer = analyzer
         self.resource = simpy.Resource(env, capacity=config.num_cores)
-        self.done_queue = simpy.Store(env)
 
     def has_free_core(self) -> bool:
         return self.resource.count < self.resource.capacity
@@ -47,4 +46,4 @@ class FoveatedRasterEngine:
             cycles = self.raster_cycles(task)
             self.analyzer.record_busy("fre", cycles)
             yield self.env.timeout(cycles)
-            yield self.done_queue.put(task)
+            # 处理完成，由 WBS 通过 _process_pair 管理完成回调

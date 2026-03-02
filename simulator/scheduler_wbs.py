@@ -5,6 +5,7 @@ from typing import List
 from simulator.analyzer import Analyzer
 from simulator.structures import TileTask
 from simulator.rasterize_fre import FoveatedRasterEngine
+from simulator.sort_hse import HierarchicalSortEngine
 
 
 @dataclass
@@ -14,11 +15,23 @@ class WBSConfig:
 
 
 class WorkloadBalancingScheduler:
-    """窗口化空间局部性调度，选择窗口内 workload 最大的 tile 给空闲核心。"""
+    """
+    窗口化空间局部性调度，管理 HSE+FRE 配对核。
+    每对核（一个 HSE 核 + 一个 FRE 核）负责一个 TileTask 的完整处理：
+    排序 -> 光栅化。
+    """
 
-    def __init__(self, env: simpy.Environment, config: WBSConfig, raster_engine: FoveatedRasterEngine, analyzer: Analyzer):
+    def __init__(
+        self,
+        env: simpy.Environment,
+        config: WBSConfig,
+        sort_engine: HierarchicalSortEngine,
+        raster_engine: FoveatedRasterEngine,
+        analyzer: Analyzer,
+    ):
         self.env = env
         self.config = config
+        self.sort_engine = sort_engine
         self.raster_engine = raster_engine
         self.analyzer = analyzer
         self.in_queue = simpy.Store(env, capacity=config.fifo_depth)
@@ -29,22 +42,34 @@ class WorkloadBalancingScheduler:
     def start(self):
         return self.env.process(self._run())
 
+    def _has_free_pair(self) -> bool:
+        """检查是否有空闲的 HSE+FRE 配对核。"""
+        return self.sort_engine.has_free_core() and self.raster_engine.has_free_core()
+
     def _dispatch(self):
-        """尝试把窗口内 workload 最大的任务送入光栅核心。"""
-        while self.pending and self.raster_engine.has_free_core():
+        """尝试把窗口内 workload 最大的任务分配给空闲的配对核。"""
+        while self.pending and self._has_free_pair():
             window = self.pending[: self.config.window_size]
             idx = max(range(len(window)), key=lambda i: window[i].num_gaussians)
             task = self.pending.pop(idx)
             self.in_flight += 1
-            self.env.process(self._wrap_raster(task))
+            # 启动配对核处理：HSE 排序 -> FRE 光栅化
+            self.env.process(self._process_pair(task))
 
-    def _wrap_raster(self, task: TileTask):
+    def _process_pair(self, task: TileTask):
+        """
+        使用一对 HSE+FRE 核处理任务：
+        1. HSE 核进行排序
+        2. 排序完成后，同一对核中的 FRE 核进行光栅化
+        """
+        # HSE 排序阶段
+        yield self.sort_engine.process(task)
+        # FRE 光栅化阶段（使用同一对核中的 FRE 核）
         yield self.raster_engine.process(task)
         # 完成回调
         self.in_flight -= 1
 
     def _run(self):
-        done_queue = self.raster_engine.done_queue
         while True:
             if self.upstream_done and not self.pending and self.in_flight == 0:
                 break
@@ -54,17 +79,11 @@ class WorkloadBalancingScheduler:
             if self.upstream_done and not self.pending and self.in_flight == 0:
                 break
 
-            # 等待新任务或光栅完成
-            events = [self.in_queue.get(), done_queue.get()]
-            ret = yield self.env.any_of(events)
-            if events[0] in ret:
-                task = ret[events[0]]
-                if task is None:
-                    self.upstream_done = True
-                else:
-                    self.pending.append(task)
-            if events[1] in ret:
-                # 光栅完成信号已在 _wrap_raster 更新 in_flight
-                pass
+            # 等待新任务
+            task = yield self.in_queue.get()
+            if task is None:
+                self.upstream_done = True
+            else:
+                self.pending.append(task)
 
             self._dispatch()
