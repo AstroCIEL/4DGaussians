@@ -6,6 +6,7 @@ class MemoryConfig:
     memory_bandwidth_gbps: float = 51.2
     cache_size_bytes: int = 1_048_576
     clock_frequency_ghz: float = 1.0
+    read_latency_hiding_rate: float = 0.5
 
 
 class MemorySystem:
@@ -21,7 +22,7 @@ class MemorySystem:
         """返回因带宽限制产生的额外周期。"""
         if self.bytes_per_cycle <= 0:
             return 0.0
-        return max(0.0, bytes_accessed / self.bytes_per_cycle)
+        return max(0.0, bytes_accessed / self.bytes_per_cycle) * (1 - self.config.read_latency_hiding_rate)
 
     def estimate_bytes_for_gaussians(self, num_gaussians: int, bytes_per_gaussian: int) -> float:
         """简单估计：每个高斯读写若干字节。"""

@@ -10,6 +10,7 @@ class FREConfig:
     num_cores: int = 16
     base_cycles_per_gaussian: float = 2.0
     interpolation_cycles: float = 8.0
+    early_stop_ratio: float = 0.3 
 
 
 class FoveatedRasterEngine:
@@ -33,7 +34,7 @@ class FoveatedRasterEngine:
 
     def raster_cycles(self, task: TileTask) -> float:
         scale = self._region_scale(task.region)
-        core_cycles = task.num_gaussians * self.config.base_cycles_per_gaussian * scale
+        core_cycles = task.num_gaussians * self.config.early_stop_ratio * self.config.base_cycles_per_gaussian * scale
         interp = self.config.interpolation_cycles/(1.0 - scale) if scale < 1.0 else 0.0
         return core_cycles + interp
 

@@ -11,7 +11,7 @@ class HSEConfig:
     num_cores: int = 16  # 排序核心数量，需与 FRE 核心数一致
     coarse_cycles_per_chunk: float = 4.0  # 粗排
     fine_cycles_per_chunk: float = 4.0  # 每 chunk 内双调排序近似
-    early_stop_ratio: float = 0.3  # 早停比例
+    early_stop_ratio: float = 0.3 
 
 
 class HierarchicalSortEngine:
@@ -23,7 +23,7 @@ class HierarchicalSortEngine:
         self.analyzer = analyzer
         self.resource = simpy.Resource(env, capacity=config.num_cores)
 
-    def sort_cycles(self, task: TileTask = None) -> float:
+    def sort_cycles(self) -> float:
         '''
         like GSCore, the actual latency of sorting before rasterization begins
         is approximately sorting one chunk and precisely sorting one chunk
@@ -44,7 +44,7 @@ class HierarchicalSortEngine:
     def _run(self, task: TileTask):
         with self.resource.request() as req:
             yield req
-            cycles = self.sort_cycles(task)
+            cycles = self.sort_cycles()
             self.analyzer.record_busy("hse", cycles)
             yield self.env.timeout(cycles)
             # HSE 处理完成后，任务继续传递给配对的 FRE 核

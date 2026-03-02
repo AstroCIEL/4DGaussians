@@ -75,6 +75,7 @@ class Simulator:
                 memory_bandwidth_gbps=hw.get('memory', {}).get("memory_bandwidth", 51.2),
                 cache_size_bytes=hw.get('memory', {}).get("cache_size", 1_048_576),
                 clock_frequency_ghz=hw.get('memory', {}).get("clock_frequency", 1.0),
+                read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.8),
             )
         )
         udpe = UnifiedDeformPreprocessEngine(
@@ -92,19 +93,20 @@ class Simulator:
         hse = HierarchicalSortEngine(
             env,
             HSEConfig(
-                num_cores=hw.get("hse", {}).get("num_units", 16),
+                num_cores=hw.get("hse", {}).get("num_cores", 16),
                 coarse_cycles_per_chunk=hw.get("hse", {}).get("coarse_sort_cycles", 4.0),
                 fine_cycles_per_chunk=hw.get("hse", {}).get("fine_sort_cycles", 4.0),
-                early_stop_ratio=hw.get("hse", {}).get("early_stop_ratio", 0.3),
+                early_stop_ratio=algo.get("early_stop_ratio", 0.3),
             ),
             self.analyzer,
         )
         fre = FoveatedRasterEngine(
             env,
             FREConfig(
-                num_cores=hw.get("fre", {}).get("num_units", 16),
+                num_cores=hw.get("fre", {}).get("num_cores", 16),
                 base_cycles_per_gaussian=hw.get("fre", {}).get("base_cycles_per_gaussian", 2.0),
                 interpolation_cycles=hw.get("fre", {}).get("interpolation_cycles", 8.0),
+                early_stop_ratio=algo.get("early_stop_ratio", 0.3),
             ),
             self.analyzer,
         )
@@ -145,16 +147,16 @@ class Simulator:
             if item is None:
                 break
 
-    def _run_single_frame(self, frame: WorkloadFrame) -> float:
-        env = simpy.Environment()
-        mem, udpe, hse, wbs, fre = self._build_components(env)
-        self._wire_modules(env, udpe, wbs)
-        env.process(self._feed_workload(env, frame, udpe))
-        env.run()
-        mem_cycles = self._estimate_memory_cycles(mem, frame)
-        if mem_cycles > 0:
-            self.analyzer.record_busy("memory", mem_cycles)
-        return env.now + mem_cycles
+    def _feed_all_workloads(self, env: simpy.Environment, udpe: UnifiedDeformPreprocessEngine):
+        """将所有 frame 依次注入 UDPE，实现流水线处理。"""
+        for frame in self.workloads:
+            try:
+                yield udpe.in_queue.put(frame)
+            except simpy.resources.store.StoreFull:
+                self.analyzer.record_fifo_block("udpe_in_full")
+                yield udpe.in_queue.put(frame)
+        # 发送结束信号
+        yield udpe.in_queue.put(None)
 
     def _estimate_memory_cycles(self, mem: MemorySystem, frame: WorkloadFrame) -> float:
         """基于高斯数估算一次帧的内存 stall 周期。"""
@@ -164,12 +166,55 @@ class Simulator:
         return mem.estimate_cycles(bytes_accessed)
 
     def run(self):
-        total = 0.0
+        """
+        运行仿真，支持多 frame 流水线处理。
+        所有 frame 共享同一个 simpy 环境，UDPE 和 WBS 可以流水线工作。
+        """
+        # 记录模拟开始时间和配置
+        self.analyzer.start_simulation(self.config)
+        
+        if not self.workloads:
+            hw = self.config.get("hardware", {})
+            clock_period_ns = hw.get("clock_period_ns", 1.0)
+            self.analyzer.finalize(0.0, clock_period_ns)
+            return self.stats
+        
+        # 创建全局环境，所有 frame 共享
+        env = simpy.Environment()
+        mem, udpe, hse, wbs, fre = self._build_components(env)
+        self._wire_modules(env, udpe, wbs)
+        
+        # 将所有 frame 送入 UDPE（流水线处理）
+        env.process(self._feed_all_workloads(env, udpe))
+        
+        # 运行仿真直到所有任务完成
+        env.run()
+        
+        # 计算内存 stall 周期（所有 frame 累加）
+        total_mem_cycles = 0.0
         for frame in self.workloads:
-            cycles = self._run_single_frame(frame)
-            self.stats.frame_cycles.append(cycles)
-            total += cycles
-        self.analyzer.finalize(total)
+            mem_cycles = self._estimate_memory_cycles(mem, frame)
+            if mem_cycles > 0:
+                self.analyzer.record_busy("memory", mem_cycles)
+                total_mem_cycles += mem_cycles
+        
+        # 记录总周期数
+        total_cycles = env.now + total_mem_cycles
+        
+        # 由于是流水线处理，每个 frame 的完成时间难以精确追踪
+        # 这里使用总周期数除以 frame 数作为平均每帧周期
+        avg_frame_cycles = total_cycles / len(self.workloads) if self.workloads else 0.0
+        for _ in self.workloads:
+            self.stats.frame_cycles.append(avg_frame_cycles)
+        
+        # 获取时钟周期配置（从 GHz 转换为纳秒）
+        hw = self.config.get("hardware", {})
+        clock_frequency_ghz = hw.get("clock_frequency", 1.0)
+        # clock_period_ns = 1000 / clock_frequency_ghz (GHz转纳秒: 1GHz = 1ns周期)
+        clock_period_ns = 1000.0 / clock_frequency_ghz if clock_frequency_ghz > 0 else 1.0
+        
+        # 完成统计，计算每帧用时
+        self.analyzer.finalize(total_cycles, clock_period_ns)
         return self.stats
 
 

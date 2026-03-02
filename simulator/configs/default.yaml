@@ -22,27 +22,28 @@ hardware:
     intersection_cycles: 2.0
     fifo_depth: 16
   hse:
-    num_units: 16
+    num_cores: 16
     coarse_sort_cycles: 4.0
     fine_sort_cycles: 4.0
-    early_stop_ratio: 0.3
   fre:
-    num_units: 16
-    base_cycles_per_gaussian: 2.0
+    num_cores: 16
+    base_cycles_per_gaussian: 4.0
     interpolation_cycles: 8.0
   wbs:
     window_size_k: 8
     fifo_depth: 32
   memory:
-    memory_bandwidth: 51.2  # GB/s
+    memory_bandwidth: 120  # GB/s
     cache_size: 1048576    # bytes
     clock_frequency: 1.0  # GHz
-    bytes_per_gaussian: 64  # 内存估算用的单高斯读写字节
+    bytes_per_gaussian: 120  # 内存估算用的单高斯读写字节
+    read_latency_hiding_rate: 0.8
   
 algorithm:
   # tile_size 32 means 32x32px
   tile_size: 32
   subtile_size: 2
+  early_stop_ratio: 0.4
   fov_x: 90          # 水平视场角(度)用于区域划分
   foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
 
@@ -61,5 +62,5 @@ labeling:
   output_json: "motion_labels.json"
   
 output:
-  stats_file: "results/stats.json"
+  stats_file: "simulator/results/stats.json"
   verbose: True

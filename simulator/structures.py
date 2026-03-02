@@ -73,6 +73,10 @@ class SimStats:
     frame_cycles: List[float] = field(default_factory=list)
     module_busy: Dict[str, float] = field(default_factory=dict)
     fifo_blocked: Dict[str, int] = field(default_factory=dict)
+    start_time: str = ""  # 模拟开始时间（ISO 格式字符串）
+    elapsed_time: float = 0.0  # 系统用时（秒）
+    config: dict = field(default_factory=dict)  # 使用的配置内容
+    frame_times: List[float] = field(default_factory=list)  # 每帧用时（秒，cycles * clock_period）
 
     def record_busy(self, module: str, cycles: float) -> None:
         self.module_busy[module] = self.module_busy.get(module, 0.0) + cycles
@@ -90,6 +94,10 @@ class SimStats:
             "frame_cycles": self.frame_cycles,
             "module_busy": self.module_busy,
             "fifo_blocked": self.fifo_blocked,
+            "start_time": self.start_time,
+            "elapsed_time": self.elapsed_time,
+            "config": self.config,
+            "frame_times": self.frame_times,
         }
 
 

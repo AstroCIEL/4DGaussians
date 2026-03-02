@@ -1,0 +1,85 @@
+{
+  "total_cycles": 2815566.0666666664,
+  "preprocess_cycles": 228405.0,
+  "sort_cycles": 128.0,
+  "rasterize_cycles": 1280.6666666666667,
+  "memory_stall_cycles": 2587039.9999999995,
+  "frame_cycles": [
+    2815566.0666666664
+  ],
+  "module_busy": {
+    "udpe": 228405.0,
+    "hse": 128.0,
+    "fre": 1280.6666666666667,
+    "memory": 2587039.9999999995
+  },
+  "fifo_blocked": {},
+  "start_time": "2026-03-02T20:03:35.247391",
+  "elapsed_time": 0.13873291015625,
+  "config": {
+    "simulation": {
+      "dataset": "dynerf",
+      "scene": "cook_spinach",
+      "frames": 0,
+      "resolution": "1440x1024",
+      "iteration": -1,
+      "camera_split": "video",
+      "base_output": "output"
+    },
+    "hardware": {
+      "clock_frequency": 1.0,
+      "udpe": {
+        "cull_cycles": 1.0,
+        "deform_cycles": 5.0,
+        "intersection_cycles": 2.0,
+        "fifo_depth": 16
+      },
+      "hse": {
+        "num_cores": 16,
+        "coarse_sort_cycles": 4.0,
+        "fine_sort_cycles": 4.0
+      },
+      "fre": {
+        "num_cores": 16,
+        "base_cycles_per_gaussian": 4.0,
+        "interpolation_cycles": 8.0
+      },
+      "wbs": {
+        "window_size_k": 8,
+        "fifo_depth": 32
+      },
+      "memory": {
+        "memory_bandwidth": 120,
+        "cache_size": 1048576,
+        "clock_frequency": 1.0,
+        "bytes_per_gaussian": 120,
+        "read_latency_hiding_rate": 0.8
+      }
+    },
+    "algorithm": {
+      "tile_size": 32,
+      "subtile_size": 2,
+      "early_stop_ratio": 0.4,
+      "fov_x": 90,
+      "foveated_enabled": true
+    },
+    "workload": {
+      "chunk_size": 256,
+      "static_ratio": 0.4,
+      "quasi_ratio": 0.4,
+      "culling_survival_rate": 0.8
+    },
+    "labeling": {
+      "num_time_samples": 50,
+      "output_npy": "motion_labels.npy",
+      "output_json": "motion_labels.json"
+    },
+    "output": {
+      "stats_file": "simulator/results/stats.json",
+      "verbose": true
+    }
+  },
+  "frame_times": [
+    2.815566066666667
+  ]
+}
