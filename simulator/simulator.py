@@ -117,30 +117,12 @@ class Simulator:
         return mem, udpe, hse, wbs, fre
 
     def _feed_workload(self, env: simpy.Environment, frame: WorkloadFrame, udpe: UnifiedDeformPreprocessEngine):
-        """将 tile/chunk 任务注入 UDPE，带背压。"""
-        for tile in frame.tiles.values():
-            if tile.num_gaussians <= 0:
-                continue
-            # 若 chunk_sizes 为空但有高斯列表，退化为一个 chunk
-            chunk_sizes = tile.chunk_sizes or ([len(tile.gaussian_ids)] if tile.gaussian_ids else [])
-            for idx, csize in enumerate(chunk_sizes):
-                c_labels = None
-                if tile.chunk_label_counts and idx < len(tile.chunk_label_counts):
-                    c_labels = tile.chunk_label_counts[idx]
-                task = TileTask(
-                    frame_id=frame.frame_id,
-                    tile_id=tile.tile_id,
-                    num_gaussians=csize,
-                    region=tile.region,
-                    chunk_index=idx,
-                    gaussian_ids=tile.gaussian_ids,
-                    label_counts=c_labels,
-                )
-                try:
-                    yield udpe.in_queue.put(task)
-                except simpy.resources.store.StoreFull:
-                    self.analyzer.record_fifo_block("udpe_in_full")
-                    yield udpe.in_queue.put(task)
+        """将整个 frame 注入 UDPE，带背压。"""
+        try:
+            yield udpe.in_queue.put(frame)
+        except simpy.resources.store.StoreFull:
+            self.analyzer.record_fifo_block("udpe_in_full")
+            yield udpe.in_queue.put(frame)
         # 发送结束信号
         yield udpe.in_queue.put(None)
 

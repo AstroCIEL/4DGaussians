@@ -1,16 +1,17 @@
 from dataclasses import dataclass
+from typing import List, Tuple
 import random
 import simpy
 
 from simulator.analyzer import Analyzer
-from simulator.structures import TileTask
+from simulator.structures import TileTask, WorkloadFrame
 
 
 @dataclass
 class UDPEConfig:
-    cull_cycles: float = 2.0               # 单高斯 cull 开销
-    deform_cycles: float = 4.0             # 单高斯 deform 开销
-    intersection_cycles: float = 1.0       # 单高斯 intersection 开销
+    cull_cycles: float = 1.0               # 单高斯 cull 开销
+    deform_cycles: float = 5.0             # 单高斯 deform 开销
+    intersection_cycles: float = 2.0       # 单高斯 intersection 开销
     fifo_depth: int = 16
     static_ratio: float = 0.4
     quasi_ratio: float = 0.4  # 其余视为 dynamic
@@ -19,9 +20,11 @@ class UDPEConfig:
 
 class UnifiedDeformPreprocessEngine:
     """
-    UDPE：以高斯为单位的前端形变/剔除建模。
-    - cull 与 deform 模块并行，intersection 在存活后执行。
-    - 以 chunk 中高斯数量做统计近似，体现生成 tile workload 的前端延迟。
+    UDPE：以 frame 为单位的前端形变/剔除建模。
+    - 接收整个 WorkloadFrame，以 frame 级别的高斯集合作为处理单位
+    - cull 与 deform 模块并行，intersection 在存活后执行
+    - 按 frame 级别计算处理周期，提高硬件利用率
+    - 处理完成后将 frame 拆分为 TileTask 输出给下游模块
     """
 
     def __init__(self, env: simpy.Environment, config: UDPEConfig, analyzer: Analyzer):
@@ -30,72 +33,334 @@ class UnifiedDeformPreprocessEngine:
         self.analyzer = analyzer
         self.in_queue = simpy.Store(env, capacity=config.fifo_depth)
         self.out_queue = simpy.Store(env, capacity=config.fifo_depth)
-        # 按帧去重，避免同一高斯跨多 tile 被重复预处理
-        self._seen_by_frame = {}
         random.seed(0)
 
-    def classify_counts(self, task: TileTask, effective_n: int):
-        """根据标签计数或比例拆分 chunk 内的高斯数量，使用去重后的有效数量。"""
-        if task.label_counts:
-            total_labels = sum(task.label_counts.values())
-            if total_labels > 0:
-                # 按比例分配到有效数量
-                static_n = int(effective_n * task.label_counts.get(0, 0) / total_labels)
-                quasi_n = int(effective_n * task.label_counts.get(1, 0) / total_labels)
-                dynamic_n = effective_n - static_n - quasi_n
+    def classify_counts(self, frame: WorkloadFrame) -> Tuple[int, int, int]:
+        """
+        根据 frame 级别的全局高斯球属性统计不同类型的高斯数量。
+        使用 gaussian_attrs 避免重复计算（因为一个高斯球可能横跨多个 tile）。
+        返回: (static_n, quasi_n, dynamic_n)
+        """
+        total_gaussians = frame.num_gaussians
+        if total_gaussians <= 0:
+            return 0, 0, 0
+        
+        # 优先使用 frame 级别的 gaussian_attrs 进行统计（去重）
+        if frame.gaussian_attrs:
+            static_n = 0
+            quasi_n = 0
+            dynamic_n = 0
+            has_labels = False
+            
+            # 遍历所有高斯球属性，统计标签
+            for attr in frame.gaussian_attrs.values():
+                if attr.label is not None:
+                    has_labels = True
+                    if attr.label == 0:
+                        static_n += 1
+                    elif attr.label == 1:
+                        quasi_n += 1
+                    elif attr.label == 2:
+                        dynamic_n += 1
+            
+            if has_labels:
+                # 如果统计到的标签总数小于总高斯数，说明有些高斯没有标签
+                # 将剩余的高斯按比例分配
+                labeled_count = static_n + quasi_n + dynamic_n
+                if labeled_count < total_gaussians:
+                    print(f"labeled_count: {labeled_count}, total_gaussians: {total_gaussians} are not matched")
+                    unlabeled_count = total_gaussians - labeled_count
+                    if labeled_count > 0:
+                        # 按已有标签的比例分配未标记的高斯
+                        ratio_static = static_n / labeled_count
+                        ratio_quasi = quasi_n / labeled_count
+                        static_n += int(unlabeled_count * ratio_static)
+                        quasi_n += int(unlabeled_count * ratio_quasi)
+                        dynamic_n = total_gaussians - static_n - quasi_n
+                    else:
+                        # 所有高斯都没有标签，使用默认比例
+                        static_n = int(total_gaussians * self.config.static_ratio)
+                        quasi_n = int(total_gaussians * self.config.quasi_ratio)
+                        dynamic_n = max(0, total_gaussians - static_n - quasi_n)
                 return static_n, quasi_n, dynamic_n
+        
+        # 如果没有 gaussian_attrs，尝试从 tile 的 label_counts 汇总
+        # 但需要注意：这种方法可能重复计算跨 tile 的高斯球
+        # 作为备选方案，我们使用去重后的 gaussian_ids 集合
+        all_gaussian_ids = set()
+        tile_label_counts = {0: 0, 1: 0, 2: 0}
+        has_tile_labels = False
+        
+        for tile in frame.tiles.values():
+            if tile.gaussian_ids:
+                all_gaussian_ids.update(tile.gaussian_ids)
+            if tile.label_counts:
+                has_tile_labels = True
+                # 注意：这里仍然可能重复计算，但如果没有 gaussian_attrs 只能这样
+                tile_label_counts[0] += tile.label_counts.get(0, 0)
+                tile_label_counts[1] += tile.label_counts.get(1, 0)
+                tile_label_counts[2] += tile.label_counts.get(2, 0)
+        
+        if has_tile_labels and all_gaussian_ids:
+            # 使用去重后的高斯 ID 数量作为参考
+            unique_count = len(all_gaussian_ids)
+            total_labels = sum(tile_label_counts.values())
+            if total_labels > 0:
+                # 按比例分配到总高斯数
+                static_n = int(total_gaussians * tile_label_counts[0] / total_labels)
+                quasi_n = int(total_gaussians * tile_label_counts[1] / total_labels)
+                dynamic_n = total_gaussians - static_n - quasi_n
+                return static_n, quasi_n, dynamic_n
+        
         # 无标签或标签不可用时按比例估计
-        n = effective_n
-        static_n = int(n * self.config.static_ratio)
-        quasi_n = int(n * self.config.quasi_ratio)
-        dynamic_n = max(0, n - static_n - quasi_n)
+        static_n = int(total_gaussians * self.config.static_ratio)
+        quasi_n = int(total_gaussians * self.config.quasi_ratio)
+        dynamic_n = max(0, total_gaussians - static_n - quasi_n)
         return static_n, quasi_n, dynamic_n
 
-    def processing_cycles(self, task: TileTask) -> float:
+    def processing_cycles(self, frame: WorkloadFrame) -> float:
         """
-        并行近似：
-        - cull 工作量：所有高斯 N_total
-        - deform 工作量：quasi+dynamic
+        按 frame 级别计算处理周期：
+        - cull 工作量：frame 内所有高斯 N_total
+        - deform 工作量：quasi+dynamic 高斯
         - 两者并行：max(cull_time, deform_time)
-        - intersection：对存活高斯，使用存活率估计
+        - intersection：对所有高斯执行
         """
-        # 去重：同一帧中已处理的高斯不再计入
-        seen = self._seen_by_frame.setdefault(task.frame_id, set())
-        if task.gaussian_ids:
-            ids = [gid for gid in task.gaussian_ids if gid not in seen]
-            for gid in ids:
-                seen.add(gid)
-            effective_n = len(ids)
-        else:
-            effective_n = task.num_gaussians
-        if effective_n <= 0:
+        if frame.num_gaussians <= 0:
             return 0.0
 
-        static_n, quasi_n, dynamic_n = self.classify_counts(task, effective_n)
+        static_n, quasi_n, dynamic_n = self.classify_counts(frame)
         total_n = static_n + quasi_n + dynamic_n
         c = self.config
         cull_time = total_n * c.cull_cycles
         deform_time = (quasi_n + dynamic_n) * c.deform_cycles
-        # 存活估计
-        survive_n = int(total_n * c.culling_survival_rate)
-        inter_time = survive_n * c.intersection_cycles
-        return max(cull_time, deform_time) + inter_time
+        inter_time = total_n * c.intersection_cycles
+        return max(cull_time, deform_time, inter_time)
+    
+    def frame_to_tile_tasks(self, frame: WorkloadFrame) -> List[TileTask]:
+        """
+        将处理后的 frame 拆分为 TileTask 列表，供下游模块使用。
+        """
+        tasks = []
+        for tile in frame.tiles.values():
+            if tile.num_gaussians <= 0:
+                continue
+            # 若 chunk_sizes 为空但有高斯列表，退化为一个 chunk
+            chunk_sizes = tile.chunk_sizes or ([len(tile.gaussian_ids)] if tile.gaussian_ids else [])
+            for idx, csize in enumerate(chunk_sizes):
+                c_labels = None
+                if tile.chunk_label_counts and idx < len(tile.chunk_label_counts):
+                    c_labels = tile.chunk_label_counts[idx]
+                task = TileTask(
+                    frame_id=frame.frame_id,
+                    tile_id=tile.tile_id,
+                    num_gaussians=csize,
+                    region=tile.region,
+                    chunk_index=idx,
+                    gaussian_ids=tile.gaussian_ids,
+                    label_counts=c_labels,
+                )
+                tasks.append(task)
+        return tasks
 
     def start(self):
         return self.env.process(self._run())
 
     def _run(self):
         while True:
-            task = yield self.in_queue.get()
-            if task is None:
+            frame = yield self.in_queue.get()
+            if frame is None:
                 # 透传结束信号
                 yield self.out_queue.put(None)
                 break
-            cycles = self.processing_cycles(task)
+            # 按 frame 级别计算处理周期
+            cycles = self.processing_cycles(frame)
             self.analyzer.record_busy("udpe", cycles)
             yield self.env.timeout(cycles)
-            try:
-                yield self.out_queue.put(task)
-            except simpy.resources.store.StoreFull:
-                self.analyzer.record_fifo_block("udpe_out_full")
-                yield self.out_queue.put(task)
+            # 将 frame 拆分为 TileTask 列表并逐个输出
+            tasks = self.frame_to_tile_tasks(frame)
+            for task in tasks:
+                try:
+                    yield self.out_queue.put(task)
+                except simpy.resources.store.StoreFull:
+                    self.analyzer.record_fifo_block("udpe_out_full")
+                    yield self.out_queue.put(task)
+
+
+def main():
+    """独立的 UDPE 测试主函数，用于检查逻辑。"""
+    import simpy
+    from simulator.structures import SimStats, WorkloadFrame, TileWorkload
+    
+    print("=" * 60)
+    print("UDPE (Unified Deform Preprocess Engine) 测试 - Frame 级别处理")
+    print("=" * 60)
+    
+    # 创建环境
+    env = simpy.Environment()
+    
+    # 创建配置
+    config = UDPEConfig(
+        cull_cycles=1.0,
+        deform_cycles=5.0,
+        intersection_cycles=2.0,
+        fifo_depth=16,
+        static_ratio=0.4,
+        quasi_ratio=0.4,
+        culling_survival_rate=0.8,
+    )
+    
+    # 创建统计和分析器
+    stats = SimStats()
+    analyzer = Analyzer(stats, verbose=False)
+    
+    # 创建 UDPE
+    udpe = UnifiedDeformPreprocessEngine(env, config, analyzer)
+    
+    # 创建测试 frame
+    # Frame 0: 包含多个 tile，有标签计数
+    tiles_frame0 = {
+        0: TileWorkload(
+            tile_id=0,
+            gaussian_ids=list(range(100)),
+            chunk_sizes=[100],
+            label_counts={0: 40, 1: 40, 2: 20},
+            region="fovea",
+        ),
+        1: TileWorkload(
+            tile_id=1,
+            gaussian_ids=list(range(100, 300)),
+            chunk_sizes=[200],
+            label_counts=None,  # 无标签，使用默认比例
+            region="transition",
+        ),
+        2: TileWorkload(
+            tile_id=2,
+            gaussian_ids=list(range(300, 350)),
+            chunk_sizes=[50],
+            label_counts={0: 20, 1: 20, 2: 10},
+            region="periphery",
+        ),
+    }
+    frame0 = WorkloadFrame(
+        frame_id=0,
+        width=1440,
+        height=1024,
+        tile_size=32,
+        num_gaussians=350,
+        num_tiles=3,
+        tiles=tiles_frame0,
+    )
+    
+    # Frame 1: 不同帧
+    tiles_frame1 = {
+        0: TileWorkload(
+            tile_id=0,
+            gaussian_ids=list(range(0, 150)),
+            chunk_sizes=[150],
+            label_counts={0: 60, 1: 60, 2: 30},
+            region="fovea",
+        ),
+        1: TileWorkload(
+            tile_id=1,
+            gaussian_ids=None,
+            chunk_sizes=[80],
+            label_counts=None,
+            region="transition",
+        ),
+    }
+    frame1 = WorkloadFrame(
+        frame_id=1,
+        width=1440,
+        height=1024,
+        tile_size=32,
+        num_gaussians=230,
+        num_tiles=2,
+        tiles=tiles_frame1,
+    )
+    
+    test_frames = [frame0, frame1]
+    
+    # 输出 frame 信息
+    print("\n[输入 Frame]")
+    for i, frame in enumerate(test_frames, 1):
+        print(f"\nFrame {i} (frame_id={frame.frame_id}):")
+        print(f"  总高斯数: {frame.num_gaussians}")
+        print(f"  Tile 数量: {frame.num_tiles}")
+        for tile_id, tile in frame.tiles.items():
+            print(f"    Tile {tile_id}: {tile.num_gaussians} 高斯, region={tile.region}, label_counts={tile.label_counts}")
+    
+    # 定义发送 frame 的进程
+    def send_frames():
+        for frame in test_frames:
+            print(f"\n[时间 {env.now:.2f}] 发送 Frame {frame.frame_id}: {frame.num_gaussians} 高斯")
+            yield udpe.in_queue.put(frame)
+        print(f"\n[时间 {env.now:.2f}] 发送结束信号")
+        yield udpe.in_queue.put(None)
+    
+    # 定义接收 TileTask 的进程
+    def receive_tasks():
+        count = 0
+        while True:
+            task = yield udpe.out_queue.get()
+            if task is None:
+                print(f"\n[时间 {env.now:.2f}] 收到结束信号")
+                break
+            count += 1
+            print(f"[时间 {env.now:.2f}] 收到 TileTask: frame={task.frame_id}, tile={task.tile_id}, chunk={task.chunk_index}, n={task.num_gaussians}")
+    
+    # 启动进程
+    udpe.start()
+    env.process(send_frames())
+    env.process(receive_tasks())
+    
+    # 运行仿真
+    print("\n" + "=" * 60)
+    print("开始仿真...")
+    print("=" * 60)
+    env.run()
+    
+    # 输出统计信息
+    print("\n" + "=" * 60)
+    print("仿真结果统计")
+    print("=" * 60)
+    print(f"总仿真时间: {env.now:.2f} 周期")
+    print(f"UDPE 忙碌时间: {stats.module_busy.get('udpe', 0.0):.2f} 周期")
+    print(f"预处理周期: {stats.preprocess_cycles:.2f} 周期")
+    if stats.fifo_blocked:
+        print(f"FIFO 阻塞次数: {stats.fifo_blocked}")
+    
+    # 详细分析每个 frame 的处理周期
+    print("\n" + "=" * 60)
+    print("Frame 处理周期分析")
+    print("=" * 60)
+    
+    for i, frame in enumerate(test_frames, 1):
+        cycles = udpe.processing_cycles(frame)
+        static_n, quasi_n, dynamic_n = udpe.classify_counts(frame)
+        
+        print(f"\nFrame {i} (frame_id={frame.frame_id}):")
+        print(f"  总高斯数: {frame.num_gaussians}")
+        print(f"  分类: static={static_n}, quasi={quasi_n}, dynamic={dynamic_n}")
+        print(f"  处理周期: {cycles:.2f}")
+        if frame.num_gaussians > 0:
+            total_n = static_n + quasi_n + dynamic_n
+            print(f"  计算详情:")
+            print(f"    cull_time = {total_n} * {config.cull_cycles:.1f} = {total_n * config.cull_cycles:.1f}")
+            print(f"    deform_time = {quasi_n + dynamic_n} * {config.deform_cycles:.1f} = {(quasi_n + dynamic_n) * config.deform_cycles:.1f}")
+            print(f"    inter_time = {total_n} * {config.intersection_cycles:.1f} = {total_n * config.intersection_cycles:.1f}")
+            print(f"    max({total_n * config.cull_cycles:.1f}, {(quasi_n + dynamic_n) * config.deform_cycles:.1f}, {total_n * config.intersection_cycles:.1f}) = {cycles:.2f}")
+        
+        # 显示拆分后的 TileTask
+        tasks = udpe.frame_to_tile_tasks(frame)
+        print(f"  拆分后的 TileTask 数量: {len(tasks)}")
+        for task in tasks:
+            print(f"    - Tile {task.tile_id}, chunk {task.chunk_index}: {task.num_gaussians} 高斯")
+    
+    print("\n" + "=" * 60)
+    print("测试完成")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
