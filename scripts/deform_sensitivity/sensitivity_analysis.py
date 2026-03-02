@@ -18,6 +18,12 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 from pathlib import Path
 
+# 添加项目根目录到Python路径，确保可以导入模块
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from scene import Scene
 from gaussian_renderer import render, GaussianModel
 from scene.static_analyzer import StaticGaussianAnalyzer

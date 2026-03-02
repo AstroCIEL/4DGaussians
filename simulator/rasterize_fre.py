@@ -34,7 +34,7 @@ class FoveatedRasterEngine:
     def raster_cycles(self, task: TileTask) -> float:
         scale = self._region_scale(task.region)
         core_cycles = task.num_gaussians * self.config.base_cycles_per_gaussian * scale
-        interp = self.config.interpolation_cycles if scale < 1.0 else 0.0
+        interp = self.config.interpolation_cycles/(1.0 - scale) if scale < 1.0 else 0.0
         return core_cycles + interp
 
     def process(self, task: TileTask):
