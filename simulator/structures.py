@@ -45,6 +45,9 @@ class WorkloadFrame:
     num_tiles: int
     tiles: Dict[int, TileWorkload] = field(default_factory=dict)
     gaussian_attrs: Dict[int, GaussianAttr] = field(default_factory=dict)
+    visible_ratio: float = 0.0  # 可见高斯球占整个场景总高斯球的比例
+    label_counts: Dict[int, int] = field(default_factory=dict)  # frame级别的三种高斯球数量（0=静止,1=微动,2=巨变）
+    culling_rate: Dict[int, float] = field(default_factory=dict)  # 三种高斯球分别被cull的比例
 
 
 @dataclass
@@ -135,6 +138,9 @@ def build_synthetic_workload(
         num_tiles=num_tiles,
         tiles=tiles,
         gaussian_attrs={},
+        visible_ratio=1.0,  # 合成 workload 假设所有高斯都可见
+        label_counts={0: 0, 1: 0, 2: 0},  # 合成 workload 无标签信息
+        culling_rate={0: 0.0, 1: 0.0, 2: 0.0},  # 合成 workload 无 culling
     )
 
 

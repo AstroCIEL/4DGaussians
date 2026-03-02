@@ -15,6 +15,7 @@ simulation:
   base_output: "output"  # 模型根目录，用于推导 model_path = base_output/dataset/scene
 
 hardware:
+  clock_frequency: 1.0  # GHz
   udpe: 
     cull_cycles: 1.0
     deform_cycles: 5.0

@@ -147,21 +147,66 @@ def _build_workload_frame(
     chunk_size: int,
     fov_x: float,
     foveated_enabled: bool,
+    total_gaussians_in_scene: int = 0,
 ) -> WorkloadFrame:
     tiles: Dict[int, TileWorkload] = {}
-    total_gaussians = 0
+    
+    # 收集所有不重复的可见高斯 ID（跨 tile 去重）
+    all_visible_gaussian_ids = set()
+    for ids in tile_to_gauss.values():
+        all_visible_gaussian_ids.update(ids)
+    
+    # 统计不重复的高斯数量
+    total_visible_gaussians = len(all_visible_gaussian_ids)
+    
+    # 过滤 gaussian_attrs，只保留视锥内可见的高斯
+    visible_gaussian_attrs = {
+        gid: attr for gid, attr in gaussian_attrs.items() 
+        if gid in all_visible_gaussian_ids
+    }
+    
+    # 计算 frame 级别的 label_counts（去重后）
+    frame_label_counts = {0: 0, 1: 0, 2: 0}
+    for gid in all_visible_gaussian_ids:
+        attr = visible_gaussian_attrs.get(gid)
+        if attr is not None and attr.label is not None:
+            lb = attr.label
+            if lb in (0, 1, 2):
+                frame_label_counts[lb] = frame_label_counts.get(lb, 0) + 1
+    
+    # 计算 visible_ratio
+    visible_ratio = total_visible_gaussians / total_gaussians_in_scene if total_gaussians_in_scene > 0 else 0.0
+    
+    # 计算 culling_rate：需要知道每种标签的总数和可见数
+    # 统计场景中所有高斯的标签分布
+    scene_label_counts = {0: 0, 1: 0, 2: 0}
+    for attr in gaussian_attrs.values():
+        if attr.label is not None:
+            lb = attr.label
+            if lb in (0, 1, 2):
+                scene_label_counts[lb] = scene_label_counts.get(lb, 0) + 1
+    
+    # 计算每种标签的 culling_rate
+    culling_rate = {0: 0.0, 1: 0.0, 2: 0.0}
+    for label in (0, 1, 2):
+        total_label_count = scene_label_counts.get(label, 0)
+        visible_label_count = frame_label_counts.get(label, 0)
+        if total_label_count > 0:
+            culling_rate[label] = 1.0 - (visible_label_count / total_label_count)
+        else:
+            culling_rate[label] = 0.0
+    
     for ty in range(num_tiles_y):
         for tx in range(num_tiles_x):
             tile_id = ty * num_tiles_x + tx
             ids = tile_to_gauss.get((tx, ty), [])
-            total_gaussians += len(ids) #
             chunks: List[int] = []
             chunk_label_counts: List[Dict[int, int]] = []
             label_counts = {0: 0, 1: 0, 2: 0}
             # 按顺序分 chunk，计算每个 chunk 内的标签计数
             if len(ids) > 0:
                 for gid in ids:
-                    attr = gaussian_attrs.get(gid)
+                    attr = visible_gaussian_attrs.get(gid)
                     if attr is not None and attr.label is not None:
                         lb = attr.label
                         if lb in (0, 1, 2):
@@ -174,7 +219,7 @@ def _build_workload_frame(
                     chunks.append(take)
                     c_counts = {0: 0, 1: 0, 2: 0}
                     for gid in chunk_ids:
-                        attr = gaussian_attrs.get(gid)
+                        attr = visible_gaussian_attrs.get(gid)
                         if attr is not None and attr.label is not None:
                             lb = attr.label
                             if lb in (0, 1, 2):
@@ -194,10 +239,13 @@ def _build_workload_frame(
         width=eff_width,
         height=eff_height,
         tile_size=tile_size,
-        num_gaussians=total_gaussians,
+        num_gaussians=total_visible_gaussians,
         num_tiles=num_tiles_x * num_tiles_y,
         tiles=tiles,
-        gaussian_attrs=gaussian_attrs,
+        gaussian_attrs=visible_gaussian_attrs,
+        visible_ratio=visible_ratio,
+        label_counts=frame_label_counts,
+        culling_rate=culling_rate,
     )
 
 
@@ -403,6 +451,8 @@ def load_workload_from_scene(
             viewspace_points = _project_3d_to_2d(means3D, projmatrix, full_w, full_h)
         
         tile_map, _, ntx, nty = _compute_tile_cover(viewspace_points, radii, eff_w, eff_h, tile_size)
+        # 获取场景中总高斯数
+        total_gaussians_in_scene = gaussians._xyz.shape[0]
         wl = _build_workload_frame(
             frame_id=fid,
             tile_to_gauss=tile_map,
@@ -415,6 +465,7 @@ def load_workload_from_scene(
             chunk_size=chunk_size,
             fov_x=algo.get("fov_x", 90.0),
             foveated_enabled=algo.get("foveated_enabled", True),
+            total_gaussians_in_scene=total_gaussians_in_scene,
         )
         workloads.append(wl)
         if verbose:
@@ -433,17 +484,112 @@ if __name__ == "__main__":
     if workloads is None:
         print("failed to load workloads (returned None)")
     else:
-        print(f"successfully loaded {len(workloads)} workloads of {config['simulation']['scene']}")
+        print("\n" + "=" * 80)
+        print(f"成功加载 {len(workloads)} 个 WorkloadFrame")
+        print("=" * 80)
+        
+        # 为每个 frame 打印详细信息
+        for frame_idx, wl in enumerate(workloads):
+            print(f"\n{'='*80}")
+            print(f"Frame {frame_idx} (frame_id={wl.frame_id})")
+            print(f"{'='*80}")
+            
+            # 基本信息
+            print(f"\n[基本信息]")
+            print(f"  分辨率: {wl.width} x {wl.height}")
+            print(f"  Tile 大小: {wl.tile_size}")
+            print(f"  Tile 数量: {wl.num_tiles} ({wl.width // wl.tile_size} x {wl.height // wl.tile_size})")
+            
+            # 高斯统计
+            total_gaussians_in_scene = int(wl.num_gaussians / wl.visible_ratio) if wl.visible_ratio > 0 else 0
+            print(f"\n[高斯统计]")
+            print(f"  场景总高斯数: {total_gaussians_in_scene}")
+            print(f"  可见高斯数: {wl.num_gaussians}")
+            print(f"  可见比例 (visible_ratio): {wl.visible_ratio:.4f} ({wl.visible_ratio*100:.2f}%)")
+            print(f"  高斯属性数量: {len(wl.gaussian_attrs)}")
+            
+            # 标签分布
+            print(f"\n[标签分布 (label_counts)]")
+            label_names = {0: "静止 (Static)", 1: "微动 (Quasi-static)", 2: "巨变 (Dynamic)"}
+            total_labeled = sum(wl.label_counts.values())
+            if total_labeled > 0:
+                for label_id in (0, 1, 2):
+                    count = wl.label_counts.get(label_id, 0)
+                    ratio = count / total_labeled if total_labeled > 0 else 0.0
+                    print(f"  {label_names[label_id]}: {count:6d} ({ratio*100:5.2f}%)")
+                if total_labeled < wl.num_gaussians:
+                    unlabeled = wl.num_gaussians - total_labeled
+                    print(f"  未标记: {unlabeled:6d} ({(unlabeled/wl.num_gaussians)*100:5.2f}%)")
+            else:
+                print("  无标签信息")
+            
+            # Culling 率
+            print(f"\n[Culling 率 (culling_rate)]")
+            if any(rate > 0 for rate in wl.culling_rate.values()):
+                for label_id in (0, 1, 2):
+                    rate = wl.culling_rate.get(label_id, 0.0)
+                    print(f"  {label_names[label_id]}: {rate*100:5.2f}%")
+            else:
+                print("  所有高斯都可见（无 culling）")
+            
+            # Tile 区域分布
+            print(f"\n[Tile 区域分布]")
+            region_counts = {"fovea": 0, "transition": 0, "periphery": 0}
+            region_gauss = {"fovea": 0, "transition": 0, "periphery": 0}
+            region_chunks = {"fovea": 0, "transition": 0, "periphery": 0}
+            max_gauss_per_tile = 0
+            min_gauss_per_tile = float('inf')
+            
+            for tile in wl.tiles.values():
+                r = tile.region
+                region_counts[r] = region_counts.get(r, 0) + 1
+                region_gauss[r] = region_gauss.get(r, 0) + tile.num_gaussians
+                region_chunks[r] = region_chunks.get(r, 0) + tile.num_chunks
+                max_gauss_per_tile = max(max_gauss_per_tile, tile.num_gaussians)
+                if tile.num_gaussians > 0:
+                    min_gauss_per_tile = min(min_gauss_per_tile, tile.num_gaussians)
+            
+            for region in ["fovea", "transition", "periphery"]:
+                tile_count = region_counts.get(region, 0)
+                gauss_count = region_gauss.get(region, 0)
+                chunk_count = region_chunks.get(region, 0)
+                if tile_count > 0:
+                    avg_gauss = gauss_count / tile_count
+                    avg_chunks = chunk_count / tile_count
+                    print(f"  {region:12s}: {tile_count:3d} tiles, {gauss_count:8d} gaussians (avg: {avg_gauss:6.1f}/tile), {chunk_count:4d} chunks (avg: {avg_chunks:4.1f}/tile)")
+            
+            print(f"\n  Tile 高斯数范围: {min_gauss_per_tile if min_gauss_per_tile != float('inf') else 0} - {max_gauss_per_tile}")
+            
+            # Chunk 统计
+            total_chunks = sum(tile.num_chunks for tile in wl.tiles.values())
+            if total_chunks > 0:
+                print(f"\n[Chunk 统计]")
+                print(f"  总 Chunk 数: {total_chunks}")
+                print(f"  平均每 Tile: {total_chunks / wl.num_tiles:.2f} chunks")
+        
         # 可视化第一个帧的 tile 区域及高斯数
-        out_img = "simulator/results/workload_tile_regions.png"
-        visualize_tile_regions(workloads[0], out_img)
-        # 打印汇总
-        region_counts = {"fovea": 0, "transition": 0, "periphery": 0}
-        region_gauss = {"fovea": 0, "transition": 0, "periphery": 0}
-        for tile in workloads[0].tiles.values():
-            r = tile.region
-            region_counts[r] = region_counts.get(r, 0) + 1
-            region_gauss[r] = region_gauss.get(r, 0) + tile.num_gaussians
-        print(f"[viz] saved tile region map to {out_img}")
-        print(f"[viz] tile counts: {region_counts}")
-        print(f"[viz] gaussian counts per region: {region_gauss}")
+        if len(workloads) > 0:
+            print(f"\n{'='*80}")
+            print("生成可视化...")
+            print(f"{'='*80}")
+            out_img = "simulator/results/workload_tile_regions.png"
+            visualize_tile_regions(workloads[0], out_img)
+            print(f"[viz] 已保存 tile 区域图到: {out_img}")
+            
+            # 打印第一个帧的汇总
+            print(f"\n[第一个 Frame 汇总]")
+            wl0 = workloads[0]
+            region_counts = {"fovea": 0, "transition": 0, "periphery": 0}
+            region_gauss = {"fovea": 0, "transition": 0, "periphery": 0}
+            for tile in wl0.tiles.values():
+                r = tile.region
+                region_counts[r] = region_counts.get(r, 0) + 1
+                region_gauss[r] = region_gauss.get(r, 0) + tile.num_gaussians
+            print(f"  Tile 数量: {region_counts}")
+            print(f"  高斯数量: {region_gauss}")
+            print(f"  可见比例: {wl0.visible_ratio*100:.2f}%")
+            print(f"  标签分布: Static={wl0.label_counts.get(0,0)}, Quasi={wl0.label_counts.get(1,0)}, Dynamic={wl0.label_counts.get(2,0)}")
+        
+        print(f"\n{'='*80}")
+        print("分析完成")
+        print(f"{'='*80}\n")

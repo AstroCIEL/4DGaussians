@@ -72,9 +72,9 @@ class Simulator:
         clock = hw.get("clock_frequency", 1.0)
         mem = MemorySystem(
             MemoryConfig(
-                memory_bandwidth_gbps=hw.get("memory_bandwidth", 51.2),
-                cache_size_bytes=hw.get("cache_size", 1_048_576),
-                clock_frequency_ghz=clock,
+                memory_bandwidth_gbps=hw.get('memory', {}).get("memory_bandwidth", 51.2),
+                cache_size_bytes=hw.get('memory', {}).get("cache_size", 1_048_576),
+                clock_frequency_ghz=hw.get('memory', {}).get("clock_frequency", 1.0),
             )
         )
         udpe = UnifiedDeformPreprocessEngine(
@@ -158,7 +158,7 @@ class Simulator:
 
     def _estimate_memory_cycles(self, mem: MemorySystem, frame: WorkloadFrame) -> float:
         """基于高斯数估算一次帧的内存 stall 周期。"""
-        bytes_per_gaussian = self.config.get("hardware", {}).get("bytes_per_gaussian", 64)
+        bytes_per_gaussian = self.config.get("hardware", {}).get("memory", {}).get("bytes_per_gaussian", 64)
         total_gaussians = sum(t.num_gaussians for t in frame.tiles.values())
         bytes_accessed = mem.estimate_bytes_for_gaussians(total_gaussians, bytes_per_gaussian)
         return mem.estimate_cycles(bytes_accessed)

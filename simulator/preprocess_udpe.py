@@ -36,25 +36,48 @@ class UnifiedDeformPreprocessEngine:
 
     def classify_counts(self, frame: WorkloadFrame) -> Tuple[int, int, int]:
         """
-        根据 frame 级别的全局高斯球属性统计不同类型的高斯数量。
-        使用 gaussian_attrs 避免重复计算（因为一个高斯球可能横跨多个 tile）。
+        根据 frame 级别的 label_counts 统计不同类型的高斯数量。
+        直接使用 WorkloadFrame 中预计算的 label_counts（已在 workload_loader 中去重）。
         返回: (static_n, quasi_n, dynamic_n)
         """
         total_gaussians = frame.num_gaussians
         if total_gaussians <= 0:
             return 0, 0, 0
         
-        # 优先使用 frame 级别的 gaussian_attrs 进行统计（去重）
+        # 优先使用 frame 中预计算的 label_counts
+        if frame.label_counts:
+            static_n = frame.label_counts.get(0, 0)
+            quasi_n = frame.label_counts.get(1, 0)
+            dynamic_n = frame.label_counts.get(2, 0)
+            
+            # 如果统计到的标签总数小于总高斯数，说明有些高斯没有标签
+            # 将剩余的高斯按比例分配
+            labeled_count = static_n + quasi_n + dynamic_n
+            if labeled_count < total_gaussians:
+                unlabeled_count = total_gaussians - labeled_count
+                if labeled_count > 0:
+                    # 按已有标签的比例分配未标记的高斯
+                    ratio_static = static_n / labeled_count
+                    ratio_quasi = quasi_n / labeled_count
+                    static_n += int(unlabeled_count * ratio_static)
+                    quasi_n += int(unlabeled_count * ratio_quasi)
+                    dynamic_n = total_gaussians - static_n - quasi_n
+                else:
+                    # 所有高斯都没有标签，使用默认比例
+                    static_n = int(total_gaussians * self.config.static_ratio)
+                    quasi_n = int(total_gaussians * self.config.quasi_ratio)
+                    dynamic_n = max(0, total_gaussians - static_n - quasi_n)
+            return static_n, quasi_n, dynamic_n
+        
+        # 如果没有预计算的 label_counts，回退到从 gaussian_attrs 统计
         if frame.gaussian_attrs:
             static_n = 0
             quasi_n = 0
             dynamic_n = 0
-            has_labels = False
             
             # 遍历所有高斯球属性，统计标签
             for attr in frame.gaussian_attrs.values():
                 if attr.label is not None:
-                    has_labels = True
                     if attr.label == 0:
                         static_n += 1
                     elif attr.label == 1:
@@ -62,54 +85,20 @@ class UnifiedDeformPreprocessEngine:
                     elif attr.label == 2:
                         dynamic_n += 1
             
-            if has_labels:
-                # 如果统计到的标签总数小于总高斯数，说明有些高斯没有标签
-                # 将剩余的高斯按比例分配
-                labeled_count = static_n + quasi_n + dynamic_n
-                if labeled_count < total_gaussians:
-                    print(f"labeled_count: {labeled_count}, total_gaussians: {total_gaussians} are not matched")
-                    unlabeled_count = total_gaussians - labeled_count
-                    if labeled_count > 0:
-                        # 按已有标签的比例分配未标记的高斯
-                        ratio_static = static_n / labeled_count
-                        ratio_quasi = quasi_n / labeled_count
-                        static_n += int(unlabeled_count * ratio_static)
-                        quasi_n += int(unlabeled_count * ratio_quasi)
-                        dynamic_n = total_gaussians - static_n - quasi_n
-                    else:
-                        # 所有高斯都没有标签，使用默认比例
-                        static_n = int(total_gaussians * self.config.static_ratio)
-                        quasi_n = int(total_gaussians * self.config.quasi_ratio)
-                        dynamic_n = max(0, total_gaussians - static_n - quasi_n)
-                return static_n, quasi_n, dynamic_n
-        
-        # 如果没有 gaussian_attrs，尝试从 tile 的 label_counts 汇总
-        # 但需要注意：这种方法可能重复计算跨 tile 的高斯球
-        # 作为备选方案，我们使用去重后的 gaussian_ids 集合
-        all_gaussian_ids = set()
-        tile_label_counts = {0: 0, 1: 0, 2: 0}
-        has_tile_labels = False
-        
-        for tile in frame.tiles.values():
-            if tile.gaussian_ids:
-                all_gaussian_ids.update(tile.gaussian_ids)
-            if tile.label_counts:
-                has_tile_labels = True
-                # 注意：这里仍然可能重复计算，但如果没有 gaussian_attrs 只能这样
-                tile_label_counts[0] += tile.label_counts.get(0, 0)
-                tile_label_counts[1] += tile.label_counts.get(1, 0)
-                tile_label_counts[2] += tile.label_counts.get(2, 0)
-        
-        if has_tile_labels and all_gaussian_ids:
-            # 使用去重后的高斯 ID 数量作为参考
-            unique_count = len(all_gaussian_ids)
-            total_labels = sum(tile_label_counts.values())
-            if total_labels > 0:
-                # 按比例分配到总高斯数
-                static_n = int(total_gaussians * tile_label_counts[0] / total_labels)
-                quasi_n = int(total_gaussians * tile_label_counts[1] / total_labels)
-                dynamic_n = total_gaussians - static_n - quasi_n
-                return static_n, quasi_n, dynamic_n
+            labeled_count = static_n + quasi_n + dynamic_n
+            if labeled_count < total_gaussians:
+                unlabeled_count = total_gaussians - labeled_count
+                if labeled_count > 0:
+                    ratio_static = static_n / labeled_count
+                    ratio_quasi = quasi_n / labeled_count
+                    static_n += int(unlabeled_count * ratio_static)
+                    quasi_n += int(unlabeled_count * ratio_quasi)
+                    dynamic_n = total_gaussians - static_n - quasi_n
+                else:
+                    static_n = int(total_gaussians * self.config.static_ratio)
+                    quasi_n = int(total_gaussians * self.config.quasi_ratio)
+                    dynamic_n = max(0, total_gaussians - static_n - quasi_n)
+            return static_n, quasi_n, dynamic_n
         
         # 无标签或标签不可用时按比例估计
         static_n = int(total_gaussians * self.config.static_ratio)
