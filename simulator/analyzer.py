@@ -79,7 +79,9 @@ class Analyzer:
             print(f"frames            : {len(self.stats.frame_cycles)}, avg={avg:.2f} cycles")
         if self.stats.frame_times:
             avg_time = sum(self.stats.frame_times) / len(self.stats.frame_times)
+            ave_fps = 1 / avg_time
             print(f"frame_times       : avg={avg_time*1000:.4f} ms per frame")
+            print(f"fps               : {ave_fps:.2f} fps")
         if self.stats.module_busy:
             print(f"module_busy       : {self.stats.module_busy}")
         if self.stats.fifo_blocked:

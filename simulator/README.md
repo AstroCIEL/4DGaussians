@@ -23,6 +23,7 @@
 
 * `config/`: 包含 `.yaml` 配置文件（需包含：各算子Latency设定、`NUM_RASTER_CORES`、FIFO_DEPTH、WBS `WINDOW_SIZE_K` 等）。
 * `results/`: 每次仿真的性能报告、图表和日志保存目录。
+* `utils/`: 可视化等工具代码。
 * `simulator.py`: 主Simulator环境配置与顶层连接。
 * `preprocess_udpe.py`: **【重点模块】** 包含 Unified Deformation-Preprocess Engine 的实现，处理动静高斯的动态路由。
 * `scheduler_wbs.py`: **【重点模块】** 包含 Workload Balancing Scheduler (WSLAS) 的实现。
@@ -33,9 +34,7 @@
 * `main.py`: 仿真入口，负责加载 Workload 数据并启动仿真。
 * `generate_labels.py`: 离线动静标签生成，自动与 simulator 集成（运行时若无标签会触发生成）。
 
-## ASIC 数据流与微架构要求 (Cursor 核心实现参考)
-
-Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件行为：
+## ASIC 数据流与微架构要求
 
 ### 1. 预处理阶段 (UDPE: Unified Deformation-Preprocess Engine)
 
@@ -85,13 +84,19 @@ Cursor在生成代码时，必须严格遵循以下三个阶段的创新硬件�
 
 1) 配置：编辑 `simulator/configs/default.yaml`，至少设置 `simulation.dataset` / `simulation.scene`，可选 `simulation.model_path` / `simulation.source_path`；`workload.static_ratio` / `quasi_ratio` 指定动静比例；`labeling.output_npy` / `output_json` 控制标签文件名。内存模型估计使用 `hardware.bytes_per_gaussian`（单高斯读写字节数）。
 
-2) 运行仿真：  
+2）查看负载分析：可以通过单独运行
+```bash
+python -m simulator.workload_loader --config simulator/configs/default.yaml
+```
+来获取某个config下的工作负载报告。
+
+3) 运行仿真：  
 ```bash
 python -m simulator.main --config simulator/configs/default.yaml
 ```
 运行时会尝试读取模型目录下的标签文件（默认 `motion_labels.npy`）；若缺失则自动调用 `simulator.generate_labels` 离线生成后再继续仿真。
 
-3) 单独生成标签（可选，手动先行）：  
+也可以手动生成标签（没必要）：  
 ```bash
 python -m simulator.generate_labels --config simulator/configs/default.yaml
 ```

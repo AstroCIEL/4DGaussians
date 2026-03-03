@@ -15,7 +15,7 @@ class MemorySystem:
     def __init__(self, config: MemoryConfig):
         self.config = config
         self.bytes_per_cycle = (
-            config.memory_bandwidth_gbps * 1e9 / 8.0 / (config.clock_frequency_ghz * 1e9)
+            config.memory_bandwidth_gbps * 1e9 / (config.clock_frequency_ghz * 1e9)
         )
 
     def estimate_cycles(self, bytes_accessed: float) -> float:

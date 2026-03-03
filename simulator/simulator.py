@@ -69,12 +69,12 @@ class Simulator:
     def _build_components(self, env: simpy.Environment):
         hw = self.config.get("hardware", {})
         algo = self.config.get("algorithm", {})
-        clock = hw.get("clock_frequency", 1.0)
+        clock = hw.get("clock_frequency", 1.0) # GHz
         mem = MemorySystem(
             MemoryConfig(
                 memory_bandwidth_gbps=hw.get('memory', {}).get("memory_bandwidth", 51.2),
                 cache_size_bytes=hw.get('memory', {}).get("cache_size", 1_048_576),
-                clock_frequency_ghz=hw.get('memory', {}).get("clock_frequency", 1.0),
+                clock_frequency_ghz=clock,
                 read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.8),
             )
         )
@@ -210,8 +210,8 @@ class Simulator:
         # 获取时钟周期配置（从 GHz 转换为纳秒）
         hw = self.config.get("hardware", {})
         clock_frequency_ghz = hw.get("clock_frequency", 1.0)
-        # clock_period_ns = 1000 / clock_frequency_ghz (GHz转纳秒: 1GHz = 1ns周期)
-        clock_period_ns = 1000.0 / clock_frequency_ghz if clock_frequency_ghz > 0 else 1.0
+        # clock_period_ns = 1 / clock_frequency_ghz (GHz转纳秒: 1GHz = 1ns周期)
+        clock_period_ns = 1.0 / clock_frequency_ghz if clock_frequency_ghz > 0 else 1.0
         
         # 完成统计，计算每帧用时
         self.analyzer.finalize(total_cycles, clock_period_ns)

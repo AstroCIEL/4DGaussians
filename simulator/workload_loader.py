@@ -477,10 +477,18 @@ def load_workload_from_scene(
 if __name__ == "__main__":
     import yaml
     from simulator.utils.visualize_tiles import visualize_tile_regions
-    config_path = "simulator/configs/default.yaml"  
-    with open(config_path, "r") as f:
+    import argparse
+    parser = argparse.ArgumentParser(description="4DGS ASIC simulator (simpy)")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="simulator/configs/default.yaml",
+        help="配置文件路径",
+    )
+    args = parser.parse_args()
+    with open(args.config, "r") as f:
         config = yaml.safe_load(f)
-    workloads = load_workload_from_scene(config, config_path=config_path, tile_size=32, chunk_size=256, verbose=True)
+    workloads = load_workload_from_scene(config, config_path=args.config, tile_size=32, chunk_size=256, verbose=True)
     if workloads is None:
         print("failed to load workloads (returned None)")
     else:
