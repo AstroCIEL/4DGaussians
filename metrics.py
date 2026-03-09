@@ -21,6 +21,7 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser
 from pytorch_msssim import ms_ssim
+from hvs_loss_calc import HVSLoss
 def readImages(renders_dir, gt_dir):
     renders = []
     gts = []
@@ -40,6 +41,9 @@ def evaluate(model_paths):
     full_dict_polytopeonly = {}
     per_view_dict_polytopeonly = {}
     print("")
+    
+    # Initialize HVS loss calculator
+    hvs_loss_calc = HVSLoss(device="cuda")
 
     for scene_dir in model_paths:
         try:
@@ -70,6 +74,7 @@ def evaluate(model_paths):
                 lpipsa = []
                 ms_ssims = []
                 Dssims = []
+                hsvqs = []
                 for idx in tqdm(range(len(renders)), desc="Metric evaluation progress"):
                     ssims.append(ssim(renders[idx], gts[idx]))
                     psnrs.append(psnr(renders[idx], gts[idx]))
@@ -77,6 +82,7 @@ def evaluate(model_paths):
                     ms_ssims.append(ms_ssim(renders[idx], gts[idx],data_range=1, size_average=True ))
                     lpipsa.append(lpips(renders[idx], gts[idx], net_type='alex'))
                     Dssims.append((1-ms_ssims[-1])/2)
+                    hsvqs.append(hvs_loss_calc.calc_fov_loss(renders[idx], gts[idx], gaze=[0.5, 0.5]))
 
                 print("Scene: ", scene_dir,  "SSIM : {:>12.7f}".format(torch.tensor(ssims).mean(), ".5"))
                 print("Scene: ", scene_dir,  "PSNR : {:>12.7f}".format(torch.tensor(psnrs).mean(), ".5"))
@@ -84,13 +90,15 @@ def evaluate(model_paths):
                 print("Scene: ", scene_dir,  "LPIPS-alex: {:>12.7f}".format(torch.tensor(lpipsa).mean(), ".5"))
                 print("Scene: ", scene_dir,  "MS-SSIM: {:>12.7f}".format(torch.tensor(ms_ssims).mean(), ".5"))
                 print("Scene: ", scene_dir,  "D-SSIM: {:>12.7f}".format(torch.tensor(Dssims).mean(), ".5"))
+                print("Scene: ", scene_dir,  "HSVQ: {:>12.7f}".format(torch.tensor(hsvqs).mean(), ".5"))
 
                 full_dict[scene_dir][method].update({"SSIM": torch.tensor(ssims).mean().item(),
                                                         "PSNR": torch.tensor(psnrs).mean().item(),
                                                         "LPIPS-vgg": torch.tensor(lpipss).mean().item(),
                                                         "LPIPS-alex": torch.tensor(lpipsa).mean().item(),
                                                         "MS-SSIM": torch.tensor(ms_ssims).mean().item(),
-                                                        "D-SSIM": torch.tensor(Dssims).mean().item()},
+                                                        "D-SSIM": torch.tensor(Dssims).mean().item(),
+                                                        "HSVQ": torch.tensor(hsvqs).mean().item()},
 
                                                     )
                 per_view_dict[scene_dir][method].update({"SSIM": {name: ssim for ssim, name in zip(torch.tensor(ssims).tolist(), image_names)},
@@ -99,6 +107,7 @@ def evaluate(model_paths):
                                                             "LPIPS-alex": {name: lp for lp, name in zip(torch.tensor(lpipsa).tolist(), image_names)},
                                                             "MS-SSIM": {name: lp for lp, name in zip(torch.tensor(ms_ssims).tolist(), image_names)},
                                                             "D-SSIM": {name: lp for lp, name in zip(torch.tensor(Dssims).tolist(), image_names)},
+                                                            "HSVQ": {name: hsvq for hsvq, name in zip(torch.tensor(hsvqs).tolist(), image_names)},
 
                                                             }
                                                         )
