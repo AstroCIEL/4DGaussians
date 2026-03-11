@@ -4,11 +4,11 @@
 
 # 获取脚本所在目录，并切换到项目根目录
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 cd "$PROJECT_ROOT" || exit 1
 
 # 默认参数
-DATASET="dynerf"
+DATASET="hypernerf/vrig"
 BASE_DIR="output"
 ITERATION=-1
 OUTPUT_DIR="output"
