@@ -22,7 +22,7 @@ from simulator.structures import (
     WorkloadFrame,
     _classify_region,
 )
-from simulator.generate_labels import generate_motion_labels
+from simulator.generate_labels import generate_motion_labels_from_config
 
 
 def _extract_gaussian_attrs(gaussians, gaussian_labels: Optional[np.ndarray] = None) -> Dict[int, GaussianAttr]:
@@ -377,11 +377,11 @@ def load_workload_from_scene(
         except Exception as e:
             if verbose:
                 print(f"[workload_loader] 读取标签失败: {e}")
-    if gaussian_labels is None and config_path:
+    if gaussian_labels is None:
         try:
             if verbose:
                 print("[workload_loader] 标签缺失，自动生成...")
-            labels, _ = generate_motion_labels(config_path)
+            labels, _ = generate_motion_labels_from_config(config)
             gaussian_labels = labels
             if gaussian_labels is None and os.path.isfile(label_path):
                 gaussian_labels = np.load(label_path)

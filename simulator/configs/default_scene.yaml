@@ -2,8 +2,8 @@
 # 真实 workload：根据 dataset/scene/frames 加载训练好的 4DGS 模型，渲染得到每 tile 高斯数以驱动仿真。
 # 若 model_path 不存在或 workload.use_synthetic=true，则使用合成（平均分配）workload。
 simulation:
-  dataset: "dynerf"
-  scene: "cook_spinach"
+  dataset: "hypernerf/interp"
+  scene: "torchocolate"
   # 要仿真的帧（camera/view）索引，单帧写 0，多帧写 0,1,2
   frames: 0,1,2,3
   resolution: "1440x1024"   # 仅合成 workload 时使用；真实 workload 由视图分辨率决定
@@ -62,5 +62,5 @@ labeling:
   output_json: "motion_labels.json"
   
 output:
-  stats_file: "simulator/results/ours_stats.json"
+  stats_file: "simulator/results/scene_stats.json"
   verbose: True

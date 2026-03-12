@@ -2,8 +2,8 @@
 # 真实 workload：根据 dataset/scene/frames 加载训练好的 4DGS 模型，渲染得到每 tile 高斯数以驱动仿真。
 # 若 model_path 不存在或 workload.use_synthetic=true，则使用合成（平均分配）workload。
 simulation:
-  dataset: "hypernerf/interp"
-  scene: "torchocolate"
+  dataset: "dynerf"
+  #scene: None
   # 要仿真的帧（camera/view）索引，单帧写 0，多帧写 0,1,2
   frames: 0,1,2,3
   resolution: "1440x1024"   # 仅合成 workload 时使用；真实 workload 由视图分辨率决定
@@ -21,6 +21,7 @@ hardware:
     deform_cycles: 3.0           # 单高斯 deform 开销
     intersection_cycles: 1.0     # 单高斯 intersection 开销
     fifo_depth: 16               # FIFO 深度（frame粒度）
+    skip_enabled: true
   hse:
     num_cores: 16                # 排序核数
     coarse_sort_cycles: 4.0      # 粗排序（pivot分chunk）周期
@@ -61,5 +62,5 @@ labeling:
   output_json: "motion_labels.json"
   
 output:
-  stats_file: "simulator/results/stats.json"
+  stats_file: "simulator/results/ours_dynerf_stats.json"
   verbose: True

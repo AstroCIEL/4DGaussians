@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument(
         "--config",
         type=str,
-        default="simulator/configs/neo.yaml",
+        default="simulator/configs/default_dynerf.yaml",
         help="配置文件路径",
     )
     return parser.parse_args()
@@ -24,7 +24,12 @@ def parse_args():
 def main():
     args = parse_args()
     stats = run_simulator(args.config)
-    print(f"[main] done. total_cycles={stats.total_cycles:.2f}")
+    if hasattr(stats, "total_cycles"):
+        print(f"[main] done. total_cycles={stats.total_cycles:.2f}")
+    elif isinstance(stats, dict) and stats.get("mode") == "multi_scene":
+        print(f"[main] done. multi-scene dataset={stats.get('dataset')}, scenes={len(stats.get('scenes', []))}")
+    else:
+        print("[main] done.")
 
 
 if __name__ == "__main__":

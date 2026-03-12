@@ -10,10 +10,17 @@ from simulator.structures import SimStats
 class Analyzer:
     """聚合各模块统计并输出结果。"""
 
-    def __init__(self, stats: SimStats, output_path: str = "results/stats.json", verbose: bool = True):
+    def __init__(
+        self,
+        stats: SimStats,
+        output_path: str = "results/stats.json",
+        verbose: bool = True,
+        dump_enabled: bool = True,
+    ):
         self.stats = stats
         self.output_path = output_path
         self.verbose = verbose
+        self.dump_enabled = dump_enabled
         self._stage_map = {
             "udpe": "preprocess_cycles",
             "hse": "sort_cycles",
@@ -55,7 +62,8 @@ class Analyzer:
         clock_period_s = clock_period_ns * 1e-9  # 纳秒转秒
         self.stats.frame_times = [cycles * clock_period_s for cycles in self.stats.frame_cycles]
         
-        self._dump()
+        if self.dump_enabled:
+            self._dump()
         if self.verbose:
             self._print_summary()
 

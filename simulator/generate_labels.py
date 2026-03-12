@@ -31,7 +31,7 @@ def _resolve_paths(config: dict):
     scene = sim_cfg.get("scene")
     model_path = sim_cfg.get("model_path") or config.get("model_path")
     if not model_path and dataset and scene:
-        base = config.get("base_output", "output")
+        base = sim_cfg.get("base_output", "output")
         model_path = os.path.join(base, dataset, scene)
     source_path = sim_cfg.get("source_path") or config.get("source_path")
     if not source_path and dataset and scene:
@@ -80,9 +80,7 @@ def _build_args(model_path: str, source_path: str, sim_cfg: dict):
     return model_params, pipeline_params, hyperparam, iteration
 
 
-def generate_motion_labels(config_path: str):
-    with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+def generate_motion_labels_from_config(config: dict):
     sim_cfg = config.get("simulation", {})
     workload_cfg = config.get("workload", {})
     label_cfg = config.get("labeling", {})
@@ -137,6 +135,12 @@ def generate_motion_labels(config_path: str):
 
     print(f"[label] done. saved labels to {os.path.join(out_dir, out_npy)}, summary to {os.path.join(out_dir, out_json)}")
     return labels, summary
+
+
+def generate_motion_labels(config_path: str):
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    return generate_motion_labels_from_config(config)
 
 
 def parse_args():

@@ -1,6 +1,9 @@
 import os
 import yaml
 import simpy
+import json
+import copy
+from datetime import datetime
 
 from simulator.structures import (
     WorkloadFrame,
@@ -21,11 +24,16 @@ from simulator.analyzer import Analyzer
 class Simulator:
     """simpy 事件驱动的三阶段流水模拟器。"""
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, config_override = None, dump_enabled: bool = True):
         self.config_path = config_path
-        self.config = self._load_config(config_path)
+        self.config = config_override if config_override is not None else self._load_config(config_path)
         self.stats = SimStats()
-        self.analyzer = Analyzer(self.stats, output_path=self.config.get("output", {}).get("stats_file", "results/stats.json"), verbose=self.config.get("output", {}).get("verbose", True))
+        self.analyzer = Analyzer(
+            self.stats,
+            output_path=self.config.get("output", {}).get("stats_file", "results/stats.json"),
+            verbose=self.config.get("output", {}).get("verbose", True),
+            dump_enabled=dump_enabled,
+        )
         self.workloads = self._build_workloads()
 
     def _load_config(self, path: str) -> dict:
@@ -220,6 +228,73 @@ class Simulator:
 
 
 def run_simulator(config_path: str) -> SimStats:
-    sim = Simulator(config_path)
-    stats = sim.run()
-    return stats
+    with open(config_path, "r", encoding="utf-8") as f:
+        base_config = yaml.safe_load(f)
+
+    sim_cfg = (base_config or {}).get("simulation", {}) if isinstance(base_config, dict) else {}
+    dataset = sim_cfg.get("dataset")
+    scene = sim_cfg.get("scene")
+
+    def _scene_is_missing(v) -> bool:
+        if v is None:
+            return True
+        if isinstance(v, str) and v.strip() == "":
+            return True
+        return False
+
+    if not dataset or not _scene_is_missing(scene):
+        sim = Simulator(config_path, config_override=base_config, dump_enabled=True)
+        return sim.run()
+
+    # scene 未指定：枚举 dataset 下所有 scene，逐个运行，并将结果汇总到同一输出文件
+    base_output = sim_cfg.get("base_output", "output")
+    model_root = os.path.join(base_output, dataset)
+    data_root = os.path.join("data", dataset)
+
+    scenes_model = set()
+    scenes_data = set()
+    if os.path.isdir(model_root):
+        scenes_model = {d for d in os.listdir(model_root) if os.path.isdir(os.path.join(model_root, d))}
+    if os.path.isdir(data_root):
+        scenes_data = {d for d in os.listdir(data_root) if os.path.isdir(os.path.join(data_root, d))}
+
+    scenes = sorted(list(scenes_model & scenes_data)) if (scenes_model and scenes_data) else sorted(list(scenes_model or scenes_data))
+    if not scenes:
+        # 没有可枚举场景：回退为单次运行（可能走合成 workload）
+        sim = Simulator(config_path, config_override=base_config, dump_enabled=True)
+        return sim.run()
+
+    output_path = (base_config.get("output", {}) if isinstance(base_config, dict) else {}).get("stats_file", "results/stats.json")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    results: dict = {
+        "mode": "multi_scene",
+        "dataset": dataset,
+        "scenes": [],
+        "generated_at": datetime.now().isoformat(),
+        "config_path": os.path.abspath(config_path),
+    }
+
+    print(f"[simulator] multi-scene enabled. dataset={dataset}, scenes={len(scenes)}")
+    for i, sc in enumerate(scenes):
+        cfg = copy.deepcopy(base_config)
+        cfg.setdefault("simulation", {})
+        cfg["simulation"]["dataset"] = dataset
+        cfg["simulation"]["scene"] = sc
+
+        # 多场景模式下：禁止 Analyzer 覆盖写，最终由这里统一写汇总文件
+        print(f"[simulator] ({i+1}/{len(scenes)}) running scene={sc}")
+        sim = Simulator(config_path, config_override=cfg, dump_enabled=False)
+        st = sim.run()
+        d = st.to_dict()
+        d["simulation"] = {"dataset": dataset, "scene": sc}
+        results["scenes"].append(d)
+
+        # 同一运行内每个 scene 都单独打印一段（Analyzer 仍会打印 summary）
+        # 这里再加一行收尾，方便 grep/查看
+        print(f"[simulator] ({i+1}/{len(scenes)}) done scene={sc}, total_cycles={getattr(st, 'total_cycles', 0.0):.2f}")
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+
+    return results
