@@ -15,6 +15,7 @@ class UDPEConfig:
     fifo_depth: int = 16
     static_ratio: float = 0.4
     quasi_ratio: float = 0.4  # 其余视为 dynamic
+    skip_enabled: bool = True
 
 
 class UnifiedDeformPreprocessEngine:
@@ -120,10 +121,16 @@ class UnifiedDeformPreprocessEngine:
         static_n, quasi_n, dynamic_n = self.classify_counts(frame)
         total_n = static_n + quasi_n + dynamic_n
         c = self.config
-        cull_time = total_n * c.cull_cycles
-        deform_time = (quasi_n + dynamic_n) * c.deform_cycles
-        inter_time = total_n * c.intersection_cycles
-        return max(cull_time, deform_time, inter_time)
+        if c.skip_enabled:
+            cull_time = total_n * c.cull_cycles
+            deform_time = (quasi_n + dynamic_n) * c.deform_cycles
+            inter_time = total_n * c.intersection_cycles
+            return max(cull_time, deform_time, inter_time)
+        else:
+            cull_time = total_n * c.cull_cycles
+            deform_time = total_n * c.deform_cycles
+            inter_time = total_n * c.intersection_cycles
+            return deform_time + deform_time + inter_time
     
     def frame_to_tile_tasks(self, frame: WorkloadFrame) -> List[TileTask]:
         """

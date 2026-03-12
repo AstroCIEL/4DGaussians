@@ -87,6 +87,7 @@ class Simulator:
                 fifo_depth=hw.get("udpe", {}).get("fifo_depth", 16),
                 static_ratio=self.config.get("workload", {}).get("static_ratio", 0.4),
                 quasi_ratio=self.config.get("workload", {}).get("quasi_ratio", 0.4),
+                skip_enabled=hw.get("udpe", {}).get("skip_enabled", True),
             ),
             self.analyzer,
         )

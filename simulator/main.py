@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument(
         "--config",
         type=str,
-        default="simulator/configs/default.yaml",
+        default="simulator/configs/neo.yaml",
         help="配置文件路径",
     )
     return parser.parse_args()

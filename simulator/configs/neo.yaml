@@ -21,7 +21,7 @@ hardware:
     deform_cycles: 3.0           # 单高斯 deform 开销
     intersection_cycles: 1.0     # 单高斯 intersection 开销
     fifo_depth: 16               # FIFO 深度（frame粒度）
-    skip_enabled: true
+    skip_enabled: False
   hse:
     num_cores: 16                # 排序核数
     coarse_sort_cycles: 4.0      # 粗排序（pivot分chunk）周期
@@ -45,7 +45,7 @@ algorithm:
   subtile_size: 2
   early_stop_ratio: 0.5
   fov_x: 90          # 水平视场角(度)用于区域划分
-  foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
+  foveated_enabled: False  # 关闭则全部视为fovea，不做降采样
 
 # workload：不设 use_synthetic 且存在模型时使用真实负载；否则合成
 workload:
@@ -62,5 +62,5 @@ labeling:
   output_json: "motion_labels.json"
   
 output:
-  stats_file: "simulator/results/ours_stats.json"
+  stats_file: "simulator/results/neo_stats.json"
   verbose: True
