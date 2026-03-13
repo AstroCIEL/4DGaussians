@@ -199,6 +199,12 @@ class Simulator:
         # 运行仿真直到所有任务完成
         env.run()
         
+        # HSE/FRE 为多核模块，此处在仿真结束后统计其沿时间轴的忙碌时长（critical path）
+        if hasattr(hse, "finalize_busy"):
+            hse.finalize_busy()
+        if hasattr(fre, "finalize_busy"):
+            fre.finalize_busy()
+        
         # 计算内存 stall 周期（所有 frame 累加）
         total_mem_cycles = 0.0
         for frame in self.workloads:
