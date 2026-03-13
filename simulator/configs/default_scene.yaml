@@ -17,26 +17,27 @@ simulation:
 hardware:
   clock_frequency: 1.0  # GHz
   udpe: 
-    cull_cycles: 2.0             # 单高斯 cull 开销
-    deform_cycles: 6.0           # 单高斯 deform 开销
-    intersection_cycles: 2.0     # 单高斯 intersection 开销
-    fifo_depth: 2               # FIFO 深度（frame粒度）
+    cull_cycles: 2.0              # 单高斯 cull 开销
+    deform_cycles: 6.0            # 单高斯 deform 开销
+    intersection_cycles: 2.0      # 单高斯 intersection 开销
+    fifo_depth: 2                 # FIFO 深度（frame粒度）
     skip_enabled: true
   hse:
-    num_cores: 16                # 排序核数
-    coarse_sort_cycles: 8.0      # 粗排序（pivot分chunk）周期
+    num_cores: 16                 # 排序核数
+    coarse_sort_cycles: 8.0       # 粗排序（pivot分chunk）周期
     fine_sort_cycles: 10.0        # 细排序（chunk内双调排序）周期
   fre:
-    num_cores: 16                # 光栅化核数
+    num_cores: 16                 # 光栅化核数
     base_cycles_per_gaussian: 4.0 # 单高斯基础光栅化周期
     interpolation_cycles: 64.0    # 插值周期（每个tile）
   wbs:
     window_size_k: 32             # 窗口大小
-    fifo_depth: 32               # FIFO 深度
+    fifo_depth: 2                # FIFO 深度
+    scheduling_mode: "default_fifo" # "hilbert_window" | "default_fifo" | "global_greedy"
   memory:
-    memory_bandwidth: 120        # GB/s
-    cache_size: 1048576          # bytes
-    bytes_per_gaussian: 120      # 内存估算用的单高斯读写字节
+    memory_bandwidth: 120         # GB/s
+    cache_size: 1048576           # bytes
+    bytes_per_gaussian: 120       # 内存估算用的单高斯读写字节
     read_latency_hiding_rate: 0.6
   
 algorithm:

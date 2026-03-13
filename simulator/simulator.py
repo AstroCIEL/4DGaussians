@@ -119,12 +119,25 @@ class Simulator:
             ),
             self.analyzer,
         )
+        # 获取分辨率信息用于希尔伯特曲线排序
+        sim_cfg = self.config.get("simulation", {})
+        res_str = sim_cfg.get("resolution", "1440x1024")
+        width, height = parse_resolution(res_str)
+        tile_size = algo.get("tile_size", 32)
+        
         wbs = WorkloadBalancingScheduler(
             env,
-            WBSConfig(window_size=hw.get("wbs", {}).get("window_size_k", 8), fifo_depth=hw.get("wbs", {}).get("fifo_depth", 32)),
+            WBSConfig(
+                window_size=hw.get("wbs", {}).get("window_size_k", 8),
+                fifo_depth=hw.get("wbs", {}).get("fifo_depth", 32),
+                scheduling_mode=hw.get("wbs", {}).get("scheduling_mode", "hilbert_window"),
+            ),
             sort_engine=hse,
             raster_engine=fre,
             analyzer=self.analyzer,
+            width=width,
+            height=height,
+            tile_size=tile_size,
         )
         return mem, udpe, hse, wbs, fre
 
@@ -142,8 +155,8 @@ class Simulator:
         udpe.start()
         wbs.start()
 
-        # 链接 FIFO：udpe -> wbs（UDPE 输出直接送到 WBS）
-        env.process(self._pipe(env, udpe.out_queue, wbs.in_queue, "udpe_to_wbs"))
+        # 链接 FIFO：udpe -> wbs（UDPE 输出整个 frame 的 TileTask 列表到 WBS）
+        env.process(self._pipe(env, udpe.out_queue, wbs.frame_queue, "udpe_to_wbs"))
 
     def _pipe(self, env: simpy.Environment, src, dst, name: str):
         while True:

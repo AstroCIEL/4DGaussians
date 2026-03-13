@@ -172,14 +172,15 @@ class UnifiedDeformPreprocessEngine:
             cycles = self.processing_cycles(frame)
             self.analyzer.record_busy("udpe", cycles)
             yield self.env.timeout(cycles)
-            # 将 frame 拆分为 TileTask 列表并逐个输出
+            # 将 frame 拆分为 TileTask 列表
             tasks = self.frame_to_tile_tasks(frame)
-            for task in tasks:
-                try:
-                    yield self.out_queue.put(task)
-                except simpy.resources.store.StoreFull:
-                    self.analyzer.record_fifo_block("udpe_out_full")
-                    yield self.out_queue.put(task)
+            # 模拟写回 DRAM（延迟不建模，但需要一次性输出整个列表）
+            # 一次性输出整个 frame 的 TileTask 列表
+            try:
+                yield self.out_queue.put(tasks)
+            except simpy.resources.store.StoreFull:
+                self.analyzer.record_fifo_block("udpe_out_full")
+                yield self.out_queue.put(tasks)
 
 
 def main():
@@ -292,16 +293,18 @@ def main():
         print(f"\n[时间 {env.now:.2f}] 发送结束信号")
         yield udpe.in_queue.put(None)
     
-    # 定义接收 TileTask 的进程
+    # 定义接收 TileTask 列表的进程
     def receive_tasks():
-        count = 0
+        frame_count = 0
         while True:
-            task = yield udpe.out_queue.get()
-            if task is None:
+            tasks = yield udpe.out_queue.get()
+            if tasks is None:
                 print(f"\n[时间 {env.now:.2f}] 收到结束信号")
                 break
-            count += 1
-            print(f"[时间 {env.now:.2f}] 收到 TileTask: frame={task.frame_id}, tile={task.tile_id}, chunk={task.chunk_index}, n={task.num_gaussians}")
+            frame_count += 1
+            print(f"[时间 {env.now:.2f}] 收到 Frame {frame_count} 的 TileTask 列表: {len(tasks)} 个任务")
+            for task in tasks:
+                print(f"  - TileTask: frame={task.frame_id}, tile={task.tile_id}, chunk={task.chunk_index}, n={task.num_gaussians}")
     
     # 启动进程
     udpe.start()
