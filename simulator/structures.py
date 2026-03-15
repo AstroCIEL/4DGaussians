@@ -77,6 +77,7 @@ class SimStats:
     elapsed_time: float = 0.0  # 系统用时（秒）
     config: dict = field(default_factory=dict)  # 使用的配置内容
     frame_times: List[float] = field(default_factory=list)  # 每帧用时（秒，cycles * clock_period）
+    fps: float = 0.0  # 帧率（帧/秒）
 
     def record_busy(self, module: str, cycles: float) -> None:
         self.module_busy[module] = self.module_busy.get(module, 0.0) + cycles

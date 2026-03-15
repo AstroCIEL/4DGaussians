@@ -43,6 +43,7 @@ module fre_interp (
     interp_state_e state, next_state;
     logic [3:0] current_core;
     logic [2:0] pixel_x, pixel_y;  // Within 8x8 block
+    logic [4:0] tile_x, tile_y;  // Tile coordinates for output
     
     // Bilinear interpolation
     function automatic pixel_data_t bilinear_interp(
@@ -124,7 +125,7 @@ module fre_interp (
     logic [15:0] output_x, output_y;
     
     always_comb begin
-        downsample_rate_e rate = downsample_rate_i[current_core];
+        automatic downsample_rate_e rate = downsample_rate_i[current_core];
         pixel_data_t p00, p01, p10, p11;
         
         // Get neighboring pixels for interpolation
@@ -155,7 +156,6 @@ module fre_interp (
         endcase
         
         // Compute output coordinates
-        logic [4:0] tile_x, tile_y;
         tile_x = tile_id_i[current_core] % 32;  // Assuming 32 tiles per row
         tile_y = tile_id_i[current_core] / 32;
         output_x = tile_x * TILE_SIZE + pixel_x;

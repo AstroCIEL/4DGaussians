@@ -3,27 +3,27 @@
   "dataset": "dynerf",
   "scenes": [
     {
-      "total_cycles": 3618289.0093750013,
-      "preprocess_cycles": 2259782.34375,
-      "sort_cycles": 314504.8125,
-      "rasterize_cycles": 2716516.7750000386,
-      "memory_stall_cycles": 9007083.75,
+      "total_cycles": 7880386.062499703,
+      "preprocess_cycles": 6611198.34375,
+      "sort_cycles": 237442.921875,
+      "rasterize_cycles": 5073956.871874245,
+      "memory_stall_cycles": 7076263.359375,
       "frame_cycles": [
-        723657.8018750002,
-        723657.8018750002,
-        723657.8018750002,
-        723657.8018750002,
-        723657.8018750002
+        1576077.2124999405,
+        1576077.2124999405,
+        1576077.2124999405,
+        1576077.2124999405,
+        1576077.2124999405
       ],
       "module_busy": {
-        "memory": 9007083.75,
-        "udpe": 2259782.34375,
-        "hse": 314504.8125,
-        "fre": 2716516.7750000386
+        "memory": 7076263.359375,
+        "udpe": 6611198.34375,
+        "hse": 237442.921875,
+        "fre": 5073956.871874245
       },
       "fifo_blocked": {},
-      "start_time": "2026-03-13T20:55:09.767369",
-      "elapsed_time": 86.81983947753906,
+      "start_time": "2026-03-13T21:01:44.341725",
+      "elapsed_time": 97.4811098575592,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -41,7 +41,7 @@
             "deform_cycles": 6.0,
             "intersection_cycles": 2.0,
             "fifo_depth": 2,
-            "skip_enabled": true
+            "skip_enabled": false
           },
           "hse": {
             "num_cores": 16,
@@ -56,7 +56,7 @@
           "wbs": {
             "window_size_k": 32,
             "fifo_depth": 2,
-            "scheduling_mode": "hilbert_window"
+            "scheduling_mode": "default_fifo"
           },
           "memory": {
             "memory_bandwidth": 51.2,
@@ -70,7 +70,7 @@
           "subtile_size": 2,
           "early_stop_ratio": 0.7,
           "fov_x": 90,
-          "foveated_enabled": true
+          "foveated_enabled": false
         },
         "workload": {
           "chunk_size": 256,
@@ -84,16 +84,16 @@
           "output_json": "motion_labels.json"
         },
         "output": {
-          "stats_file": "simulator/results/ours_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_dynerf_stats.json",
           "verbose": true
         }
       },
       "frame_times": [
-        0.0007236578018750003,
-        0.0007236578018750003,
-        0.0007236578018750003,
-        0.0007236578018750003,
-        0.0007236578018750003
+        0.0015760772124999406,
+        0.0015760772124999406,
+        0.0015760772124999406,
+        0.0015760772124999406,
+        0.0015760772124999406
       ],
       "simulation": {
         "dataset": "dynerf",
@@ -101,27 +101,27 @@
       }
     },
     {
-      "total_cycles": 2963637.5864583272,
-      "preprocess_cycles": 2045698.828125,
-      "sort_cycles": 219127.6875,
-      "rasterize_cycles": 1858182.0937500193,
-      "memory_stall_cycles": 8282974.21875,
+      "total_cycles": 7068822.009374864,
+      "preprocess_cycles": 6448144.828125,
+      "sort_cycles": 182570.25,
+      "rasterize_cycles": 2487143.809374723,
+      "memory_stall_cycles": 6488757.1875,
       "frame_cycles": [
-        592727.5172916654,
-        592727.5172916654,
-        592727.5172916654,
-        592727.5172916654,
-        592727.5172916654
+        1413764.401874973,
+        1413764.401874973,
+        1413764.401874973,
+        1413764.401874973,
+        1413764.401874973
       ],
       "module_busy": {
-        "memory": 8282974.21875,
-        "udpe": 2045698.828125,
-        "hse": 219127.6875,
-        "fre": 1858182.0937500193
+        "memory": 6488757.1875,
+        "udpe": 6448144.828125,
+        "hse": 182570.25,
+        "fre": 2487143.809374723
       },
       "fifo_blocked": {},
-      "start_time": "2026-03-13T20:56:51.465939",
-      "elapsed_time": 27.25323724746704,
+      "start_time": "2026-03-13T21:03:36.551693",
+      "elapsed_time": 28.028549194335938,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -139,7 +139,7 @@
             "deform_cycles": 6.0,
             "intersection_cycles": 2.0,
             "fifo_depth": 2,
-            "skip_enabled": true
+            "skip_enabled": false
           },
           "hse": {
             "num_cores": 16,
@@ -154,7 +154,7 @@
           "wbs": {
             "window_size_k": 32,
             "fifo_depth": 2,
-            "scheduling_mode": "hilbert_window"
+            "scheduling_mode": "default_fifo"
           },
           "memory": {
             "memory_bandwidth": 51.2,
@@ -168,7 +168,7 @@
           "subtile_size": 2,
           "early_stop_ratio": 0.7,
           "fov_x": 90,
-          "foveated_enabled": true
+          "foveated_enabled": false
         },
         "workload": {
           "chunk_size": 256,
@@ -182,16 +182,16 @@
           "output_json": "motion_labels.json"
         },
         "output": {
-          "stats_file": "simulator/results/ours_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_dynerf_stats.json",
           "verbose": true
         }
       },
       "frame_times": [
-        0.0005927275172916655,
-        0.0005927275172916655,
-        0.0005927275172916655,
-        0.0005927275172916655,
-        0.0005927275172916655
+        0.001413764401874973,
+        0.001413764401874973,
+        0.001413764401874973,
+        0.001413764401874973,
+        0.001413764401874973
       ],
       "simulation": {
         "dataset": "dynerf",
@@ -199,27 +199,27 @@
       }
     },
     {
-      "total_cycles": 2288022.633333385,
-      "preprocess_cycles": 2039290.96875,
-      "sort_cycles": 238412.109375,
-      "rasterize_cycles": 1537000.1708333849,
-      "memory_stall_cycles": 7401279.375,
+      "total_cycles": 6801592.962499843,
+      "preprocess_cycles": 6084296.96875,
+      "sort_cycles": 191164.96875,
+      "rasterize_cycles": 2854406.756249719,
+      "memory_stall_cycles": 6531167.34375,
       "frame_cycles": [
-        457604.526666677,
-        457604.526666677,
-        457604.526666677,
-        457604.526666677,
-        457604.526666677
+        1360318.5924999686,
+        1360318.5924999686,
+        1360318.5924999686,
+        1360318.5924999686,
+        1360318.5924999686
       ],
       "module_busy": {
-        "memory": 7401279.375,
-        "udpe": 2039290.96875,
-        "hse": 238412.109375,
-        "fre": 1537000.1708333849
+        "memory": 6531167.34375,
+        "udpe": 6084296.96875,
+        "hse": 191164.96875,
+        "fre": 2854406.756249719
       },
       "fifo_blocked": {},
-      "start_time": "2026-03-13T20:57:35.130900",
-      "elapsed_time": 29.642555952072144,
+      "start_time": "2026-03-13T21:04:19.657649",
+      "elapsed_time": 34.467068672180176,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -237,7 +237,7 @@
             "deform_cycles": 6.0,
             "intersection_cycles": 2.0,
             "fifo_depth": 2,
-            "skip_enabled": true
+            "skip_enabled": false
           },
           "hse": {
             "num_cores": 16,
@@ -252,7 +252,7 @@
           "wbs": {
             "window_size_k": 32,
             "fifo_depth": 2,
-            "scheduling_mode": "hilbert_window"
+            "scheduling_mode": "default_fifo"
           },
           "memory": {
             "memory_bandwidth": 51.2,
@@ -266,7 +266,7 @@
           "subtile_size": 2,
           "early_stop_ratio": 0.7,
           "fov_x": 90,
-          "foveated_enabled": true
+          "foveated_enabled": false
         },
         "workload": {
           "chunk_size": 256,
@@ -280,16 +280,16 @@
           "output_json": "motion_labels.json"
         },
         "output": {
-          "stats_file": "simulator/results/ours_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_dynerf_stats.json",
           "verbose": true
         }
       },
       "frame_times": [
-        0.000457604526666677,
-        0.000457604526666677,
-        0.000457604526666677,
-        0.000457604526666677,
-        0.000457604526666677
+        0.0013603185924999687,
+        0.0013603185924999687,
+        0.0013603185924999687,
+        0.0013603185924999687,
+        0.0013603185924999687
       ],
       "simulation": {
         "dataset": "dynerf",
@@ -297,27 +297,27 @@
       }
     },
     {
-      "total_cycles": 3673419.640624995,
-      "preprocess_cycles": 2320365.515625,
-      "sort_cycles": 320595.65625,
-      "rasterize_cycles": 2728046.602083368,
-      "memory_stall_cycles": 9168116.015625,
+      "total_cycles": 8329410.228124692,
+      "preprocess_cycles": 7021905.515625,
+      "sort_cycles": 237910.59375,
+      "rasterize_cycles": 5222213.709374154,
+      "memory_stall_cycles": 7105792.96875,
       "frame_cycles": [
-        734683.9281249989,
-        734683.9281249989,
-        734683.9281249989,
-        734683.9281249989,
-        734683.9281249989
+        1665882.0456249383,
+        1665882.0456249383,
+        1665882.0456249383,
+        1665882.0456249383,
+        1665882.0456249383
       ],
       "module_busy": {
-        "memory": 9168116.015625,
-        "udpe": 2320365.515625,
-        "hse": 320595.65625,
-        "fre": 2728046.602083368
+        "memory": 7105792.96875,
+        "udpe": 7021905.515625,
+        "hse": 237910.59375,
+        "fre": 5222213.709374154
       },
       "fifo_blocked": {},
-      "start_time": "2026-03-13T20:58:32.371438",
-      "elapsed_time": 79.92763996124268,
+      "start_time": "2026-03-13T21:05:21.403710",
+      "elapsed_time": 91.55331563949585,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -335,7 +335,7 @@
             "deform_cycles": 6.0,
             "intersection_cycles": 2.0,
             "fifo_depth": 2,
-            "skip_enabled": true
+            "skip_enabled": false
           },
           "hse": {
             "num_cores": 16,
@@ -350,7 +350,7 @@
           "wbs": {
             "window_size_k": 32,
             "fifo_depth": 2,
-            "scheduling_mode": "hilbert_window"
+            "scheduling_mode": "default_fifo"
           },
           "memory": {
             "memory_bandwidth": 51.2,
@@ -364,7 +364,7 @@
           "subtile_size": 2,
           "early_stop_ratio": 0.7,
           "fov_x": 90,
-          "foveated_enabled": true
+          "foveated_enabled": false
         },
         "workload": {
           "chunk_size": 256,
@@ -378,16 +378,16 @@
           "output_json": "motion_labels.json"
         },
         "output": {
-          "stats_file": "simulator/results/ours_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_dynerf_stats.json",
           "verbose": true
         }
       },
       "frame_times": [
-        0.000734683928124999,
-        0.000734683928124999,
-        0.000734683928124999,
-        0.000734683928124999,
-        0.000734683928124999
+        0.0016658820456249383,
+        0.0016658820456249383,
+        0.0016658820456249383,
+        0.0016658820456249383,
+        0.0016658820456249383
       ],
       "simulation": {
         "dataset": "dynerf",
@@ -395,27 +395,27 @@
       }
     },
     {
-      "total_cycles": 1912815.526041714,
-      "preprocess_cycles": 1817049.46875,
-      "sort_cycles": 216427.453125,
-      "rasterize_cycles": 1248202.5104167138,
-      "memory_stall_cycles": 6525093.75,
+      "total_cycles": 6286837.72499986,
+      "preprocess_cycles": 5650363.46875,
+      "sort_cycles": 179581.125,
+      "rasterize_cycles": 2549215.69687479,
+      "memory_stall_cycles": 6205083.28125,
       "frame_cycles": [
-        382563.1052083428,
-        382563.1052083428,
-        382563.1052083428,
-        382563.1052083428,
-        382563.1052083428
+        1257367.544999972,
+        1257367.544999972,
+        1257367.544999972,
+        1257367.544999972,
+        1257367.544999972
       ],
       "module_busy": {
-        "memory": 6525093.75,
-        "udpe": 1817049.46875,
-        "hse": 216427.453125,
-        "fre": 1248202.5104167138
+        "memory": 6205083.28125,
+        "udpe": 5650363.46875,
+        "hse": 179581.125,
+        "fre": 2549215.69687479
       },
       "fifo_blocked": {},
-      "start_time": "2026-03-13T21:00:07.436362",
-      "elapsed_time": 22.650562286376953,
+      "start_time": "2026-03-13T21:07:08.212237",
+      "elapsed_time": 27.40115237236023,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -433,7 +433,7 @@
             "deform_cycles": 6.0,
             "intersection_cycles": 2.0,
             "fifo_depth": 2,
-            "skip_enabled": true
+            "skip_enabled": false
           },
           "hse": {
             "num_cores": 16,
@@ -448,7 +448,7 @@
           "wbs": {
             "window_size_k": 32,
             "fifo_depth": 2,
-            "scheduling_mode": "hilbert_window"
+            "scheduling_mode": "default_fifo"
           },
           "memory": {
             "memory_bandwidth": 51.2,
@@ -462,7 +462,7 @@
           "subtile_size": 2,
           "early_stop_ratio": 0.7,
           "fov_x": 90,
-          "foveated_enabled": true
+          "foveated_enabled": false
         },
         "workload": {
           "chunk_size": 256,
@@ -476,16 +476,16 @@
           "output_json": "motion_labels.json"
         },
         "output": {
-          "stats_file": "simulator/results/ours_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_dynerf_stats.json",
           "verbose": true
         }
       },
       "frame_times": [
-        0.0003825631052083428,
-        0.0003825631052083428,
-        0.0003825631052083428,
-        0.0003825631052083428,
-        0.0003825631052083428
+        0.0012573675449999721,
+        0.0012573675449999721,
+        0.0012573675449999721,
+        0.0012573675449999721,
+        0.0012573675449999721
       ],
       "simulation": {
         "dataset": "dynerf",
@@ -493,27 +493,27 @@
       }
     },
     {
-      "total_cycles": 2504384.083333367,
-      "preprocess_cycles": 1862530.640625,
-      "sort_cycles": 221873.4375,
-      "rasterize_cycles": 1519951.3083333706,
-      "memory_stall_cycles": 6933176.25,
+      "total_cycles": 6572901.496874845,
+      "preprocess_cycles": 5874884.640625,
+      "sort_cycles": 181585.6875,
+      "rasterize_cycles": 2794691.590624774,
+      "memory_stall_cycles": 6171693.28125,
       "frame_cycles": [
-        500876.8166666734,
-        500876.8166666734,
-        500876.8166666734,
-        500876.8166666734,
-        500876.8166666734
+        1314580.299374969,
+        1314580.299374969,
+        1314580.299374969,
+        1314580.299374969,
+        1314580.299374969
       ],
       "module_busy": {
-        "memory": 6933176.25,
-        "udpe": 1862530.640625,
-        "hse": 221873.4375,
-        "fre": 1519951.3083333706
+        "memory": 6171693.28125,
+        "udpe": 5874884.640625,
+        "hse": 181585.6875,
+        "fre": 2794691.590624774
       },
       "fifo_blocked": {},
-      "start_time": "2026-03-13T21:00:46.466710",
-      "elapsed_time": 30.53533673286438,
+      "start_time": "2026-03-13T21:07:50.662591",
+      "elapsed_time": 33.939231157302856,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -531,7 +531,7 @@
             "deform_cycles": 6.0,
             "intersection_cycles": 2.0,
             "fifo_depth": 2,
-            "skip_enabled": true
+            "skip_enabled": false
           },
           "hse": {
             "num_cores": 16,
@@ -546,7 +546,7 @@
           "wbs": {
             "window_size_k": 32,
             "fifo_depth": 2,
-            "scheduling_mode": "hilbert_window"
+            "scheduling_mode": "default_fifo"
           },
           "memory": {
             "memory_bandwidth": 51.2,
@@ -560,7 +560,7 @@
           "subtile_size": 2,
           "early_stop_ratio": 0.7,
           "fov_x": 90,
-          "foveated_enabled": true
+          "foveated_enabled": false
         },
         "workload": {
           "chunk_size": 256,
@@ -574,16 +574,16 @@
           "output_json": "motion_labels.json"
         },
         "output": {
-          "stats_file": "simulator/results/ours_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_dynerf_stats.json",
           "verbose": true
         }
       },
       "frame_times": [
-        0.0005008768166666734,
-        0.0005008768166666734,
-        0.0005008768166666734,
-        0.0005008768166666734,
-        0.0005008768166666734
+        0.0013145802993749691,
+        0.0013145802993749691,
+        0.0013145802993749691,
+        0.0013145802993749691,
+        0.0013145802993749691
       ],
       "simulation": {
         "dataset": "dynerf",
@@ -591,6 +591,6 @@
       }
     }
   ],
-  "generated_at": "2026-03-13T20:54:46.064585",
-  "config_path": "/DISK1/home/rh_xu30/4DGaussians/simulator/configs/default_dynerf.yaml"
+  "generated_at": "2026-03-13T21:01:21.538916",
+  "config_path": "/DISK1/home/rh_xu30/4DGaussians/simulator/configs/gscore_dynerf.yaml"
 }

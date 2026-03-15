@@ -84,6 +84,7 @@ class Simulator:
                 cache_size_bytes=hw.get('memory', {}).get("cache_size", 1_048_576),
                 clock_frequency_ghz=clock,
                 read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.8),
+                bytes_per_gaussian=hw.get('memory', {}).get("bytes_per_gaussian", 120),
             )
         )
         udpe = UnifiedDeformPreprocessEngine(
@@ -98,6 +99,7 @@ class Simulator:
                 skip_enabled=hw.get("udpe", {}).get("skip_enabled", True),
             ),
             self.analyzer,
+            memory=mem,
         )
         hse = HierarchicalSortEngine(
             env,
@@ -108,6 +110,7 @@ class Simulator:
                 early_stop_ratio=algo.get("early_stop_ratio", 0.3),
             ),
             self.analyzer,
+            memory=mem,
         )
         fre = FoveatedRasterEngine(
             env,
@@ -118,6 +121,7 @@ class Simulator:
                 early_stop_ratio=algo.get("early_stop_ratio", 0.3),
             ),
             self.analyzer,
+            memory=mem,
         )
         # 获取分辨率信息用于希尔伯特曲线排序
         sim_cfg = self.config.get("simulation", {})
@@ -180,12 +184,6 @@ class Simulator:
         # 发送结束信号
         yield udpe.in_queue.put(None)
 
-    def _estimate_memory_cycles(self, mem: MemorySystem, frame: WorkloadFrame) -> float:
-        """基于高斯数估算一次帧的内存 stall 周期。"""
-        bytes_per_gaussian = self.config.get("hardware", {}).get("memory", {}).get("bytes_per_gaussian", 64)
-        total_gaussians = sum(t.num_gaussians for t in frame.tiles.values())
-        bytes_accessed = mem.estimate_bytes_for_gaussians(total_gaussians, bytes_per_gaussian)
-        return mem.estimate_cycles(bytes_accessed)
 
     def run(self):
         """
@@ -218,16 +216,9 @@ class Simulator:
         if hasattr(fre, "finalize_busy"):
             fre.finalize_busy()
         
-        # 计算内存 stall 周期（所有 frame 累加）
-        total_mem_cycles = 0.0
-        for frame in self.workloads:
-            mem_cycles = self._estimate_memory_cycles(mem, frame)
-            if mem_cycles > 0:
-                self.analyzer.record_busy("memory", mem_cycles)
-                total_mem_cycles += mem_cycles
-        
+        # 内存延迟已经集成到各个子模块中，不再单独计算
         # 记录总周期数
-        total_cycles = env.now + total_mem_cycles
+        total_cycles = env.now
         
         # 由于是流水线处理，每个 frame 的完成时间难以精确追踪
         # 这里使用总周期数除以 frame 数作为平均每帧周期

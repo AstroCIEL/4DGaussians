@@ -107,7 +107,11 @@ module gs_accel_top (
     
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            camera_params <= '0;
+            for (integer i = 0; i < 16; i++) begin
+                camera_params.view_matrix[i] <= '0;
+                camera_params.proj_matrix[i] <= '0;
+            end
+            camera_params.time_step <= '0;
             gaze_params <= '0;
             screen_width <= 1920;
             screen_height <= 1080;
@@ -209,6 +213,12 @@ module gs_accel_top (
     end
     
     // AXI write controller for frame buffer (simplified)
+    // FRE outputs (declared early for use in AXI write controller)
+    pixel_data_t fre_pixel_out;
+    logic [15:0] fre_pixel_x, fre_pixel_y;
+    logic fre_pixel_valid;
+    logic fre_pixel_ready;
+    
     logic [ADDR_WIDTH-1:0] write_addr;
     logic write_in_progress;
     
@@ -216,12 +226,12 @@ module gs_accel_top (
     assign m_axi_awlen = 7'h0;  // Single beat
     assign m_axi_awsize = 3'b010;  // 4 bytes
     assign m_axi_awburst = 2'b01;
-    assign m_axi_awvalid = pixel_valid_o && !write_in_progress;
+    assign m_axi_awvalid = fre_pixel_valid && !write_in_progress;
     
-    assign m_axi_wdata = {8'h0, pixel_data_o.b, pixel_data_o.g, pixel_data_o.r};
+    assign m_axi_wdata = {8'h0, fre_pixel_out.b, fre_pixel_out.g, fre_pixel_out.r};
     assign m_axi_wstrb = 4'hF;
     assign m_axi_wlast = 1'b1;
-    assign m_axi_wvalid = pixel_valid_o && write_in_progress;
+    assign m_axi_wvalid = fre_pixel_valid && write_in_progress;
     
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -269,12 +279,6 @@ module gs_accel_top (
     deformed_gaussian_t gaussian_to_hse [0:NUM_CORES-1];
     logic [NUM_CORES-1:0] gaussian_to_hse_valid;
     logic [NUM_CORES-1:0] gaussian_to_hse_ready;
-    
-    // FRE outputs
-    pixel_data_t fre_pixel_out;
-    logic [15:0] fre_pixel_x, fre_pixel_y;
-    logic fre_pixel_valid;
-    logic fre_pixel_ready;
     
     // Weight cache interface (simplified - would connect to external cache)
     logic [31:0] weight_addr;
@@ -359,11 +363,8 @@ module gs_accel_top (
     );
     
     // Connect FRE outputs to top-level signals
-    assign pixel_data_o = fre_pixel_out;
-    assign pixel_x_o = fre_pixel_x;
-    assign pixel_y_o = fre_pixel_y;
-    assign pixel_valid_o = fre_pixel_valid;
-    assign fre_pixel_ready = pixel_ready_i;
+    // Note: pixel_ready_i is connected to AXI write ready signal
+    assign fre_pixel_ready = m_axi_wready;
     
     // Render done detection (simplified)
     always_ff @(posedge clk or negedge rst_n) begin

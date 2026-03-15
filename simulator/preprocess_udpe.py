@@ -5,6 +5,7 @@ import simpy
 
 from simulator.analyzer import Analyzer
 from simulator.structures import TileTask, WorkloadFrame
+from simulator.memory import MemorySystem, MemoryConfig
 
 
 @dataclass
@@ -27,10 +28,11 @@ class UnifiedDeformPreprocessEngine:
     - 处理完成后将 frame 拆分为 TileTask 输出给下游模块
     """
 
-    def __init__(self, env: simpy.Environment, config: UDPEConfig, analyzer: Analyzer):
+    def __init__(self, env: simpy.Environment, config: UDPEConfig, analyzer: Analyzer, memory: MemorySystem):
         self.env = env
         self.config = config
         self.analyzer = analyzer
+        self.memory = memory
         self.in_queue = simpy.Store(env, capacity=config.fifo_depth)
         self.out_queue = simpy.Store(env, capacity=config.fifo_depth)
         random.seed(0)
@@ -168,10 +170,18 @@ class UnifiedDeformPreprocessEngine:
                 # 透传结束信号
                 yield self.out_queue.put(None)
                 break
-            # 按 frame 级别计算处理周期
+            
+            # 1. 访存延迟：获取整个frame的负载（与高斯数量成正比）
+            mem_cycles = self.memory.estimate_memory_cycles_for_frame(frame.num_gaussians) * 0.5
+            if mem_cycles > 0:
+                self.analyzer.record_busy("memory", mem_cycles)
+                yield self.env.timeout(mem_cycles)
+            
+            # 2. 按 frame 级别计算处理周期
             cycles = self.processing_cycles(frame)
-            self.analyzer.record_busy("udpe", cycles)
+            self.analyzer.record_busy("udpe", cycles + mem_cycles)
             yield self.env.timeout(cycles)
+            
             # 将 frame 拆分为 TileTask 列表
             tasks = self.frame_to_tile_tasks(frame)
             # 模拟写回 DRAM（延迟不建模，但需要一次性输出整个列表）

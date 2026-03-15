@@ -61,7 +61,7 @@ class Analyzer:
         # 计算每帧用时（cycles * clock_period_ns，转换为秒）
         clock_period_s = clock_period_ns * 1e-9  # 纳秒转秒
         self.stats.frame_times = [cycles * clock_period_s for cycles in self.stats.frame_cycles]
-        
+        self.stats.fps = 1 / (sum(self.stats.frame_times) / len(self.stats.frame_times))
         if self.dump_enabled:
             self._dump()
         if self.verbose:
@@ -82,6 +82,7 @@ class Analyzer:
         print(f"preprocess_cycles : {self.stats.preprocess_cycles:.2f}")
         print(f"sort_cycles       : {self.stats.sort_cycles:.2f}")
         print(f"rasterize_cycles  : {self.stats.rasterize_cycles:.2f}")
+        print(f"memory_stall_cycles: {self.stats.memory_stall_cycles:.2f}")
         if self.stats.frame_cycles:
             avg = sum(self.stats.frame_cycles) / len(self.stats.frame_cycles)
             print(f"frames            : {len(self.stats.frame_cycles)}, avg={avg:.2f} cycles")

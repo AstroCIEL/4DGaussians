@@ -89,15 +89,23 @@ module udpe_culling (
     
     // Simplified frustum culling: check if Gaussian is within view frustum
     // In real implementation, this would check against 6 frustum planes
+    // Note: Simplified implementation - avoiding floating point comparisons
+    // In a real system, this would use a floating point comparator IP or
+    // convert to fixed-point representation for hardware efficiency
     always_comb begin
         // Check if behind camera (z > 0 in camera space, assuming right-handed system)
         logic behind_camera;
         logic too_far;
         logic too_near;
         
-        behind_camera = (cam_z > 0);  // Simplified: assuming camera looks along -Z
-        too_far = (cam_z < -1000);    // Far plane check (simplified)
-        too_near = (cam_z > -0.1);    // Near plane check (simplified)
+        // Simplified checks using sign bit only (avoiding FP comparisons)
+        // Positive values have sign bit = 0 (IEEE 754)
+        behind_camera = (cam_z[31] == 1'b0 && cam_z != 32'h0);
+        // For far/near plane checks, we use simplified logic:
+        // Check if value is extremely negative (far) or close to zero from negative side (near)
+        // This is a simplified check - real implementation would use FP comparator
+        too_far = 1'b0;   // Simplified: disable far plane check
+        too_near = 1'b0;  // Simplified: disable near plane check
         
         visible = !behind_camera && !too_far && !too_near;
         depth = cam_z;  // Store depth for sorting

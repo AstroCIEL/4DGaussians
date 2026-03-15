@@ -64,6 +64,10 @@ module fre_bc (
     logic [GAUSSIAN_ID_WIDTH-1:0] chunk_idx;
     logic [3:0] gaussian_in_chunk_idx;
     
+    // Temporary variables for alpha blending computation
+    logic [ALPHA_WIDTH-1:0] alpha_contrib;
+    logic [31:0] new_transmittance;
+    
     // State register
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -75,8 +79,8 @@ module fre_bc (
             chunk_idx <= '0;
             gaussian_in_chunk_idx <= '0;
             
-            for (int i = 0; i < BLEND_UNIT_SIZE; i++) begin
-                for (int j = 0; j < BLEND_UNIT_SIZE; j++) begin
+            for (integer i = 0; i < BLEND_UNIT_SIZE; i++) begin
+                for (integer j = 0; j < BLEND_UNIT_SIZE; j++) begin
                     pixel_buffer[i][j] <= '0;
                     pixel_valid_flags[i][j] <= 1'b0;
                     transmittance[i][j] <= 32'h3F800000;  // 1.0 in float32
@@ -139,19 +143,20 @@ module fre_bc (
     // For each Gaussian, compute contribution to each pixel in 8x8 tile
     always_ff @(posedge clk) begin
         if (state == BLEND_PIXELS && gaussian_idx < num_gaussians) begin
-            deformed_gaussian_t g = feature_buffer[gaussian_idx];
+            automatic deformed_gaussian_t g = feature_buffer[gaussian_idx];
             
             // Simplified alpha blending per pixel
             // Real implementation would compute 2D Gaussian falloff
-            for (int i = 0; i < BLEND_UNIT_SIZE; i++) begin
-                for (int j = 0; j < BLEND_UNIT_SIZE; j++) begin
+            for (integer i = 0; i < BLEND_UNIT_SIZE; i++) begin
+                for (integer j = 0; j < BLEND_UNIT_SIZE; j++) begin
                     // Compute alpha contribution (simplified)
-                    logic [ALPHA_WIDTH-1:0] alpha_contrib;
                     alpha_contrib = g.opacity;  // Simplified
                     
                     // Update transmittance
-                    logic [31:0] new_transmittance;
-                    new_transmittance = transmittance[i][j] * (1.0 - alpha_contrib);
+                    // NOTE: Avoid floating-point literal arithmetic in synthesis.
+                    // Use a simple integer-domain approximation for transmittance update.
+                    // This is a placeholder; real implementation should use FP/fixed-point math.
+                    new_transmittance = transmittance[i][j] - {24'b0, alpha_contrib};
                     
                     // Early termination: if transmittance is very low, skip remaining Gaussians
                     if (new_transmittance > 32'h3DCCCCCD) begin  // > 0.1
@@ -176,8 +181,8 @@ module fre_bc (
     
     // Output pixel data
     always_comb begin
-        for (int i = 0; i < BLEND_UNIT_SIZE; i++) begin
-            for (int j = 0; j < BLEND_UNIT_SIZE; j++) begin
+        for (integer i = 0; i < BLEND_UNIT_SIZE; i++) begin
+            for (integer j = 0; j < BLEND_UNIT_SIZE; j++) begin
                 pixel_data_o[i][j] = pixel_buffer[i][j];
             end
         end

@@ -72,7 +72,7 @@ module wbs_load_gen (
     // Accumulate workload per tile
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (int i = 0; i < 1024; i++) begin
+            for (integer i = 0; i < 1024; i++) begin
                 tile_workloads[i] <= '0;
                 tile_gaussian_counts[i] <= '0;
                 tile_start_ids[i] <= '0;
@@ -96,34 +96,50 @@ module wbs_load_gen (
     
     // Simplified Hilbert curve generation (2D space-filling curve)
     // In real implementation, this would be a proper Hilbert curve generator
-    function logic [TILE_ID_WIDTH-1:0] hilbert_xy_to_d(int n, int x, int y);
+    // Note: Using fixed iteration count to avoid synthesis loop unrolling issues
+    // Maximum iterations: 10 (sufficient for screen_width up to 32768 pixels with TILE_SIZE=32)
+    function automatic logic [TILE_ID_WIDTH-1:0] hilbert_xy_to_d(integer n, integer x, integer y);
         logic [TILE_ID_WIDTH-1:0] d;
+        integer rx, ry, t, s;
+        logic done;
         d = 0;
-        for (int s = n/2; s > 0; s /= 2) begin
-            int rx, ry;
-            rx = (x & s) > 0;
-            ry = (y & s) > 0;
-            d += s * s * ((3 * rx) ^ ry);
-            if (ry == 0) begin
-                if (rx == 1) begin
-                    x = n - 1 - x;
-                    y = n - 1 - y;
+        s = n / 2;  // Initialize s before loop
+        done = 1'b0;
+        // Use fixed iteration count instead of while loop for synthesis
+        for (integer iter = 0; iter < 10; iter++) begin
+            if (!done && s > 0) begin
+                rx = (x & s) > 0;
+                ry = (y & s) > 0;
+                d = d + s * s * ((3 * rx) ^ ry);
+                if (ry == 0) begin
+                    if (rx == 1) begin
+                        x = n - 1 - x;
+                        y = n - 1 - y;
+                    end
+                    t = x;
+                    x = y;
+                    y = t;
                 end
-                int t = x;
-                x = y;
-                y = t;
+                s = s / 2;  // Update s at end of loop
+                if (s == 0) begin
+                    done = 1'b1;  // Mark as done when s becomes 0
+                end
             end
         end
         return d;
     endfunction
     
     // Generate Hilbert sequence (simplified - would be precomputed)
+    integer tiles_per_dim;
+    always_comb begin
+        tiles_per_dim = screen_width_i / TILE_SIZE;
+    end
+    
     always_ff @(posedge clk) begin
-        int tiles_per_dim = screen_width_i / TILE_SIZE;
-        for (int i = 0; i < IQ_WINDOW_SIZE; i++) begin
-            int x = i % tiles_per_dim;
-            int y = i / tiles_per_dim;
-            hilbert_sequence[i] <= hilbert_xy_to_d(tiles_per_dim, x, y);
+        for (integer i = 0; i < IQ_WINDOW_SIZE; i++) begin
+            automatic integer hilbert_x = i % tiles_per_dim;
+            automatic integer hilbert_y = i / tiles_per_dim;
+            hilbert_sequence[i] <= hilbert_xy_to_d(tiles_per_dim, hilbert_x, hilbert_y);
         end
     end
     

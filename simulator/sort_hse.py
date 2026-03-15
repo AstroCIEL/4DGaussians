@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Set, Dict
 import math
 import simpy
 
 from simulator.analyzer import Analyzer
 from simulator.structures import TileTask
+from simulator.memory import MemorySystem
 
 
 @dataclass
@@ -22,12 +23,20 @@ class HierarchicalSortEngine:
     这里会记录每个任务在 HSE 上的忙碌区间，并在仿真结束后对所有区间做并集。
     """
 
-    def __init__(self, env: simpy.Environment, config: HSEConfig, analyzer: Analyzer):
+    def __init__(self, env: simpy.Environment, config: HSEConfig, analyzer: Analyzer, memory: MemorySystem):
         self.env = env
         self.config = config
         self.analyzer = analyzer
+        self.memory = memory
         self.resource = simpy.Resource(env, capacity=config.num_cores)
         self._busy_intervals: List[Tuple[float, float]] = []
+        # 跟踪每个core上一次处理的tile的高斯集合
+        self._previous_gaussians: Dict[int, Optional[Set[int]]] = {}
+        # 使用 Store 来管理可用的 core_id，确保每个请求都能正确追踪到对应的 core
+        self._core_id_store = simpy.Store(env, capacity=config.num_cores)
+        # 初始化所有 core_id
+        for core_id in range(config.num_cores):
+            self._core_id_store.put(core_id)
 
     def sort_cycles(self) -> float:
         '''
@@ -50,13 +59,45 @@ class HierarchicalSortEngine:
     def _run(self, task: TileTask):
         with self.resource.request() as req:
             yield req
-            cycles = self.sort_cycles()
-            start = self.env.now
-            yield self.env.timeout(cycles)
-            end = self.env.now
-            self._busy_intervals.append((start, end))
-            # HSE 处理完成后，任务继续传递给配对的 FRE 核
-            # 这里不直接输出，而是通过 WBS 协调
+            # 获取 resource 后，从 Store 中获取一个 core_id
+            # 这样可以确保 resource 和 core_id 的分配是同步的
+            core_id = yield self._core_id_store.get()
+            
+            try:
+                # 获取当前tile的高斯集合
+                current_gaussians = set(task.gaussian_ids) if task.gaussian_ids else None
+                
+                # 获取上一次处理的tile的高斯集合
+                previous_gaussians = self._previous_gaussians.get(core_id, None)
+                
+                # 计算访存延迟（考虑cache命中率）
+                mem_cycles = 0.5 * self.memory.estimate_memory_cycles_for_tile(
+                    current_gaussians, 
+                    previous_gaussians, 
+                    task.num_gaussians
+                )
+
+                start = self.env.now
+
+                if mem_cycles > 0:
+                    self.analyzer.record_busy("memory", mem_cycles)
+                    yield self.env.timeout(mem_cycles)
+                
+                # 更新当前core的上一次高斯集合
+                if current_gaussians is not None:
+                    self._previous_gaussians[core_id] = current_gaussians
+                
+                # 排序处理周期
+                cycles = self.sort_cycles()
+                yield self.env.timeout(cycles)
+                end = self.env.now
+                self._busy_intervals.append((start, end))
+                # HSE 处理完成后，任务继续传递给配对的 FRE 核
+                # 这里不直接输出，而是通过 WBS 协调
+            finally:
+                # 处理完成后，将 core_id 放回 Store，供其他请求使用
+                # 注意：这里在 resource 的 with 块内释放 core_id，确保同步
+                yield self._core_id_store.put(core_id)
 
     def finalize_busy(self) -> None:
         """在仿真结束后计算 HSE 模块沿时间轴的忙碌时间并上报 Analyzer。"""

@@ -1,25 +1,25 @@
 {
-  "total_cycles": 2779839.791666666,
-  "preprocess_cycles": 2622248.15625,
+  "total_cycles": 8733124.443749951,
+  "preprocess_cycles": 8460358.15625,
   "sort_cycles": 144556.546875,
-  "rasterize_cycles": 632094.4729166704,
-  "memory_stall_cycles": 6276153.515625,
+  "rasterize_cycles": 1082709.7749998604,
+  "memory_stall_cycles": 6293862.421875,
   "frame_cycles": [
-    555967.9583333333,
-    555967.9583333333,
-    555967.9583333333,
-    555967.9583333333,
-    555967.9583333333
+    1746624.8887499901,
+    1746624.8887499901,
+    1746624.8887499901,
+    1746624.8887499901,
+    1746624.8887499901
   ],
   "module_busy": {
-    "memory": 6276153.515625,
-    "udpe": 2622248.15625,
+    "memory": 6293862.421875,
+    "udpe": 8460358.15625,
     "hse": 144556.546875,
-    "fre": 632094.4729166704
+    "fre": 1082709.7749998604
   },
   "fifo_blocked": {},
-  "start_time": "2026-03-13T20:48:26.070310",
-  "elapsed_time": 10.04987645149231,
+  "start_time": "2026-03-13T20:51:16.139518",
+  "elapsed_time": 9.919774532318115,
   "config": {
     "simulation": {
       "dataset": "hypernerf/interp",
@@ -37,7 +37,7 @@
         "deform_cycles": 6.0,
         "intersection_cycles": 2.0,
         "fifo_depth": 2,
-        "skip_enabled": true
+        "skip_enabled": false
       },
       "hse": {
         "num_cores": 16,
@@ -66,7 +66,7 @@
       "subtile_size": 2,
       "early_stop_ratio": 0.7,
       "fov_x": 90,
-      "foveated_enabled": true
+      "foveated_enabled": false
     },
     "workload": {
       "chunk_size": 256,
@@ -80,15 +80,15 @@
       "output_json": "motion_labels.json"
     },
     "output": {
-      "stats_file": "simulator/results/scene_stats.json",
+      "stats_file": "simulator/results/gscore_scene_stats.json",
       "verbose": true
     }
   },
   "frame_times": [
-    0.0005559679583333332,
-    0.0005559679583333332,
-    0.0005559679583333332,
-    0.0005559679583333332,
-    0.0005559679583333332
+    0.0017466248887499903,
+    0.0017466248887499903,
+    0.0017466248887499903,
+    0.0017466248887499903,
+    0.0017466248887499903
   ]
 }
