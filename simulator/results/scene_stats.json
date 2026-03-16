@@ -1,0 +1,94 @@
+{
+  "total_cycles": 2779839.791666666,
+  "preprocess_cycles": 2622248.15625,
+  "sort_cycles": 144556.546875,
+  "rasterize_cycles": 632094.4729166704,
+  "memory_stall_cycles": 6276153.515625,
+  "frame_cycles": [
+    555967.9583333333,
+    555967.9583333333,
+    555967.9583333333,
+    555967.9583333333,
+    555967.9583333333
+  ],
+  "module_busy": {
+    "memory": 6276153.515625,
+    "udpe": 2622248.15625,
+    "hse": 144556.546875,
+    "fre": 632094.4729166704
+  },
+  "fifo_blocked": {},
+  "start_time": "2026-03-13T20:48:26.070310",
+  "elapsed_time": 10.04987645149231,
+  "config": {
+    "simulation": {
+      "dataset": "hypernerf/interp",
+      "scene": "torchocolate",
+      "frames": "0,1,2,3,4",
+      "resolution": "1440x1024",
+      "iteration": -1,
+      "camera_split": "video",
+      "base_output": "output"
+    },
+    "hardware": {
+      "clock_frequency": 1.0,
+      "udpe": {
+        "cull_cycles": 2.0,
+        "deform_cycles": 6.0,
+        "intersection_cycles": 2.0,
+        "fifo_depth": 2,
+        "skip_enabled": true
+      },
+      "hse": {
+        "num_cores": 16,
+        "coarse_sort_cycles": 8.0,
+        "fine_sort_cycles": 10.0
+      },
+      "fre": {
+        "num_cores": 16,
+        "base_cycles_per_gaussian": 8.0,
+        "interpolation_cycles": 64.0
+      },
+      "wbs": {
+        "window_size_k": 32,
+        "fifo_depth": 2,
+        "scheduling_mode": "hilbert_window"
+      },
+      "memory": {
+        "memory_bandwidth": 51.2,
+        "cache_size": 1048576,
+        "bytes_per_gaussian": 240,
+        "read_latency_hiding_rate": 0.3
+      }
+    },
+    "algorithm": {
+      "tile_size": 32,
+      "subtile_size": 2,
+      "early_stop_ratio": 0.7,
+      "fov_x": 90,
+      "foveated_enabled": true
+    },
+    "workload": {
+      "chunk_size": 256,
+      "static_ratio": 0.4,
+      "quasi_ratio": 0.4,
+      "culling_survival_rate": 0.8
+    },
+    "labeling": {
+      "num_time_samples": 50,
+      "output_npy": "motion_labels.npy",
+      "output_json": "motion_labels.json"
+    },
+    "output": {
+      "stats_file": "simulator/results/scene_stats.json",
+      "verbose": true
+    }
+  },
+  "frame_times": [
+    0.0005559679583333332,
+    0.0005559679583333332,
+    0.0005559679583333332,
+    0.0005559679583333332,
+    0.0005559679583333332
+  ]
+}

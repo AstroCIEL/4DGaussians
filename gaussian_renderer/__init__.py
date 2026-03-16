@@ -134,15 +134,34 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     time3 = get_time()
-    rendered_image, radii, depth = rasterizer(
-        means3D = means3D_final,
-        means2D = means2D,
-        shs = shs_final,
-        colors_precomp = colors_precomp,
-        opacities = opacity,
-        scales = scales_final,
-        rotations = rotations_final,
-        cov3D_precomp = cov3D_precomp)
+    try:
+        rendered_image, radii, depth, n_contrib = rasterizer(
+            means3D = means3D_final,
+            means2D = means2D,
+            shs = shs_final,
+            colors_precomp = colors_precomp,
+            opacities = opacity,
+            scales = scales_final,
+            rotations = rotations_final,
+            cov3D_precomp = cov3D_precomp)
+    except ValueError as e:
+        if "not enough values to unpack" in str(e):
+            # Fallback: old version without n_contrib
+            rasterizer_result = rasterizer(
+                means3D = means3D_final,
+                means2D = means2D,
+                shs = shs_final,
+                colors_precomp = colors_precomp,
+                opacities = opacity,
+                scales = scales_final,
+                rotations = rotations_final,
+                cov3D_precomp = cov3D_precomp)
+            rendered_image, radii, depth = rasterizer_result
+            n_contrib = torch.zeros((int(viewpoint_camera.image_height), int(viewpoint_camera.image_width)), 
+                                   dtype=torch.int32, device="cuda")
+            print("警告: CUDA扩展未返回n_contrib，使用零值。请重新编译CUDA扩展。")
+        else:
+            raise
     time4 = get_time()
     if "fine" in stage and 'prof' in locals() and prof.enabled:
         prof.mark("after_rasterization")
@@ -177,6 +196,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "visibility_filter" : radii > 0,
             "radii": radii,
             "depth":depth,
+            "n_contrib": n_contrib,
             "time":{"deformation":time2-time1,
                     "precompute":time3-time2,
                     "rasterization":time4-time3,

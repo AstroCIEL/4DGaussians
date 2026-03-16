@@ -25,6 +25,63 @@ Light Gaussian implementation: [This link](https://github.com/pablodawson/4DGaus
 
 ## Environmental Setups
 
+### A6000
+
+Please follow the [3D-GS](https://github.com/AstroCIEL/gaussian-splatting) to install the relative packages.
+
+```bash
+git clone https://github.com/AstroCIEL/4DGaussians --recursive
+cd 4DGaussians
+```
+
+#### Modifications for compatibility with Ubuntu 24.04
+environment.yaml already modified. More changes should be applied to make it compatible with Ubuntu 24.04.
+
+Tested on 
+
+```
+Ubuntu 24.04 LTS
+RTX 6000 Ada
+NVIDIA-SMI 580.95.05
+Driver Version: 580.95.05
+CUDA Version: 13.0
+```
+
+#### `simple-knn` patch
+
+in `submodules/simple-knn/simple_knn.cu` header add `#include <float.h>`
+
+#### `depth-diff-gaussian-rasterization` patch
+
+in `submodules/depth-diff-gaussian-rasterization/cuda_rasterizer/rasterizer_impl.h` header add `#include <cstdint>`
+
+
+```bash
+conda env create -f environment.yml
+conda activate gs4
+```
+
+#### `pillow` reinstallation
+
+To solve libtiff.so.5 issue, we need to reinstall pillow.
+
+```shell
+pip uninstall pillow
+pip install pillow
+```
+
+In our environment, we use
+
+```
+python=3.8.20
+cuda-toolkit=12.4
+torch=2.4.1
+torchvision=0.20.0
+torchaudio=2.4.1
+```
+
+### jetson
+
 For jetson platform, the arch is aarch64 which is not common, you should install compatible torch wheel according to you jetpack version, which you can refer to jetson official web (if you don't want to bother to build from source which will take lots of time).
 It is for jetson agx orin platform equipped with jetpack6.2.1, whose environment is:
 
@@ -67,6 +124,7 @@ export CPATH=/usr/include:/usr/include/aarch64-linux-gnu:$CPATH
 pip install submodules/depth-diff-gaussian-rasterization --no-build-isolation
 pip install submodules/simple-knn --no-build-isolation
 ```
+
 
 ## Data Preparation
 
@@ -246,6 +304,8 @@ python metrics.py --model_path "output/dnerf/bouncingballs/"
 
 ### Latency
 
+For Jetson AGX Orin. Acceleration on such edge platforms makes sense.
+
 We use Nsight Compute to profile cuda kernel. On Jetson, Nsight Compute are pre-installed with Jetpack. However, the installed Nsight Compute may not be the newest version, which may cause GUI breaking down. So you should first check the version and download the latest version if it's not. Also to launch it in priority to older version, you should carefully manage the PATH.
 
 Profiling generates a .ncu-rep file and to visulize it(locally in Jetson Desktop), you can go with `ncu-ui` and open file of .ncu-rep in GUI. If you don't have a Jetson GUI you can download Nsight Compute in your Windows host to use GUI to analyse .ncu-rep file via ssh.
@@ -256,7 +316,15 @@ For latency profiling, statistics based on cuda event method is enabled by defau
 
 ### Deformation
 
-To utilize the staticness of Gaussians, we want to analysis deformation of all Gaussians. First we get max deformation along time of Gaussians and designate a threshold. If max deformation exceeds threshold, the Gaussian is considered as static, which means deformation computations can be skipped. `run_deformation_analysis.sh` in scripts dir provides deformation analysis(compute position max deformation of Gaussians and visulaize). You can check the results and decide what thresholds candidates you'll pick in the subsequent sensitivity analysis. `run_sensitivity_analysis.sh` provides script to measure the PSNR of different thresholds.
+Recommended run on RTX rather than Jetson considering evaluation time.
+
+To utilize the staticness of Gaussians, we want to analysis deformation of all Gaussians. First we get max deformation along time of Gaussians and designate a threshold. If max deformation exceeds threshold, the Gaussian is considered as static, which means deformation computations can be skipped. `run_deformation_analysis.sh` in scripts dir provides deformation analysis(compute position max deformation of Gaussians and visulaize). 
+
+You can check the results and decide what thresholds candidates you'll pick in the subsequent sensitivity analysis. Moreover, if you don't want to focus on the deformation value and threshold, you can directly analyze sensitivy based on static ratio. `run_sensitivity_analysis.sh` provides script to measure the PSNR/SSIM/LPIPS of different thresholds/static-ratio for designated scene and dataset. To get the results of all scenes of the dataset and analyse the dataset from an overall perspective, you can use `deformation_dynerf.sh`/`deformation_dnerf.sh`.
+
+### frustrum culling
+
+To look into the culling ratio of each scene/dataset, `run_frustrum_culling_analysis.sh` is provided. It uses video split of each dataset to observe culling ratio.
 
 ## Viewer
 [Watch me](./docs/viewer_usage.md)
@@ -308,59 +376,3 @@ In my paper, I always use `colmap.sh` to generate dense point clouds and downsam
 
 Here are some codes maybe useful but never adopted in my paper, you can also try it.
 
-## Awesome Concurrent/Related Works
-
-Welcome to also check out these awesome concurrent/related works, including but not limited to
-
-[Deformable 3D Gaussians for High-Fidelity Monocular Dynamic Scene Reconstruction](https://ingra14m.github.io/Deformable-Gaussians/)
-
-[SC-GS: Sparse-Controlled Gaussian Splatting for Editable Dynamic Scenes](https://yihua7.github.io/SC-GS-web/)
-
-[MD-Splatting: Learning Metric Deformation from 4D Gaussians in Highly Deformable Scenes](https://md-splatting.github.io/)
-
-[4DGen: Grounded 4D Content Generation with Spatial-temporal Consistency](https://vita-group.github.io/4DGen/)
-
-[Diffusion4D: Fast Spatial-temporal Consistent 4D Generation via Video Diffusion Models](https://github.com/VITA-Group/Diffusion4D)
-
-[DreamGaussian4D: Generative 4D Gaussian Splatting](https://github.com/jiawei-ren/dreamgaussian4d)
-
-[EndoGaussian: Real-time Gaussian Splatting for Dynamic Endoscopic Scene Reconstruction](https://github.com/yifliu3/EndoGaussian)
-
-[EndoGS: Deformable Endoscopic Tissues Reconstruction with Gaussian Splatting](https://github.com/HKU-MedAI/EndoGS)
-
-[Endo-4DGS: Endoscopic Monocular Scene Reconstruction with 4D Gaussian Splatting](https://arxiv.org/abs/2401.16416)
-
-
-
-## Contributions
-
-**This project is still under development. Please feel free to raise issues or submit pull requests to contribute to our codebase.**
-
-
-Some source code of ours is borrowed from [3DGS](https://github.com/graphdeco-inria/gaussian-splatting), [K-planes](https://github.com/Giodiro/kplanes_nerfstudio), [HexPlane](https://github.com/Caoang327/HexPlane), [TiNeuVox](https://github.com/hustvl/TiNeuVox), [Depth-Rasterization](https://github.com/ingra14m/depth-diff-gaussian-rasterization). We sincerely appreciate the excellent works of these authors.
-
-## Acknowledgement
-
-We would like to express our sincere gratitude to [@zhouzhenghong-gt](https://github.com/zhouzhenghong-gt/) for his revisions to our code and discussions on the content of our paper.
-
-## Citation
-
-Some insights about neural voxel grids and dynamic scenes reconstruction originate from [TiNeuVox](https://github.com/hustvl/TiNeuVox). If you find this repository/work helpful in your research, welcome to cite these papers and give a ⭐.
-
-```
-@InProceedings{Wu_2024_CVPR,
-    author    = {Wu, Guanjun and Yi, Taoran and Fang, Jiemin and Xie, Lingxi and Zhang, Xiaopeng and Wei, Wei and Liu, Wenyu and Tian, Qi and Wang, Xinggang},
-    title     = {4D Gaussian Splatting for Real-Time Dynamic Scene Rendering},
-    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-    month     = {June},
-    year      = {2024},
-    pages     = {20310-20320}
-}
-
-@inproceedings{TiNeuVox,
-  author = {Fang, Jiemin and Yi, Taoran and Wang, Xinggang and Xie, Lingxi and Zhang, Xiaopeng and Liu, Wenyu and Nie\ss{}ner, Matthias and Tian, Qi},
-  title = {Fast Dynamic Radiance Fields with Time-Aware Neural Voxels},
-  year = {2022},
-  booktitle = {SIGGRAPH Asia 2022 Conference Papers}
-}
-```

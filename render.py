@@ -175,7 +175,7 @@ if __name__ == "__main__":
     parser.add_argument("--skip_video", action="store_true")
     parser.add_argument("--configs", type=str)
     parser.add_argument("--render_num", type=int, default=9999999)
-    parser.add_argument("--save_image", type=bool, default=False)
+    parser.add_argument("--save_image", type=bool, default=True)
     args = get_combined_args(parser)
     print("Rendering " , args.model_path)
     if args.configs:

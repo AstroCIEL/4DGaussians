@@ -1,0 +1,91 @@
+{
+  "total_cycles": 950852.9750000031,
+  "preprocess_cycles": 547893.0,
+  "sort_cycles": 166448.0,
+  "rasterize_cycles": 1330008.3749999346,
+  "memory_stall_cycles": 387678.6000000004,
+  "frame_cycles": [
+    237713.24375000078,
+    237713.24375000078,
+    237713.24375000078,
+    237713.24375000078
+  ],
+  "module_busy": {
+    "udpe": 547893.0,
+    "hse": 166448.0,
+    "fre": 1330008.3749999346,
+    "memory": 387678.6000000004
+  },
+  "fifo_blocked": {},
+  "start_time": "2026-03-12T15:24:53.840903",
+  "elapsed_time": 3.958860158920288,
+  "config": {
+    "simulation": {
+      "dataset": "dynerf",
+      "scene": "cook_spinach",
+      "frames": "0,1,2,3",
+      "resolution": "1440x1024",
+      "iteration": -1,
+      "camera_split": "video",
+      "base_output": "output"
+    },
+    "hardware": {
+      "clock_frequency": 1.0,
+      "udpe": {
+        "cull_cycles": 1.0,
+        "deform_cycles": 3.0,
+        "intersection_cycles": 1.0,
+        "fifo_depth": 16,
+        "skip_enabled": true
+      },
+      "hse": {
+        "num_cores": 16,
+        "coarse_sort_cycles": 4.0,
+        "fine_sort_cycles": 4.0
+      },
+      "fre": {
+        "num_cores": 16,
+        "base_cycles_per_gaussian": 1.0,
+        "interpolation_cycles": 4.0
+      },
+      "wbs": {
+        "window_size_k": 8,
+        "fifo_depth": 32
+      },
+      "memory": {
+        "memory_bandwidth": 120,
+        "cache_size": 1048576,
+        "bytes_per_gaussian": 120,
+        "read_latency_hiding_rate": 0.94
+      }
+    },
+    "algorithm": {
+      "tile_size": 32,
+      "subtile_size": 2,
+      "early_stop_ratio": 0.5,
+      "fov_x": 90,
+      "foveated_enabled": true
+    },
+    "workload": {
+      "chunk_size": 256,
+      "static_ratio": 0.4,
+      "quasi_ratio": 0.4,
+      "culling_survival_rate": 0.8
+    },
+    "labeling": {
+      "num_time_samples": 50,
+      "output_npy": "motion_labels.npy",
+      "output_json": "motion_labels.json"
+    },
+    "output": {
+      "stats_file": "simulator/results/ours_stats.json",
+      "verbose": true
+    }
+  },
+  "frame_times": [
+    0.0002377132437500008,
+    0.0002377132437500008,
+    0.0002377132437500008,
+    0.0002377132437500008
+  ]
+}
