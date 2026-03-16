@@ -3,7 +3,7 @@ set -eo pipefail
 NSYS_PATH=/opt/nvidia/nsight-systems/2024.5.4
 NCU_PATH=/opt/nvidia/nsight-compute/2024.3.1
 REPOSITORY_PATH=$(git rev-parse --show-toplevel)
-OUTPUT_PATH=$REPOSITORY_PATH/output/hypernerf/interp
+OUTPUT_PATH=$REPOSITORY_PATH/output/hypernerf/vrig
 NCU_BIN=$NCU_PATH/ncu
 
 # Prefer using the currently activated conda env's python even when running under sudo/root.
@@ -30,7 +30,7 @@ fi
 generate_target() {
     target="$PYTHON_BIN $REPOSITORY_PATH/render.py \
         --model_path $OUTPUT_PATH/$1 \
-        --configs $REPOSITORY_PATH/arguments/hypernerf/default.py \
+        --configs $REPOSITORY_PATH/arguments/hypernerf/$1.py \
         --skip_train \
         --skip_test \
         --quiet \
@@ -59,7 +59,7 @@ metrics_csv="$(
     echo "${metrics[*]}"
 )"
 
-for SCENE in "aleks-teapot" "slice-banana" "interp-chicken" "cut-lemon1" "hand1-dense-v2" "torchocolate"; do
+for SCENE in "broom2" "vrig-3dprinter" "vrig-peel-banana" "vrig-chicken"; do
     target=$(generate_target $SCENE)
 
     $NCU_BIN \

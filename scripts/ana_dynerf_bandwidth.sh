@@ -3,7 +3,7 @@ set -eo pipefail
 NSYS_PATH=/opt/nvidia/nsight-systems/2024.5.4
 NCU_PATH=/opt/nvidia/nsight-compute/2024.3.1
 REPOSITORY_PATH=$(git rev-parse --show-toplevel)
-OUTPUT_PATH=$REPOSITORY_PATH/output/hypernerf/interp
+OUTPUT_PATH=$REPOSITORY_PATH/output/dynerf
 NCU_BIN=$NCU_PATH/ncu
 
 # Prefer using the currently activated conda env's python even when running under sudo/root.
@@ -30,7 +30,7 @@ fi
 generate_target() {
     target="$PYTHON_BIN $REPOSITORY_PATH/render.py \
         --model_path $OUTPUT_PATH/$1 \
-        --configs $REPOSITORY_PATH/arguments/hypernerf/default.py \
+        --configs $REPOSITORY_PATH/arguments/dynerf/$1.py \
         --skip_train \
         --skip_test \
         --quiet \
@@ -48,18 +48,12 @@ kernel_name+="|DeviceRadixSortOnesweepKernel"
 kernel_name+="|identifyTileRanges"
 kernel_name+='|renderCUDA"'
 
-# Per-kernel latency (duration on GPU)
 metrics=(
-    "gpu__time_duration.sum"
-    "sm__throughput.avg.pct_of_peak_sustained_elapsed"
-    "gpu__compute_memory_throughput.avg.pct_of_peak_sustained_elapsed"
+    "lts__d_sectors_fill_sysmem.sum"
+    "lts__t_sectors_aperture_sysmem_op_write.sum"
 )
-metrics_csv="$(
-    IFS=','
-    echo "${metrics[*]}"
-)"
 
-for SCENE in "aleks-teapot" "slice-banana" "interp-chicken" "cut-lemon1" "hand1-dense-v2" "torchocolate"; do
+for SCENE in "sear_steak" "flame_steak" "flame_salmon_1" "cook_spinach" "coffee_martini" "cut_roasted_beef"; do
     target=$(generate_target $SCENE)
 
     $NCU_BIN \
@@ -67,29 +61,17 @@ for SCENE in "aleks-teapot" "slice-banana" "interp-chicken" "cut-lemon1" "hand1-
         --target-processes all \
         -k $kernel_name \
         -f \
-        -o $OUTPUT_PATH/$SCENE/analysis \
+        -o $OUTPUT_PATH/$SCENE/analysis_bandwidth \
         $target
 
     $NCU_BIN \
-        -i $OUTPUT_PATH/$SCENE/analysis.ncu-rep \
+        -i $OUTPUT_PATH/$SCENE/analysis_bandwidth.ncu-rep \
         --page raw \
         --csv \
-        --metrics "$metrics_csv" \
-        --log-file $OUTPUT_PATH/$SCENE/analysis.csv
-
-    # Aggregated view: one row per kernel (invocation count + min/max/avg across launches)
-    $NCU_BIN \
-        -i $OUTPUT_PATH/$SCENE/analysis.ncu-rep \
-        --page raw \
-        --csv \
-        --metrics "$metrics_csv" \
-        --print-summary per-kernel \
-        --log-file $OUTPUT_PATH/$SCENE/analysis_per_kernel.csv
+        --metrics "$(
+            IFS=','
+            echo "${metrics[*]}"
+        )" \
+        --log-file $OUTPUT_PATH/$SCENE/analysis_bandwidth.csv
 done
 
-$PYTHON_BIN $REPOSITORY_PATH/scripts/ana_latency.py \
-    --output_dir $OUTPUT_PATH \
-    --statistics_relpath "test/ours_14000/statistics.txt" \
-    --out_png $OUTPUT_PATH/hypernerf_latency_breakdown.png \
-    --out_csv $OUTPUT_PATH/hypernerf_latency_breakdown.csv \
-    --unit ms

@@ -391,7 +391,7 @@ def readHyperDataInfos(datadir,use_bg_points,eval):
 
     pcd = pcd._replace(points=xyz)
     nerf_normalization = getNerfppNorm(train_cam)
-    plot_camera_orientations(train_cam_infos, pcd.points)
+    # plot_camera_orientations(train_cam_infos, pcd.points)
     scene_info = SceneInfo(point_cloud=pcd,
                            train_cameras=train_cam_infos,
                            test_cameras=test_cam_infos,
