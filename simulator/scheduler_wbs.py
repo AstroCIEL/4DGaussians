@@ -12,7 +12,7 @@ from simulator.sort_hse import HierarchicalSortEngine
 class WBSConfig:
     window_size: int = 8
     fifo_depth: int = 2  # 保留用于兼容性，但不再使用
-    scheduling_mode: str = "hilbert_window"  # "hilbert_window" | "default_fifo" | "global_greedy"
+    scheduling_mode: str = "hilbert_window"  # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
 
 
 def hilbert_curve_order(x: int, y: int, n: int) -> int:
@@ -130,6 +130,9 @@ class WorkloadBalancingScheduler:
     3. "global_greedy": 全局贪心分配（Baseline 2）
        - 整个 frame 的 tiletask 直接按工作负载最重的优先分配
        - 不设任何窗口限制
+    4. "hilbert_fifo": 希尔伯特曲线排序 + FIFO 分配（确定性模式）
+       - 仍使用希尔伯特顺序以保留空间局部性
+       - 但窗口内不做“最大 workload 优先”的在线决策，避免因任务时长变化导致的非单调 makespan
     """
 
     def __init__(
@@ -173,6 +176,8 @@ class WorkloadBalancingScheduler:
         self.upstream_done = False
         self.hse_in_flight = 0  # HSE 核正在处理的任务数
         self.fre_in_flight = 0  # FRE 核正在处理的任务数
+        # 调度统计：记录每次从窗口选中的 task workload（num_gaussians）
+        self._window_selected_workloads: List[int] = []
 
     def start(self):
         return self.env.process(self._run())
@@ -205,12 +210,39 @@ class WorkloadBalancingScheduler:
         """
         if self.config.scheduling_mode == "hilbert_window":
             self._dispatch_hse_hilbert_window()
+        elif self.config.scheduling_mode == "hilbert_fifo":
+            self._dispatch_hse_hilbert_fifo()
         elif self.config.scheduling_mode == "default_fifo":
             self._dispatch_hse_default_fifo()
         elif self.config.scheduling_mode == "global_greedy":
             self._dispatch_hse_global_greedy()
         else:
             raise ValueError(f"Unknown scheduling mode: {self.config.scheduling_mode}")
+
+    def _dispatch_hse_hilbert_fifo(self):
+        """
+        确定性调度：在希尔伯特顺序下，窗口仅作为缓冲，始终优先分发窗口最前端任务（FIFO）。
+        这样分发顺序不依赖于任务完成时间变化，从而避免“某些参数变好但 makespan 变差”的反直觉现象。
+        """
+        # 确保窗口已填充
+        self._fill_window()
+        while self.window_pool and self.sort_engine.has_free_core():
+            # 找到窗口最前端第一个未分发任务
+            front_idx = -1
+            for i, dispatched in enumerate(self.window_dispatched):
+                if not dispatched:
+                    front_idx = i
+                    break
+            if front_idx == -1:
+                break
+            task = self.window_pool[front_idx]
+            self.window_dispatched[front_idx] = True
+            self.hse_in_flight += 1
+            self._window_selected_workloads.append(int(task.num_gaussians))
+            self.env.process(self._process_sort(task))
+            # 只要最前端被分发，就滑窗
+            if front_idx == 0:
+                self._slide_window()
 
     def _dispatch_hse_hilbert_window(self):
         """
@@ -234,6 +266,7 @@ class WorkloadBalancingScheduler:
             task = self.window_pool[max_idx]
             self.window_dispatched[max_idx] = True
             self.hse_in_flight += 1
+            self._window_selected_workloads.append(int(task.num_gaussians))
             # 启动 HSE 核进行排序
             self.env.process(self._process_sort(task))
             
@@ -300,7 +333,7 @@ class WorkloadBalancingScheduler:
         if not tasks:
             return
         
-        if self.config.scheduling_mode == "hilbert_window":
+        if self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo"):
             # 按希尔伯特曲线排序
             sorted_tasks = sort_tasks_by_hilbert_curve(tasks, self.width, self.height, self.tile_size)
             # 添加到全局任务列表
@@ -349,8 +382,12 @@ class WorkloadBalancingScheduler:
             if self._is_all_done():
                 break
 
-            # 等待新 frame 的 TileTask 列表
+            # 等待新 frame 的 TileTask 列表（若队列为空会阻塞）
+            t0 = self.env.now
             frame_tasks = yield self.frame_queue.get()
+            dt = self.env.now - t0
+            if dt > 0:
+                self.analyzer.record_fifo_block_cycles("wbs.frame_get", dt)
             
             if frame_tasks is None:
                 self.upstream_done = True
@@ -361,3 +398,6 @@ class WorkloadBalancingScheduler:
             # 再次尝试分发
             self._dispatch_hse()
             self._dispatch_fre()
+
+    def get_window_selected_workloads(self) -> List[int]:
+        return list(self._window_selected_workloads)

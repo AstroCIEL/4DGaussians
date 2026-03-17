@@ -17,6 +17,10 @@ class UDPEConfig:
     static_ratio: float = 0.4
     quasi_ratio: float = 0.4  # 其余视为 dynamic
     skip_enabled: bool = True
+    udpe_utilization: float = 1.0
+    # True: 输出 chunk 粒度 TileTask（每个 task 的 num_gaussians <= chunk_size）
+    # False: 输出 tile 粒度 TileTask（每个 tile 一个 task，num_gaussians=tile 总数）
+    emit_chunk_tasks: bool = True
 
 
 class UnifiedDeformPreprocessEngine:
@@ -127,12 +131,14 @@ class UnifiedDeformPreprocessEngine:
             cull_time = total_n * c.cull_cycles
             deform_time = (quasi_n + dynamic_n) * c.deform_cycles
             inter_time = total_n * c.intersection_cycles
-            return max(cull_time, deform_time, inter_time)
+            quasi_time = quasi_n * (c.deform_cycles + c.cull_cycles)
+            dynamic_time = dynamic_n * (c.deform_cycles + c.cull_cycles)
+            return max(cull_time, deform_time, inter_time, quasi_time, dynamic_time) / self.config.udpe_utilization
         else:
             cull_time = total_n * c.cull_cycles
             deform_time = total_n * c.deform_cycles
             inter_time = total_n * c.intersection_cycles
-            return deform_time + deform_time + inter_time
+            return max(cull_time, deform_time, inter_time) / self.config.udpe_utilization
     
     def frame_to_tile_tasks(self, frame: WorkloadFrame) -> List[TileTask]:
         """
@@ -142,19 +148,42 @@ class UnifiedDeformPreprocessEngine:
         for tile in frame.tiles.values():
             if tile.num_gaussians <= 0:
                 continue
+            # 可选：按 tile 粒度输出 task（用于让 WBS 窗口内 LPT 真正比较“tile 总 workload”）
+            if not self.config.emit_chunk_tasks:
+                tasks.append(
+                    TileTask(
+                        frame_id=frame.frame_id,
+                        tile_id=tile.tile_id,
+                        num_gaussians=tile.num_gaussians,
+                        region=tile.region,
+                        chunk_index=0,
+                        gaussian_ids=tile.gaussian_ids,
+                        label_counts=tile.label_counts,
+                    )
+                )
+                continue
+
+            # 默认：按 chunk 粒度输出 task
             # 若 chunk_sizes 为空但有高斯列表，退化为一个 chunk
             chunk_sizes = tile.chunk_sizes or ([len(tile.gaussian_ids)] if tile.gaussian_ids else [])
+            pos = 0
             for idx, csize in enumerate(chunk_sizes):
                 c_labels = None
                 if tile.chunk_label_counts and idx < len(tile.chunk_label_counts):
                     c_labels = tile.chunk_label_counts[idx]
+                # 关键修复：每个 chunk task 应该携带该 chunk 的 gaussian_ids 子集，
+                # 否则 HSE/FRE 的 cache hit（previous_gaussians）会被“整 tile ids”污染。
+                chunk_gaussian_ids = None
+                if tile.gaussian_ids:
+                    chunk_gaussian_ids = tile.gaussian_ids[pos:pos + csize]
+                pos += csize
                 task = TileTask(
                     frame_id=frame.frame_id,
                     tile_id=tile.tile_id,
                     num_gaussians=csize,
                     region=tile.region,
                     chunk_index=idx,
-                    gaussian_ids=tile.gaussian_ids,
+                    gaussian_ids=chunk_gaussian_ids,
                     label_counts=c_labels,
                 )
                 tasks.append(task)
@@ -168,7 +197,12 @@ class UnifiedDeformPreprocessEngine:
             frame = yield self.in_queue.get()
             if frame is None:
                 # 透传结束信号
+                # 记录 out_queue.put 的阻塞等待（Store 满时不会抛异常，会阻塞）
+                t0 = self.env.now
                 yield self.out_queue.put(None)
+                dt = self.env.now - t0
+                if dt > 0:
+                    self.analyzer.record_fifo_block_cycles("udpe.out_put", dt)
                 break
             
             # 1. 访存延迟：获取整个frame的负载（与高斯数量成正比）
@@ -179,18 +213,19 @@ class UnifiedDeformPreprocessEngine:
             
             # 2. 按 frame 级别计算处理周期
             cycles = self.processing_cycles(frame)
-            self.analyzer.record_busy("udpe", cycles + mem_cycles)
+            # 注意：mem_cycles 已经作为 memory busy 记录过一次，不应重复计入 udpe busy
+            self.analyzer.record_busy("udpe", cycles)
             yield self.env.timeout(cycles)
             
             # 将 frame 拆分为 TileTask 列表
             tasks = self.frame_to_tile_tasks(frame)
             # 模拟写回 DRAM（延迟不建模，但需要一次性输出整个列表）
             # 一次性输出整个 frame 的 TileTask 列表
-            try:
-                yield self.out_queue.put(tasks)
-            except simpy.resources.store.StoreFull:
-                self.analyzer.record_fifo_block("udpe_out_full")
-                yield self.out_queue.put(tasks)
+            t0 = self.env.now
+            yield self.out_queue.put(tasks)
+            dt = self.env.now - t0
+            if dt > 0:
+                self.analyzer.record_fifo_block_cycles("udpe.out_put", dt)
 
 
 def main():

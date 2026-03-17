@@ -32,6 +32,10 @@ class FoveatedRasterEngine:
         self.resource = simpy.Resource(env, capacity=config.num_cores)
         # 记录 (start_time, end_time) 区间，单位：cycles
         self._busy_intervals: List[Tuple[float, float]] = []
+        # 用于利用率：跨所有核心的 busy 区间时长求和（不做并集）
+        self._busy_core_time_sum: float = 0.0
+        # 任务级服务时间样本（用于长尾分布统计）
+        self._task_service_times: List[float] = []
         # 跟踪每个core上一次处理的tile的高斯集合
         self._previous_gaussians: Dict[int, Optional[Set[int]]] = {}
         # 使用 Store 来管理可用的 core_id，确保每个请求都能正确追踪到对应的 core
@@ -52,7 +56,7 @@ class FoveatedRasterEngine:
 
     def raster_cycles(self, task: TileTask) -> float:
         scale = self._region_scale(task.region)
-        core_cycles = task.num_gaussians * self.config.early_stop_ratio * self.config.base_cycles_per_gaussian * scale
+        core_cycles = 4 * task.num_gaussians * self.config.early_stop_ratio * self.config.base_cycles_per_gaussian * scale
         interp = self.config.interpolation_cycles/(1.0 - scale) if scale < 1.0 else 0.0
         return core_cycles + interp
 
@@ -95,6 +99,9 @@ class FoveatedRasterEngine:
                 yield self.env.timeout(cycles)
                 end = self.env.now
                 self._busy_intervals.append((start, end))
+                st = max(0.0, end - start)
+                self._busy_core_time_sum += st
+                self._task_service_times.append(st)
                 # 处理完成，由 WBS 通过 _process_pair 管理完成回调
             finally:
                 # 处理完成后，将 core_id 放回 Store，供其他请求使用
@@ -118,3 +125,13 @@ class FoveatedRasterEngine:
         total_busy = sum(e - s for s, e in merged)
         if total_busy > 0:
             self.analyzer.record_busy("fre", total_busy)
+
+    def finalize_utilization(self, total_cycles: float) -> None:
+        """记录 FRE 平均利用率 = sum(core_busy_time) / (num_cores * total_cycles)。"""
+        if total_cycles <= 0 or self.config.num_cores <= 0:
+            return
+        util = self._busy_core_time_sum / (float(self.config.num_cores) * float(total_cycles))
+        self.analyzer.record_utilization("fre", util)
+
+    def get_task_service_times(self) -> List[float]:
+        return list(self._task_service_times)

@@ -72,18 +72,47 @@ class SimStats:
     memory_stall_cycles: float = 0.0
     frame_cycles: List[float] = field(default_factory=list)
     module_busy: Dict[str, float] = field(default_factory=dict)
+    # 平均硬件利用率（0~1），按“核心时间积分 / (核心数 * total_cycles)”计算
+    module_utilization: Dict[str, float] = field(default_factory=dict)
+    # 任务级统计（长尾分析用）：只存 summary，避免 JSON 过大
+    task_time_stats: Dict[str, dict] = field(default_factory=dict)
+    # 调度级统计（长尾分析用）
+    scheduling_stats: Dict[str, dict] = field(default_factory=dict)
     fifo_blocked: Dict[str, int] = field(default_factory=dict)
+    # 记录队列 put/get 造成的阻塞等待（真实仿真时间的一部分），单位：cycles
+    fifo_blocked_cycles: Dict[str, float] = field(default_factory=dict)
     start_time: str = ""  # 模拟开始时间（ISO 格式字符串）
     elapsed_time: float = 0.0  # 系统用时（秒）
     config: dict = field(default_factory=dict)  # 使用的配置内容
     frame_times: List[float] = field(default_factory=list)  # 每帧用时（秒，cycles * clock_period）
     fps: float = 0.0  # 帧率（帧/秒）
+    fps_r: float = 0.0  # 放松后的帧率（帧/秒）
 
     def record_busy(self, module: str, cycles: float) -> None:
         self.module_busy[module] = self.module_busy.get(module, 0.0) + cycles
 
+    def record_utilization(self, module: str, utilization: float) -> None:
+        # clamp 到 [0,1]，避免浮点误差/异常
+        u = float(utilization)
+        if u < 0.0:
+            u = 0.0
+        if u > 1.0:
+            u = 1.0
+        self.module_utilization[module] = u
+
+    def record_task_time_stats(self, module: str, stats: dict) -> None:
+        self.task_time_stats[module] = stats
+
+    def record_scheduling_stats(self, name: str, stats: dict) -> None:
+        self.scheduling_stats[name] = stats
+
     def record_block(self, fifo: str) -> None:
         self.fifo_blocked[fifo] = self.fifo_blocked.get(fifo, 0) + 1
+
+    def record_block_cycles(self, fifo: str, cycles: float) -> None:
+        if cycles <= 0:
+            return
+        self.fifo_blocked_cycles[fifo] = self.fifo_blocked_cycles.get(fifo, 0.0) + float(cycles)
 
     def to_dict(self) -> dict:
         return {
@@ -94,11 +123,17 @@ class SimStats:
             "memory_stall_cycles": self.memory_stall_cycles,
             "frame_cycles": self.frame_cycles,
             "module_busy": self.module_busy,
+            "module_utilization": self.module_utilization,
+            "task_time_stats": self.task_time_stats,
+            "scheduling_stats": self.scheduling_stats,
             "fifo_blocked": self.fifo_blocked,
+            "fifo_blocked_cycles": self.fifo_blocked_cycles,
             "start_time": self.start_time,
             "elapsed_time": self.elapsed_time,
+            "ave_frame_times": self.frame_times[0],
+            "fps": self.fps,
+            "fps_r": self.fps_r,
             "config": self.config,
-            "frame_times": self.frame_times,
         }
 
 

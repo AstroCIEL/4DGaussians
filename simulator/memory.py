@@ -5,7 +5,7 @@ from typing import Optional, Set
 @dataclass
 class MemoryConfig:
     memory_bandwidth_gbps: float = 51.2
-    cache_size_bytes: int = 1_048_576
+    bandwidth_utilization: float = 0.5
     clock_frequency_ghz: float = 1.0
     read_latency_hiding_rate: float = 0.5
     bytes_per_gaussian: int = 64  # 每个高斯的字节数
@@ -23,7 +23,7 @@ class MemorySystem:
     def __init__(self, config: MemoryConfig):
         self.config = config
         self.bytes_per_cycle = (
-            config.memory_bandwidth_gbps * 1e9 / (config.clock_frequency_ghz * 1e9)
+            config.memory_bandwidth_gbps * config.bandwidth_utilization * 1e9 / (config.clock_frequency_ghz * 1e9)
         )
 
     def estimate_cycles(self, bytes_accessed: float) -> float:
@@ -82,7 +82,7 @@ class MemorySystem:
             cache_hit_ratio = len(intersection) / len(current_gaussians) if len(current_gaussians) > 0 else 0.0
         
         # 需要从内存加载的高斯数量（未命中的部分）
-        cache_miss_count = num_gaussians * (1.0 - cache_hit_ratio)
+        cache_miss_count = num_gaussians * (1.0 - cache_hit_ratio * 0.5)
         
         # 估算访存字节数（只加载未命中的高斯）
         bytes_accessed = self.estimate_bytes_for_gaussians(int(cache_miss_count))

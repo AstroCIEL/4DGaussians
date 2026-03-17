@@ -30,6 +30,10 @@ class HierarchicalSortEngine:
         self.memory = memory
         self.resource = simpy.Resource(env, capacity=config.num_cores)
         self._busy_intervals: List[Tuple[float, float]] = []
+        # 用于利用率：跨所有核心的 busy 区间时长求和（不做并集）
+        self._busy_core_time_sum: float = 0.0
+        # 任务级服务时间样本（用于长尾分布统计）
+        self._task_service_times: List[float] = []
         # 跟踪每个core上一次处理的tile的高斯集合
         self._previous_gaussians: Dict[int, Optional[Set[int]]] = {}
         # 使用 Store 来管理可用的 core_id，确保每个请求都能正确追踪到对应的 core
@@ -71,7 +75,7 @@ class HierarchicalSortEngine:
                 previous_gaussians = self._previous_gaussians.get(core_id, None)
                 
                 # 计算访存延迟（考虑cache命中率）
-                mem_cycles = 0.5 * self.memory.estimate_memory_cycles_for_tile(
+                mem_cycles = 0.8 * self.memory.estimate_memory_cycles_for_tile(
                     current_gaussians, 
                     previous_gaussians, 
                     task.num_gaussians
@@ -92,6 +96,9 @@ class HierarchicalSortEngine:
                 yield self.env.timeout(cycles)
                 end = self.env.now
                 self._busy_intervals.append((start, end))
+                st = max(0.0, end - start)
+                self._busy_core_time_sum += st
+                self._task_service_times.append(st)
                 # HSE 处理完成后，任务继续传递给配对的 FRE 核
                 # 这里不直接输出，而是通过 WBS 协调
             finally:
@@ -116,3 +123,14 @@ class HierarchicalSortEngine:
         total_busy = sum(e - s for s, e in merged)
         if total_busy > 0:
             self.analyzer.record_busy("hse", total_busy)
+
+    def finalize_utilization(self, total_cycles: float) -> None:
+        """记录 HSE 平均利用率 = sum(core_busy_time) / (num_cores * total_cycles)。"""
+        if total_cycles <= 0 or self.config.num_cores <= 0:
+            return
+        # _busy_core_time_sum 在 _run() 内累加
+        util = self._busy_core_time_sum / (float(self.config.num_cores) * float(total_cycles))
+        self.analyzer.record_utilization("hse", util)
+
+    def get_task_service_times(self) -> List[float]:
+        return list(self._task_service_times)

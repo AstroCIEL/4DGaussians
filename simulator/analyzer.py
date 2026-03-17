@@ -16,11 +16,13 @@ class Analyzer:
         output_path: str = "results/stats.json",
         verbose: bool = True,
         dump_enabled: bool = True,
+        relaxation_factor: float = 0.6,
     ):
         self.stats = stats
         self.output_path = output_path
         self.verbose = verbose
         self.dump_enabled = dump_enabled
+        self.relaxation_factor = relaxation_factor
         self._stage_map = {
             "udpe": "preprocess_cycles",
             "hse": "sort_cycles",
@@ -41,8 +43,23 @@ class Analyzer:
         if field and hasattr(self.stats, field):
             setattr(self.stats, field, getattr(self.stats, field) + cycles)
 
+    def record_utilization(self, module: str, utilization: float) -> None:
+        self.stats.record_utilization(module, utilization)
+
+    def record_task_time_stats(self, module: str, stats: dict) -> None:
+        self.stats.record_task_time_stats(module, stats)
+
+    def record_scheduling_stats(self, name: str, stats: dict) -> None:
+        self.stats.record_scheduling_stats(name, stats)
+
     def record_fifo_block(self, name: str) -> None:
         self.stats.record_block(name)
+
+    def record_fifo_block_cycles(self, name: str, cycles: float) -> None:
+        """记录由于队列 put/get 等待产生的阻塞时间（cycles）。"""
+        # 同时记录次数与周期，便于对齐旧字段
+        self.stats.record_block(name)
+        self.stats.record_block_cycles(name, cycles)
 
     def finalize(self, total_cycles: float, clock_period_ns: float = 1.0) -> None:
         """
@@ -62,6 +79,7 @@ class Analyzer:
         clock_period_s = clock_period_ns * 1e-9  # 纳秒转秒
         self.stats.frame_times = [cycles * clock_period_s for cycles in self.stats.frame_cycles]
         self.stats.fps = 1 / (sum(self.stats.frame_times) / len(self.stats.frame_times))
+        self.stats.fps_r = self.stats.fps * self.relaxation_factor
         if self.dump_enabled:
             self._dump()
         if self.verbose:
@@ -91,7 +109,21 @@ class Analyzer:
             ave_fps = 1 / avg_time
             print(f"frame_times       : avg={avg_time*1000:.4f} ms per frame")
             print(f"fps               : {ave_fps:.2f} fps")
+            print(f"fps_r             : {ave_fps*self.relaxation_factor:.2f} fps")
         if self.stats.module_busy:
             print(f"module_busy       : {self.stats.module_busy}")
+        if getattr(self.stats, "module_utilization", None):
+            if self.stats.module_utilization:
+                print(f"module_utilization: {self.stats.module_utilization}")
+        if getattr(self.stats, "task_time_stats", None):
+            if self.stats.task_time_stats:
+                print(f"task_time_stats   : {self.stats.task_time_stats}")
+        if getattr(self.stats, "scheduling_stats", None):
+            if self.stats.scheduling_stats:
+                print(f"scheduling_stats  : {self.stats.scheduling_stats}")
         if self.stats.fifo_blocked:
             print(f"fifo_blocked      : {self.stats.fifo_blocked}")
+        if getattr(self.stats, "fifo_blocked_cycles", None):
+            if self.stats.fifo_blocked_cycles:
+                print(f"fifo_blocked_cycles: {self.stats.fifo_blocked_cycles}")
+        print(f"stats_file        : {self.output_path}")

@@ -12,7 +12,6 @@ from simulator.structures import (
     build_synthetic_workload,
     parse_resolution,
 )
-from simulator.workload_loader import load_workload_from_scene
 from simulator.preprocess_udpe import UDPEConfig, UnifiedDeformPreprocessEngine
 from simulator.sort_hse import HSEConfig, HierarchicalSortEngine
 from simulator.scheduler_wbs import WBSConfig, WorkloadBalancingScheduler
@@ -32,6 +31,7 @@ class Simulator:
             self.stats,
             output_path=self.config.get("output", {}).get("stats_file", "results/stats.json"),
             verbose=self.config.get("output", {}).get("verbose", True),
+            relaxation_factor=self.config.get("hardware", {}).get("relaxation_factor", 0.6),
             dump_enabled=dump_enabled,
         )
         self.workloads = self._build_workloads()
@@ -45,9 +45,21 @@ class Simulator:
         tile_size = algo.get("tile_size", 32)
         chunk_size = self.config.get("workload", {}).get("chunk_size", 256)
         verbose = self.config.get("output", {}).get("verbose", True)
-        workloads = load_workload_from_scene(self.config, config_path=self.config_path, tile_size=tile_size, chunk_size=chunk_size, verbose=verbose)
-        if workloads:
-            return workloads
+        # 真实 workload 加载依赖 numpy/torch；在缺少依赖或加载失败时，必须可靠回退到合成 workload
+        try:
+            from simulator.workload_loader import load_workload_from_scene  # 延迟导入，避免硬依赖
+            workloads = load_workload_from_scene(
+                self.config,
+                config_path=self.config_path,
+                tile_size=tile_size,
+                chunk_size=chunk_size,
+                verbose=verbose,
+            )
+            if workloads:
+                return workloads
+        except Exception as e:
+            if verbose:
+                print(f"[simulator] workload_loader unavailable or failed ({type(e).__name__}: {e}). fallback to synthetic workload.")
 
         # 合成负载回退
         sim_cfg = self.config.get("simulation", {})
@@ -81,7 +93,7 @@ class Simulator:
         mem = MemorySystem(
             MemoryConfig(
                 memory_bandwidth_gbps=hw.get('memory', {}).get("memory_bandwidth", 51.2),
-                cache_size_bytes=hw.get('memory', {}).get("cache_size", 1_048_576),
+                bandwidth_utilization=hw.get('memory', {}).get("bandwidth_utilization", 0.5),
                 clock_frequency_ghz=clock,
                 read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.8),
                 bytes_per_gaussian=hw.get('memory', {}).get("bytes_per_gaussian", 120),
@@ -97,6 +109,9 @@ class Simulator:
                 static_ratio=self.config.get("workload", {}).get("static_ratio", 0.4),
                 quasi_ratio=self.config.get("workload", {}).get("quasi_ratio", 0.4),
                 skip_enabled=hw.get("udpe", {}).get("skip_enabled", True),
+                udpe_utilization=hw.get("udpe", {}).get("udpe_utilization", 0.9),
+                # WBS 任务粒度：chunk(默认) 或 tile（用于窗口内 LPT 比较 tile 总高斯数）
+                emit_chunk_tasks=(hw.get("wbs", {}).get("task_granularity", "chunk") != "tile"),
             ),
             self.analyzer,
             memory=mem,
@@ -162,27 +177,41 @@ class Simulator:
         # 链接 FIFO：udpe -> wbs（UDPE 输出整个 frame 的 TileTask 列表到 WBS）
         env.process(self._pipe(env, udpe.out_queue, wbs.frame_queue, "udpe_to_wbs"))
 
+    def _timed_put(self, env: simpy.Environment, store: simpy.Store, item, name: str):
+        """
+        对 simpy.Store.put 做计时：如果由于容量限制发生等待，把等待 cycles 计入统计。
+        注意：simpy.Store 满时不会抛 StoreFull，而是 put 事件阻塞直到有空间。
+        """
+        t0 = env.now
+        yield store.put(item)
+        dt = env.now - t0
+        if dt > 0:
+            self.analyzer.record_fifo_block_cycles(name, dt)
+
+    def _timed_get(self, env: simpy.Environment, store: simpy.Store, name: str):
+        """
+        对 simpy.Store.get 做计时：如果由于空队列发生等待，把等待 cycles 计入统计。
+        """
+        t0 = env.now
+        item = yield store.get()
+        dt = env.now - t0
+        if dt > 0:
+            self.analyzer.record_fifo_block_cycles(name, dt)
+        return item
+
     def _pipe(self, env: simpy.Environment, src, dst, name: str):
         while True:
-            item = yield src.get()
-            try:
-                yield dst.put(item)
-            except simpy.resources.store.StoreFull:
-                self.analyzer.record_fifo_block(name)
-                yield dst.put(item)
+            item = yield from self._timed_get(env, src, f"{name}.src_get")
+            yield from self._timed_put(env, dst, item, f"{name}.dst_put")
             if item is None:
                 break
 
     def _feed_all_workloads(self, env: simpy.Environment, udpe: UnifiedDeformPreprocessEngine):
         """将所有 frame 依次注入 UDPE，实现流水线处理。"""
         for frame in self.workloads:
-            try:
-                yield udpe.in_queue.put(frame)
-            except simpy.resources.store.StoreFull:
-                self.analyzer.record_fifo_block("udpe_in_full")
-                yield udpe.in_queue.put(frame)
+            yield from self._timed_put(env, udpe.in_queue, frame, "udpe.in_put")
         # 发送结束信号
-        yield udpe.in_queue.put(None)
+        yield from self._timed_put(env, udpe.in_queue, None, "udpe.in_put")
 
 
     def run(self):
@@ -215,10 +244,53 @@ class Simulator:
             hse.finalize_busy()
         if hasattr(fre, "finalize_busy"):
             fre.finalize_busy()
+
+        # 记录平均硬件利用率（需要 total_cycles）
+        total_cycles = env.now
+        if hasattr(hse, "finalize_utilization"):
+            hse.finalize_utilization(total_cycles)
+        if hasattr(fre, "finalize_utilization"):
+            fre.finalize_utilization(total_cycles)
+
+        def _summarize(values):
+            v = [float(x) for x in values if x is not None]
+            if not v:
+                return {"count": 0}
+            v.sort()
+            n = len(v)
+            s = sum(v)
+            def _p(q):
+                if n == 1:
+                    return v[0]
+                # q in [0,1]
+                pos = q * (n - 1)
+                lo = int(pos)
+                hi = min(n - 1, lo + 1)
+                w = pos - lo
+                return v[lo] * (1 - w) + v[hi] * w
+            return {
+                "count": n,
+                "mean": s / n,
+                "max": v[-1],
+                "p50": _p(0.50),
+                "p90": _p(0.90),
+                "p99": _p(0.99),
+            }
+
+        # 长尾：任务服务时间分布（HSE/FRE）
+        if hasattr(hse, "get_task_service_times"):
+            self.analyzer.record_task_time_stats("hse", _summarize(hse.get_task_service_times()))
+        if hasattr(fre, "get_task_service_times"):
+            self.analyzer.record_task_time_stats("fre", _summarize(fre.get_task_service_times()))
+
+        # 长尾：hilbert_window 的窗口选取 workload 分布
+        if hasattr(wbs, "get_window_selected_workloads"):
+            wl = wbs.get_window_selected_workloads()
+            # workload 是 num_gaussians，整数也用同一 summarize
+            self.analyzer.record_scheduling_stats("wbs.window_selected_workload", _summarize(wl))
         
         # 内存延迟已经集成到各个子模块中，不再单独计算
         # 记录总周期数
-        total_cycles = env.now
         
         # 由于是流水线处理，每个 frame 的完成时间难以精确追踪
         # 这里使用总周期数除以 frame 数作为平均每帧周期

@@ -1,53 +1,21 @@
 {
-  "total_cycles": 24947612.3125,
+  "total_cycles": 28212282.5625,
   "preprocess_cycles": 17309504.0,
-  "sort_cycles": 3060685.0,
-  "rasterize_cycles": 15111725.125,
-  "memory_stall_cycles": 21051995.625,
+  "sort_cycles": 2009291.25,
+  "rasterize_cycles": 19174493.8125,
+  "memory_stall_cycles": 15513453.75,
   "frame_cycles": [
-    4989522.4625,
-    4989522.4625,
-    4989522.4625,
-    4989522.4625,
-    4989522.4625
+    5642456.5125,
+    5642456.5125,
+    5642456.5125,
+    5642456.5125,
+    5642456.5125
   ],
   "module_busy": {
-    "memory": 21051995.625,
+    "memory": 15513453.75,
     "udpe": 17309504.0,
-    "hse": 3060685.0,
-    "fre": 15111725.125
-  },
-  "module_utilization": {
-    "hse": 0.12263362969076923,
-    "fre": 0.6054912984320491
-  },
-  "task_time_stats": {
-    "hse": {
-      "count": 13384,
-      "mean": 914.3503436939629,
-      "max": 1025.0,
-      "p50": 1025.0,
-      "p90": 1025.0,
-      "p99": 1025.0
-    },
-    "fre": {
-      "count": 7943,
-      "mean": 7606.980824310714,
-      "max": 8368.0,
-      "p50": 8368.0,
-      "p90": 8368.0,
-      "p99": 8368.0
-    }
-  },
-  "scheduling_stats": {
-    "wbs.window_selected_workload": {
-      "count": 13384,
-      "mean": 234.13747758517633,
-      "max": 256.0,
-      "p50": 256.0,
-      "p90": 256.0,
-      "p99": 256.0
-    }
+    "hse": 2009291.25,
+    "fre": 19174493.8125
   },
   "fifo_blocked": {
     "udpe_to_wbs.src_get": 5,
@@ -57,11 +25,11 @@
     "udpe_to_wbs.src_get": 18577289.9375,
     "wbs.frame_get": 18577289.9375
   },
-  "start_time": "2026-03-17T06:30:39.513153",
-  "elapsed_time": 5.584652662277222,
-  "ave_frame_times": 0.004989522462500001,
-  "fps": 200.4199815745393,
-  "fps_r": 100.20999078726965,
+  "start_time": "2026-03-17T05:38:33.455221",
+  "elapsed_time": 22.147074460983276,
+  "ave_frame_times": 0.0056424565125000005,
+  "fps": 177.2277726526829,
+  "fps_r": 88.61388632634144,
   "config": {
     "simulation": {
       "dataset": "hypernerf/interp",
@@ -94,7 +62,7 @@
         "interpolation_cycles": 256.0
       },
       "wbs": {
-        "window_size_k": 16,
+        "window_size_k": 8,
         "fifo_depth": 10,
         "scheduling_mode": "hilbert_window"
       },
