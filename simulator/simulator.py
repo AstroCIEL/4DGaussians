@@ -95,6 +95,7 @@ class Simulator:
                 clock_frequency_ghz=clock,
                 read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.8),
                 bytes_per_gaussian=hw.get('memory', {}).get("bytes_per_gaussian", 120),
+                cache_hit_enabled=hw.get('memory', {}).get("cache_hit_enabled", True),
             )
         )
         udpe = UnifiedDeformPreprocessEngine(
@@ -228,6 +229,16 @@ class Simulator:
         env = simpy.Environment()
         mem, udpe, hse, wbs, fre = self._build_components(env)
         self._wire_modules(env, udpe, wbs)
+
+        # 统计 workload 总量，便于对齐对比
+        if self.workloads:
+            self.stats.total_tiles = sum(w.num_tiles for w in self.workloads)
+            self.stats.total_gaussians = sum(w.num_gaussians for w in self.workloads)
+            total_tile_gaussians = 0
+            for w in self.workloads:
+                for t in w.tiles.values():
+                    total_tile_gaussians += t.num_gaussians
+            self.stats.total_tile_gaussians = int(total_tile_gaussians)
         
         # 将所有 frame 送入 UDPE（流水线处理）
         env.process(self._feed_all_workloads(env, udpe))
@@ -247,6 +258,12 @@ class Simulator:
             hse.finalize_utilization(total_cycles)
         if hasattr(fre, "finalize_utilization"):
             fre.finalize_utilization(total_cycles)
+
+        if hasattr(mem, "get_cache_hit_ratio"):
+            self.analyzer.record_cache_hit_ratio(mem.get_cache_hit_ratio())
+
+        if hasattr(fre, "get_core_stats"):
+            self.analyzer.record_fre_core_stats(fre.get_core_stats())
 
         def _summarize(values):
             v = [float(x) for x in values if x is not None]

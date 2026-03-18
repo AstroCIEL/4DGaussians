@@ -67,6 +67,17 @@ class Analyzer:
     def record_scheduling_stats(self, name: str, stats: dict) -> None:
         self.stats.record_scheduling_stats(name, stats)
 
+    def record_cache_hit_ratio(self, ratio: float) -> None:
+        self.stats.cache_hit_ratio = float(ratio)
+
+    def record_fre_core_stats(self, stats: dict) -> None:
+        self.stats.fre_core_stats = stats
+        total_gaussians = 0
+        for v in stats.values():
+            if isinstance(v, dict):
+                total_gaussians += int(v.get("total_gaussians", 0))
+        self.stats.fre_total_gaussians = int(total_gaussians)
+
     def record_fifo_block(self, name: str) -> None:
         self.stats.record_block(name)
 

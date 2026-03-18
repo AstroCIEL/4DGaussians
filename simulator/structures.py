@@ -63,6 +63,11 @@ class SimStats:
     sort_cycles: float = 0.0
     rasterize_cycles: float = 0.0
     memory_stall_cycles: float = 0.0
+    cache_hit_ratio: float = 0.0
+    total_tiles: int = 0
+    total_gaussians: int = 0
+    total_tile_gaussians: int = 0
+    fre_total_gaussians: int = 0
     frame_cycles: List[float] = field(default_factory=list)
     module_busy: Dict[str, float] = field(default_factory=dict)
     # 平均硬件利用率（0~1），按“核心时间积分 / (核心数 * total_cycles)”计算
@@ -71,6 +76,8 @@ class SimStats:
     task_time_stats: Dict[str, dict] = field(default_factory=dict)
     # 调度级统计（长尾分析用）
     scheduling_stats: Dict[str, dict] = field(default_factory=dict)
+    # FRE core 级统计
+    fre_core_stats: Dict[str, dict] = field(default_factory=dict)
     fifo_blocked: Dict[str, int] = field(default_factory=dict)
     # 记录队列 put/get 造成的阻塞等待（真实仿真时间的一部分），单位：cycles
     fifo_blocked_cycles: Dict[str, float] = field(default_factory=dict)
@@ -114,11 +121,17 @@ class SimStats:
             "sort_cycles": self.sort_cycles,
             "rasterize_cycles": self.rasterize_cycles,
             "memory_stall_cycles": self.memory_stall_cycles,
+            "cache_hit_ratio": self.cache_hit_ratio,
+            "total_tiles": self.total_tiles,
+            "total_gaussians": self.total_gaussians,
+            "total_tile_gaussians": self.total_tile_gaussians,
+            "fre_total_gaussians": self.fre_total_gaussians,
             "frame_cycles": self.frame_cycles,
             "module_busy": self.module_busy,
             "module_utilization": self.module_utilization,
             "task_time_stats": self.task_time_stats,
             "scheduling_stats": self.scheduling_stats,
+            "fre_core_stats": self.fre_core_stats,
             "fifo_blocked": self.fifo_blocked,
             "fifo_blocked_cycles": self.fifo_blocked_cycles,
             "start_time": self.start_time,

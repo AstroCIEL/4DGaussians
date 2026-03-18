@@ -1,8 +1,8 @@
 {
-  "total_cycles": 51019879.5,
-  "preprocess_cycles": 9622592.0,
-  "sort_cycles": 9303810.0,
-  "rasterize_cycles": 48373657.5,
+  "total_cycles": 49940917.5,
+  "preprocess_cycles": 5318976.0,
+  "sort_cycles": 9298730.0,
+  "rasterize_cycles": 48373767.5,
   "memory_stall_cycles": 83847245.0,
   "cache_hit_ratio": 0.0,
   "total_tiles": 5208,
@@ -10,20 +10,20 @@
   "total_tile_gaussians": 7369559,
   "fre_total_gaussians": 7369559,
   "frame_cycles": [
-    12754969.875,
-    12754969.875,
-    12754969.875,
-    12754969.875
+    12485229.375,
+    12485229.375,
+    12485229.375,
+    12485229.375
   ],
   "module_busy": {
     "memory": 83847245.0,
-    "udpe": 9622592.0,
-    "hse": 9303810.0,
-    "fre": 48373657.5
+    "udpe": 5318976.0,
+    "hse": 9298730.0,
+    "fre": 48373767.5
   },
   "module_utilization": {
-    "hse": 0.1822148315736418,
-    "fre": 0.9479193485257056
+    "hse": 0.1861515409683853,
+    "fre": 0.9683989273424942
   },
   "task_time_stats": {
     "hse": {
@@ -50,20 +50,20 @@
   },
   "fre_core_stats": {
     "0": {
-      "total_cycles": 48373657.5,
-      "total_gaussians": 1842806
+      "total_cycles": 48357435.0,
+      "total_gaussians": 1842188
     },
     "1": {
-      "total_cycles": 48357356.25,
-      "total_gaussians": 1842185
-    },
-    "2": {
       "total_cycles": 48360663.75,
       "total_gaussians": 1842311
     },
+    "2": {
+      "total_cycles": 48373657.5,
+      "total_gaussians": 1842806
+    },
     "3": {
-      "total_cycles": 48359246.25,
-      "total_gaussians": 1842257
+      "total_cycles": 48359167.5,
+      "total_gaussians": 1842254
     }
   },
   "fifo_blocked": {
@@ -71,14 +71,14 @@
     "wbs.frame_get": 4
   },
   "fifo_blocked_cycles": {
-    "udpe_to_wbs.src_get": 10562298.25,
-    "wbs.frame_get": 10562298.25
+    "udpe_to_wbs.src_get": 6258682.25,
+    "wbs.frame_get": 6258682.25
   },
-  "start_time": "2026-03-18T08:44:19.762542",
-  "elapsed_time": 5.895597457885742,
-  "ave_frame_times": 0.012754969875000001,
-  "fps": 78.40081237353765,
-  "fps_r": 39.200406186768824,
+  "start_time": "2026-03-18T08:42:59.304989",
+  "elapsed_time": 5.911604642868042,
+  "ave_frame_times": 0.012485229375,
+  "fps": 80.09464383588868,
+  "fps_r": 40.04732191794434,
   "config": {
     "simulation": {
       "dataset": "dynerf",
@@ -98,7 +98,7 @@
         "intersection_cycles": 5.0,
         "fifo_depth": 10,
         "udpe_utilization": 0.5,
-        "skip_enabled": false
+        "skip_enabled": true
       },
       "hse": {
         "num_cores": 4,

@@ -9,6 +9,7 @@ class MemoryConfig:
     clock_frequency_ghz: float = 1.0
     read_latency_hiding_rate: float = 0.5
     bytes_per_gaussian: int = 64  # 每个高斯的字节数
+    cache_hit_enabled: bool = True
 
 
 class MemorySystem:
@@ -25,6 +26,8 @@ class MemorySystem:
         self.bytes_per_cycle = (
             config.memory_bandwidth_gbps * config.bandwidth_utilization * 1e9 / (config.clock_frequency_ghz * 1e9)
         )
+        self._cache_hit_gaussians = 0
+        self._cache_total_gaussians = 0
 
     def estimate_cycles(self, bytes_accessed: float) -> float:
         """返回因带宽限制产生的额外周期。"""
@@ -65,10 +68,20 @@ class MemorySystem:
         """
         if num_gaussians == 0:
             return 0.0
+
+        if not self.config.cache_hit_enabled:
+            total_access = max(0, int(num_gaussians))
+            if total_access > 0:
+                self._cache_total_gaussians += total_access
+            bytes_accessed = self.estimate_bytes_for_gaussians(num_gaussians)
+            return self.estimate_cycles(bytes_accessed)
         
         # 如果没有高斯ID信息，使用保守估计（假设无cache命中）
         if current_gaussians is None or previous_gaussians is None:
             # 首次访问或无法计算重复度，假设需要加载所有数据
+            total_access = max(0, int(num_gaussians))
+            if total_access > 0:
+                self._cache_total_gaussians += total_access
             bytes_accessed = self.estimate_bytes_for_gaussians(num_gaussians)
             return self.estimate_cycles(bytes_accessed)
         
@@ -76,10 +89,17 @@ class MemorySystem:
         if len(previous_gaussians) == 0:
             # 上一次没有高斯，全部需要加载
             cache_hit_ratio = 0.0
+            hit_count = 0
         else:
             # 计算交集大小（cache命中的高斯）
             intersection = current_gaussians & previous_gaussians
             cache_hit_ratio = len(intersection) / len(current_gaussians) if len(current_gaussians) > 0 else 0.0
+            hit_count = len(intersection)
+        
+        total_access = len(current_gaussians) if len(current_gaussians) > 0 else max(0, int(num_gaussians))
+        if total_access > 0:
+            self._cache_hit_gaussians += int(hit_count)
+            self._cache_total_gaussians += int(total_access)
         
         # 需要从内存加载的高斯数量（未命中的部分）
         cache_miss_count = num_gaussians * (1.0 - cache_hit_ratio * 0.5)
@@ -89,3 +109,10 @@ class MemorySystem:
         
         # 计算访存延迟
         return self.estimate_cycles(bytes_accessed)
+
+    def get_cache_hit_ratio(self) -> float:
+        if not self.config.cache_hit_enabled:
+            return 0.0
+        if self._cache_total_gaussians <= 0:
+            return 0.0
+        return float(self._cache_hit_gaussians) / float(self._cache_total_gaussians)

@@ -38,6 +38,9 @@ class FoveatedRasterEngine:
         self._task_service_times: List[float] = []
         # 跟踪每个core上一次处理的tile的高斯集合
         self._previous_gaussians: Dict[int, Optional[Set[int]]] = {}
+        # 统计每个 core 的累计处理周期与高斯数量
+        self._core_total_cycles: Dict[int, float] = {}
+        self._core_total_gaussians: Dict[int, int] = {}
         # 使用 Store 来管理可用的 core_id，确保每个请求都能正确追踪到对应的 core
         self._core_id_store = simpy.Store(env, capacity=config.num_cores)
         # 初始化所有 core_id
@@ -114,6 +117,8 @@ class FoveatedRasterEngine:
                 st = max(0.0, end - start)
                 self._busy_core_time_sum += st
                 self._task_service_times.append(st)
+                self._core_total_cycles[core_id] = self._core_total_cycles.get(core_id, 0.0) + st
+                self._core_total_gaussians[core_id] = self._core_total_gaussians.get(core_id, 0) + int(task.num_gaussians)
                 # 处理完成，由 WBS 通过 _process_pair 管理完成回调
             finally:
                 # 处理完成后，将 core_id 放回 Store，供其他请求使用
@@ -147,3 +152,12 @@ class FoveatedRasterEngine:
 
     def get_task_service_times(self) -> List[float]:
         return list(self._task_service_times)
+
+    def get_core_stats(self) -> Dict[int, dict]:
+        stats: Dict[int, dict] = {}
+        for core_id in range(self.config.num_cores):
+            stats[core_id] = {
+                "total_cycles": float(self._core_total_cycles.get(core_id, 0.0)),
+                "total_gaussians": int(self._core_total_gaussians.get(core_id, 0)),
+            }
+        return stats

@@ -168,6 +168,11 @@ class WorkloadBalancingScheduler:
         
         # 已分发标记：记录窗口中的任务是否已被分发（仅用于 hilbert_window 模式）
         self.window_dispatched: List[bool] = []
+
+        # hilbert_* 模式下按 frame 顺序处理的任务队列
+        self.frame_task_queue: List[List[TileTask]] = []
+        self.current_frame_tasks: List[TileTask] = []
+        self.current_frame_index = 0
         
         # 全局贪心模式的待分发任务列表（仅用于 global_greedy 模式）
         self.pending_greedy: List[TileTask] = []
@@ -184,11 +189,30 @@ class WorkloadBalancingScheduler:
 
     def _fill_window(self):
         """从全局任务列表中提取任务填充窗口，直到窗口容量为 K。"""
+        # hilbert_* 模式：只从当前 frame 的任务中填充，避免跨 frame 混排
+        if self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo"):
+            while len(self.window_pool) < self.config.window_size and self.current_frame_index < len(self.current_frame_tasks):
+                task = self.current_frame_tasks[self.current_frame_index]
+                self.window_pool.append(task)
+                self.window_dispatched.append(False)
+                self.current_frame_index += 1
+            return
+
         while len(self.window_pool) < self.config.window_size and self.global_list_index < len(self.global_task_list):
             task = self.global_task_list[self.global_list_index]
             self.window_pool.append(task)
             self.window_dispatched.append(False)
             self.global_list_index += 1
+
+    def _ensure_active_frame(self):
+        """如果没有正在处理的 frame，则切换到队列中的下一个 frame。"""
+        if self.current_frame_tasks or not self.frame_task_queue:
+            return
+        self.current_frame_tasks = self.frame_task_queue.pop(0)
+        self.current_frame_index = 0
+        self.window_pool = []
+        self.window_dispatched = []
+        self._fill_window()
 
     def _slide_window(self):
         """
@@ -219,6 +243,13 @@ class WorkloadBalancingScheduler:
 
         # 补充窗口到容量 K
         self._fill_window()
+        # 若当前 frame 已经全部分发且窗口为空，则切换到下一帧
+        if (self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo")
+                and not self.window_pool
+                and self.current_frame_index >= len(self.current_frame_tasks)):
+            self.current_frame_tasks = []
+            self.current_frame_index = 0
+            self._ensure_active_frame()
 
     def _dispatch_hse(self):
         """
@@ -241,6 +272,7 @@ class WorkloadBalancingScheduler:
         这样分发顺序不依赖于任务完成时间变化，从而避免“某些参数变好但 makespan 变差”的反直觉现象。
         """
         # 确保窗口已填充
+        self._ensure_active_frame()
         self._fill_window()
         while self.window_pool and self.sort_engine.has_free_core():
             # 找到窗口最前端第一个未分发任务
@@ -265,6 +297,7 @@ class WorkloadBalancingScheduler:
         尝试把窗口内 workload 最大的未分发任务分配给空闲的 HSE 核。
         使用最长处理时间（LPT）策略。
         """
+        self._ensure_active_frame()
         while self.window_pool and self.sort_engine.has_free_core():
             # 找到窗口中未分发且工作负载最大的任务
             max_idx = -1
@@ -340,6 +373,8 @@ class WorkloadBalancingScheduler:
         yield self.raster_engine.process(task)
         # 光栅化完成
         self.fre_in_flight -= 1
+        # 继续分发等待的光栅化任务，避免队列残留
+        self._dispatch_fre()
 
     def _process_frame(self, tasks: List[TileTask]):
         """
@@ -352,10 +387,9 @@ class WorkloadBalancingScheduler:
         if self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo"):
             # 按希尔伯特曲线排序
             sorted_tasks = sort_tasks_by_hilbert_curve(tasks, self.width, self.height, self.tile_size)
-            # 添加到全局任务列表
-            self.global_task_list.extend(sorted_tasks)
-            # 填充窗口
-            self._fill_window()
+            # 按 frame 顺序排队，避免跨 frame 混排
+            self.frame_task_queue.append(sorted_tasks)
+            self._ensure_active_frame()
         elif self.config.scheduling_mode == "default_fifo":
             # 按默认顺序排序（从左到右从上到下）
             sorted_tasks = sort_tasks_by_default_order(tasks, self.width, self.height, self.tile_size)
@@ -376,8 +410,15 @@ class WorkloadBalancingScheduler:
             return False
         
         if self.config.scheduling_mode == "hilbert_window":
-            return (len(self.global_task_list) == self.global_list_index and 
-                    not self.window_pool)
+            return (not self.window_pool and
+                    not self.frame_task_queue and
+                    not self.current_frame_tasks and
+                    self.current_frame_index == 0)
+        elif self.config.scheduling_mode == "hilbert_fifo":
+            return (not self.window_pool and
+                    not self.frame_task_queue and
+                    not self.current_frame_tasks and
+                    self.current_frame_index == 0)
         elif self.config.scheduling_mode == "default_fifo":
             return len(self.global_task_list) == self.global_list_index
         elif self.config.scheduling_mode == "global_greedy":

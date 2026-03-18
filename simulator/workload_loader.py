@@ -6,6 +6,7 @@
 import os
 import sys
 import math
+import random
 from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 
@@ -242,7 +243,23 @@ def load_workload_from_scene(
     """
     sim_cfg = config.get("simulation", {})
     algo = config.get("algorithm", {})
-    use_synthetic = config.get("workload", {}).get("use_synthetic", False)
+    workload_cfg = config.get("workload", {}) if isinstance(config, dict) else {}
+    use_synthetic = workload_cfg.get("use_synthetic", False)
+    deterministic = workload_cfg.get("deterministic", True)
+    seed = int(workload_cfg.get("seed", 0))
+    if deterministic:
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        try:
+            torch.use_deterministic_algorithms(True)
+        except Exception:
+            pass
+        if hasattr(torch.backends, "cudnn"):
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
     if use_synthetic:
         return None
 
