@@ -195,12 +195,28 @@ class WorkloadBalancingScheduler:
         当窗口最前端的图块被分发后，窗口向后滑动。
         移除已分发的任务，并补充新的任务。
         """
-        # 移除所有已分发的任务（从前往后）
-        while self.window_pool and self.window_dispatched and self.window_dispatched[0]:
-            self.window_pool.pop(0)
-            self.window_dispatched.pop(0)
-            self.window_start_index += 1
-        
+        if not self.window_pool:
+            return
+
+        # 记录原窗口中首个未分发任务之前的已分发数量，用于更新起始位置
+        first_undispatched_idx = None
+        for i, dispatched in enumerate(self.window_dispatched):
+            if not dispatched:
+                first_undispatched_idx = i
+                break
+        if first_undispatched_idx is None:
+            self.window_start_index += len(self.window_pool)
+        else:
+            self.window_start_index += first_undispatched_idx
+
+        # 移除所有已分发任务，保留未分发任务的相对顺序并前移压实
+        compacted_tasks = []
+        for task, dispatched in zip(self.window_pool, self.window_dispatched):
+            if not dispatched:
+                compacted_tasks.append(task)
+        self.window_pool = compacted_tasks
+        self.window_dispatched = [False] * len(self.window_pool)
+
         # 补充窗口到容量 K
         self._fill_window()
 

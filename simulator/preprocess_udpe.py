@@ -200,6 +200,7 @@ def main():
     """独立的 UDPE 测试主函数，用于检查逻辑。"""
     import simpy
     from simulator.structures import SimStats, WorkloadFrame, TileWorkload
+    from simulator.memory import MemorySystem, MemoryConfig
     
     print("=" * 60)
     print("UDPE (Unified Deform Preprocess Engine) 测试 - Frame 级别处理")
@@ -210,20 +211,32 @@ def main():
     
     # 创建配置
     config = UDPEConfig(
-        cull_cycles=1.0,
-        deform_cycles=5.0,
-        intersection_cycles=2.0,
-        fifo_depth=16,
+        cull_cycles=3.0,
+        deform_cycles=16.0,
+        intersection_cycles=5.0,
+        fifo_depth=10,
         static_ratio=0.4,
         quasi_ratio=0.4,
+        skip_enabled=True,
+        udpe_utilization=0.5,
     )
     
     # 创建统计和分析器
     stats = SimStats()
     analyzer = Analyzer(stats, verbose=False)
+
+    memory = MemorySystem(
+        MemoryConfig(
+            memory_bandwidth_gbps=51.2,
+            bandwidth_utilization=0.6,
+            clock_frequency_ghz=1.0,
+            read_latency_hiding_rate=0.3,
+            bytes_per_gaussian=240,
+        )
+    )
     
     # 创建 UDPE
-    udpe = UnifiedDeformPreprocessEngine(env, config, analyzer)
+    udpe = UnifiedDeformPreprocessEngine(env, config, analyzer, memory)
     
     # 创建测试 frame
     # Frame 0: 包含多个 tile，有标签计数

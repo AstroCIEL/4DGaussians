@@ -23,7 +23,7 @@ hardware:
     intersection_cycles: 5.0      # 单高斯 intersection 开销
     fifo_depth: 10                 # FIFO 深度（frame粒度）
     udpe_utilization: 0.5
-    skip_enabled: true
+    skip_enabled: false
   hse:
     num_cores: 4                  # 排序核数
     coarse_sort_cycles: 25.0      # 粗排序周期
@@ -35,7 +35,7 @@ hardware:
   wbs:
     window_size_k: 16             # 窗口大小
     fifo_depth: 10                # FIFO 深度
-    scheduling_mode: "default_fifo" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
+    scheduling_mode: "global_greedy" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
   memory:
     memory_bandwidth: 51.2         # GB/s
     bandwidth_utilization: 0.6     
@@ -48,7 +48,7 @@ algorithm:
   subtile_size: 2
   early_stop_ratio: 0.7
   fov_x: 90          # 水平视场角(度)用于区域划分
-  foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
+  foveated_enabled: false  # 关闭则全部视为fovea，不做降采样
 
 # workload：不设 use_synthetic 且存在模型时使用真实负载；否则合成
 workload:

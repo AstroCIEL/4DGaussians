@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict
 
 from simulator.structures import SimStats
+from simulator.utils.stats_logger import append_stats_to_csv
 
 
 class Analyzer:
@@ -87,8 +88,21 @@ class Analyzer:
 
     def _dump(self) -> None:
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
+        data = self.stats.to_dict()
         with open(self.output_path, "w", encoding="utf-8") as f:
-            json.dump(self.stats.to_dict(), f, indent=2, ensure_ascii=False)
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # 追加到 CSV：路径可由 config.output.csv_file 控制，否则与 stats_file 同目录
+        cfg_output = (self.stats.config or {}).get("output", {}) if isinstance(self.stats.config, dict) else {}
+        csv_path = cfg_output.get(
+            "csv_file",
+            os.path.join(os.path.dirname(self.output_path), "stats_log.csv"),
+        )
+        try:
+            append_stats_to_csv(data, csv_path)
+        except Exception as e:
+            # 不要因为记录 CSV 失败影响主流程
+            print(f"[analyzer] warn: failed to append stats to csv ({type(e).__name__}: {e})")
 
     def _print_summary(self) -> None:
         print("[analyzer] === Simulation Summary ===")

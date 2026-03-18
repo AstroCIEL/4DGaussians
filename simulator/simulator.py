@@ -18,6 +18,7 @@ from simulator.scheduler_wbs import WBSConfig, WorkloadBalancingScheduler
 from simulator.rasterize_fre import FREConfig, FoveatedRasterEngine
 from simulator.memory import MemoryConfig, MemorySystem
 from simulator.analyzer import Analyzer
+from simulator.utils.stats_logger import append_stats_to_csv
 
 
 class Simulator:
@@ -353,6 +354,14 @@ def run_simulator(config_path: str) -> SimStats:
     }
 
     print(f"[simulator] multi-scene enabled. dataset={dataset}, scenes={len(scenes)}")
+    
+    # 确定 CSV 路径（与汇总 JSON 在同一目录）
+    cfg_output = (base_config or {}).get("output", {}) if isinstance(base_config, dict) else {}
+    csv_path = cfg_output.get(
+        "csv_file",
+        os.path.join(os.path.dirname(output_path), "stats_log.csv"),
+    )
+    
     for i, sc in enumerate(scenes):
         cfg = copy.deepcopy(base_config)
         cfg.setdefault("simulation", {})
@@ -366,6 +375,13 @@ def run_simulator(config_path: str) -> SimStats:
         d = st.to_dict()
         d["simulation"] = {"dataset": dataset, "scene": sc}
         results["scenes"].append(d)
+
+        # 记录到 CSV（每个 scene 一行）
+        try:
+            append_stats_to_csv(d, csv_path)
+        except Exception as e:
+            # 不要因为记录 CSV 失败影响主流程
+            print(f"[simulator] warn: failed to append stats to csv for scene={sc} ({type(e).__name__}: {e})")
 
         # 同一运行内每个 scene 都单独打印一段（Analyzer 仍会打印 summary）
         # 这里再加一行收尾，方便 grep/查看

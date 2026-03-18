@@ -461,7 +461,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="simulator/configs/default.yaml",
+        default="simulator/configs/default_scene.yaml",
         help="配置文件路径",
     )
     args = parser.parse_args()
