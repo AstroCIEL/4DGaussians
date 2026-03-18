@@ -1,52 +1,47 @@
 {
-  "total_cycles": 24947612.3125,
-  "preprocess_cycles": 17309504.0,
-  "sort_cycles": 3060685.0,
-  "rasterize_cycles": 15111725.125,
-  "memory_stall_cycles": 21051995.625,
+  "total_cycles": 16417345.916666785,
+  "preprocess_cycles": 9252256.0,
+  "sort_cycles": 3148675.0,
+  "rasterize_cycles": 12900674.416666765,
+  "memory_stall_cycles": 28804145.0,
   "frame_cycles": [
-    4989522.4625,
-    4989522.4625,
-    4989522.4625,
-    4989522.4625,
-    4989522.4625
+    3283469.183333357,
+    3283469.183333357,
+    3283469.183333357,
+    3283469.183333357,
+    3283469.183333357
   ],
   "module_busy": {
-    "memory": 21051995.625,
-    "udpe": 17309504.0,
-    "hse": 3060685.0,
-    "fre": 15111725.125
+    "memory": 28804145.0,
+    "udpe": 9252256.0,
+    "hse": 3148675.0,
+    "fre": 12900674.416666765
   },
   "module_utilization": {
-    "hse": 0.12263362969076923,
-    "fre": 0.6054912984320491
+    "hse": 0.18946112031679202,
+    "fre": 0.7776361814085836
   },
   "task_time_stats": {
     "hse": {
-      "count": 13384,
-      "mean": 914.3503436939629,
-      "max": 1025.0,
-      "p50": 1025.0,
-      "p90": 1025.0,
-      "p99": 1025.0
+      "count": 2400,
+      "mean": 5184.08125,
+      "max": 76635.0,
+      "p50": 1980.0,
+      "p90": 12320.5,
+      "p99": 50077.149999999834
     },
     "fre": {
-      "count": 7943,
-      "mean": 7606.980824310714,
-      "max": 8368.0,
-      "p50": 8368.0,
-      "p90": 8368.0,
-      "p99": 8368.0
+      "count": 2242,
+      "mean": 22777.38124442489,
+      "max": 423616.75,
+      "p50": 7177.458333333954,
+      "p90": 46825.20833333396,
+      "p99": 265088.66250000015
     }
   },
   "scheduling_stats": {
     "wbs.window_selected_workload": {
-      "count": 13384,
-      "mean": 234.13747758517633,
-      "max": 256.0,
-      "p50": 256.0,
-      "p90": 256.0,
-      "p99": 256.0
+      "count": 0
     }
   },
   "fifo_blocked": {
@@ -54,14 +49,14 @@
     "wbs.frame_get": 5
   },
   "fifo_blocked_cycles": {
-    "udpe_to_wbs.src_get": 18577289.9375,
-    "wbs.frame_get": 18577289.9375
+    "udpe_to_wbs.src_get": 10942637.25,
+    "wbs.frame_get": 10942637.25
   },
-  "start_time": "2026-03-17T06:30:39.513153",
-  "elapsed_time": 5.584652662277222,
-  "ave_frame_times": 0.004989522462500001,
-  "fps": 200.4199815745393,
-  "fps_r": 100.20999078726965,
+  "start_time": "2026-03-17T21:54:19.156122",
+  "elapsed_time": 2.3371658325195312,
+  "ave_frame_times": 0.003283469183333357,
+  "fps": 304.55592672406516,
+  "fps_r": 152.27796336203258,
   "config": {
     "simulation": {
       "dataset": "hypernerf/interp",
@@ -81,7 +76,7 @@
         "intersection_cycles": 5.0,
         "fifo_depth": 10,
         "udpe_utilization": 0.5,
-        "skip_enabled": false
+        "skip_enabled": true
       },
       "hse": {
         "num_cores": 4,
@@ -96,13 +91,13 @@
       "wbs": {
         "window_size_k": 16,
         "fifo_depth": 10,
-        "scheduling_mode": "hilbert_window"
+        "scheduling_mode": "default_fifo"
       },
       "memory": {
         "memory_bandwidth": 51.2,
         "bandwidth_utilization": 0.6,
         "bytes_per_gaussian": 240,
-        "read_latency_hiding_rate": 0.4
+        "read_latency_hiding_rate": 0.2
       }
     },
     "algorithm": {
@@ -110,10 +105,9 @@
       "subtile_size": 2,
       "early_stop_ratio": 0.7,
       "fov_x": 90,
-      "foveated_enabled": false
+      "foveated_enabled": true
     },
     "workload": {
-      "chunk_size": 256,
       "static_ratio": 0.4,
       "quasi_ratio": 0.4,
       "culling_survival_rate": 0.8

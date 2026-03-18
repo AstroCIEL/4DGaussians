@@ -43,7 +43,6 @@ class Simulator:
     def _build_workloads(self):
         algo = self.config.get("algorithm", {})
         tile_size = algo.get("tile_size", 32)
-        chunk_size = self.config.get("workload", {}).get("chunk_size", 256)
         verbose = self.config.get("output", {}).get("verbose", True)
         # 真实 workload 加载依赖 numpy/torch；在缺少依赖或加载失败时，必须可靠回退到合成 workload
         try:
@@ -52,7 +51,6 @@ class Simulator:
                 self.config,
                 config_path=self.config_path,
                 tile_size=tile_size,
-                chunk_size=chunk_size,
                 verbose=verbose,
             )
             if workloads:
@@ -78,7 +76,6 @@ class Simulator:
                 height,
                 tile_size,
                 num_gaussians,
-                chunk_size=chunk_size,
                 frame_id=fid,
                 fov_x=fov_x,
                 foveated_enabled=foveated_enabled,
@@ -110,8 +107,6 @@ class Simulator:
                 quasi_ratio=self.config.get("workload", {}).get("quasi_ratio", 0.4),
                 skip_enabled=hw.get("udpe", {}).get("skip_enabled", True),
                 udpe_utilization=hw.get("udpe", {}).get("udpe_utilization", 0.9),
-                # WBS 任务粒度：chunk(默认) 或 tile（用于窗口内 LPT 比较 tile 总高斯数）
-                emit_chunk_tasks=(hw.get("wbs", {}).get("task_granularity", "chunk") != "tile"),
             ),
             self.analyzer,
             memory=mem,
@@ -120,8 +115,8 @@ class Simulator:
             env,
             HSEConfig(
                 num_cores=hw.get("hse", {}).get("num_cores", 16),
-                coarse_cycles_per_chunk=hw.get("hse", {}).get("coarse_sort_cycles", 4.0),
-                fine_cycles_per_chunk=hw.get("hse", {}).get("fine_sort_cycles", 4.0),
+                coarse_cycles=hw.get("hse", {}).get("coarse_sort_cycles", 4.0),
+                fine_cycles=hw.get("hse", {}).get("fine_sort_cycles", 4.0),
                 early_stop_ratio=algo.get("early_stop_ratio", 0.3),
             ),
             self.analyzer,

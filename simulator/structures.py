@@ -17,21 +17,15 @@ class GaussianAttr:
 
 @dataclass
 class TileWorkload:
-    """单个 tile 的工作负载：包含所属高斯及分块信息。"""
+    """单个 tile 的工作负载：包含所属高斯信息（不做分块）。"""
     tile_id: int
     gaussian_ids: List[int] = field(default_factory=list)
-    chunk_sizes: List[int] = field(default_factory=list)
-    chunk_label_counts: List[Dict[int, int]] = field(default_factory=list)  # 每个 chunk 内标签计数
     label_counts: Dict[int, int] = field(default_factory=dict)  # tile 粒度标签计数
     region: str = "fovea"  # fovea | transition | periphery
 
     @property
     def num_gaussians(self) -> int:
-        return sum(self.chunk_sizes) if self.chunk_sizes else len(self.gaussian_ids)
-
-    @property
-    def num_chunks(self) -> int:
-        return len(self.chunk_sizes)
+        return len(self.gaussian_ids)
 
 
 @dataclass
@@ -52,12 +46,11 @@ class WorkloadFrame:
 
 @dataclass
 class TileTask:
-    """流水线传递的 tile/chunk 任务。"""
+    """流水线传递的 tile 任务（不做分块）。"""
     frame_id: int
     tile_id: int
     num_gaussians: int
     region: str
-    chunk_index: int = 0
     gaussian_ids: Optional[List[int]] = None
     label_counts: Optional[Dict[int, int]] = None
 
@@ -148,7 +141,6 @@ def build_synthetic_workload(
     height: int,
     tile_size: int,
     num_gaussians: int,
-    chunk_size: int = 256,
     frame_id: int = 0,
     fov_x: float = 90.0,
     foveated_enabled: bool = True,
@@ -166,11 +158,9 @@ def build_synthetic_workload(
             n = min(avg, remaining) if tile_id < num_tiles - 1 else remaining
             n = max(0, n)
             remaining -= n
-            chunk_sizes = [min(chunk_size, n - i * chunk_size) for i in range((n + chunk_size - 1) // chunk_size)] if n > 0 else []
             tiles[tile_id] = TileWorkload(
                 tile_id=tile_id,
                 gaussian_ids=[],
-                chunk_sizes=chunk_sizes,
                 region=_classify_region(tx, ty, tile_size, width, height, fov_x=fov_x, foveated_enabled=foveated_enabled),
             )
     return WorkloadFrame(

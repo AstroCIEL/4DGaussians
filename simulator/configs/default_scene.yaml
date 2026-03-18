@@ -23,11 +23,11 @@ hardware:
     intersection_cycles: 5.0      # 单高斯 intersection 开销
     fifo_depth: 10                 # FIFO 深度（frame粒度）
     udpe_utilization: 0.5
-    skip_enabled: false
+    skip_enabled: true
   hse:
     num_cores: 4                  # 排序核数
-    coarse_sort_cycles: 25.0      # 粗排序（pivot分chunk）周期
-    fine_sort_cycles: 40.0        # 细排序（chunk内双调排序）周期
+    coarse_sort_cycles: 25.0      # 粗排序周期
+    fine_sort_cycles: 40.0        # 细排序周期
   fre:
     num_cores: 4                  # 光栅化核数
     base_cycles_per_gaussian: 10.0 # 单高斯基础光栅化周期
@@ -35,12 +35,12 @@ hardware:
   wbs:
     window_size_k: 16             # 窗口大小
     fifo_depth: 10                # FIFO 深度
-    scheduling_mode: "hilbert_window" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
+    scheduling_mode: "default_fifo" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
   memory:
     memory_bandwidth: 51.2         # GB/s
     bandwidth_utilization: 0.6     
     bytes_per_gaussian: 240        # 内存估算用的单高斯读写字节
-    read_latency_hiding_rate: 0.4
+    read_latency_hiding_rate: 0.2
   
 algorithm:
   # tile_size 32 means 32x32px
@@ -48,11 +48,10 @@ algorithm:
   subtile_size: 2
   early_stop_ratio: 0.7
   fov_x: 90          # 水平视场角(度)用于区域划分
-  foveated_enabled: false  # 关闭则全部视为fovea，不做降采样
+  foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
 
 # workload：不设 use_synthetic 且存在模型时使用真实负载；否则合成
 workload:
-  chunk_size: 256
   # use_synthetic: true   # 设为 true 强制使用合成 workload
   # num_gaussians: 100000  # 仅合成时有效
   static_ratio: 0.4

@@ -18,9 +18,6 @@ class UDPEConfig:
     quasi_ratio: float = 0.4  # 其余视为 dynamic
     skip_enabled: bool = True
     udpe_utilization: float = 1.0
-    # True: 输出 chunk 粒度 TileTask（每个 task 的 num_gaussians <= chunk_size）
-    # False: 输出 tile 粒度 TileTask（每个 tile 一个 task，num_gaussians=tile 总数）
-    emit_chunk_tasks: bool = True
 
 
 class UnifiedDeformPreprocessEngine:
@@ -148,45 +145,16 @@ class UnifiedDeformPreprocessEngine:
         for tile in frame.tiles.values():
             if tile.num_gaussians <= 0:
                 continue
-            # 可选：按 tile 粒度输出 task（用于让 WBS 窗口内 LPT 真正比较“tile 总 workload”）
-            if not self.config.emit_chunk_tasks:
-                tasks.append(
-                    TileTask(
-                        frame_id=frame.frame_id,
-                        tile_id=tile.tile_id,
-                        num_gaussians=tile.num_gaussians,
-                        region=tile.region,
-                        chunk_index=0,
-                        gaussian_ids=tile.gaussian_ids,
-                        label_counts=tile.label_counts,
-                    )
-                )
-                continue
-
-            # 默认：按 chunk 粒度输出 task
-            # 若 chunk_sizes 为空但有高斯列表，退化为一个 chunk
-            chunk_sizes = tile.chunk_sizes or ([len(tile.gaussian_ids)] if tile.gaussian_ids else [])
-            pos = 0
-            for idx, csize in enumerate(chunk_sizes):
-                c_labels = None
-                if tile.chunk_label_counts and idx < len(tile.chunk_label_counts):
-                    c_labels = tile.chunk_label_counts[idx]
-                # 关键修复：每个 chunk task 应该携带该 chunk 的 gaussian_ids 子集，
-                # 否则 HSE/FRE 的 cache hit（previous_gaussians）会被“整 tile ids”污染。
-                chunk_gaussian_ids = None
-                if tile.gaussian_ids:
-                    chunk_gaussian_ids = tile.gaussian_ids[pos:pos + csize]
-                pos += csize
-                task = TileTask(
+            tasks.append(
+                TileTask(
                     frame_id=frame.frame_id,
                     tile_id=tile.tile_id,
-                    num_gaussians=csize,
+                    num_gaussians=tile.num_gaussians,
                     region=tile.region,
-                    chunk_index=idx,
-                    gaussian_ids=chunk_gaussian_ids,
-                    label_counts=c_labels,
+                    gaussian_ids=tile.gaussian_ids,
+                    label_counts=tile.label_counts,
                 )
-                tasks.append(task)
+            )
         return tasks
 
     def start(self):
@@ -263,21 +231,18 @@ def main():
         0: TileWorkload(
             tile_id=0,
             gaussian_ids=list(range(100)),
-            chunk_sizes=[100],
             label_counts={0: 40, 1: 40, 2: 20},
             region="fovea",
         ),
         1: TileWorkload(
             tile_id=1,
             gaussian_ids=list(range(100, 300)),
-            chunk_sizes=[200],
             label_counts=None,  # 无标签，使用默认比例
             region="transition",
         ),
         2: TileWorkload(
             tile_id=2,
             gaussian_ids=list(range(300, 350)),
-            chunk_sizes=[50],
             label_counts={0: 20, 1: 20, 2: 10},
             region="periphery",
         ),
@@ -297,14 +262,12 @@ def main():
         0: TileWorkload(
             tile_id=0,
             gaussian_ids=list(range(0, 150)),
-            chunk_sizes=[150],
             label_counts={0: 60, 1: 60, 2: 30},
             region="fovea",
         ),
         1: TileWorkload(
             tile_id=1,
             gaussian_ids=None,
-            chunk_sizes=[80],
             label_counts=None,
             region="transition",
         ),
@@ -349,7 +312,7 @@ def main():
             frame_count += 1
             print(f"[时间 {env.now:.2f}] 收到 Frame {frame_count} 的 TileTask 列表: {len(tasks)} 个任务")
             for task in tasks:
-                print(f"  - TileTask: frame={task.frame_id}, tile={task.tile_id}, chunk={task.chunk_index}, n={task.num_gaussians}")
+                print(f"  - TileTask: frame={task.frame_id}, tile={task.tile_id}, n={task.num_gaussians}")
     
     # 启动进程
     udpe.start()
@@ -397,7 +360,7 @@ def main():
         tasks = udpe.frame_to_tile_tasks(frame)
         print(f"  拆分后的 TileTask 数量: {len(tasks)}")
         for task in tasks:
-            print(f"    - Tile {task.tile_id}, chunk {task.chunk_index}: {task.num_gaussians} 高斯")
+            print(f"    - Tile {task.tile_id}: {task.num_gaussians} 高斯")
     
     print("\n" + "=" * 60)
     print("测试完成")

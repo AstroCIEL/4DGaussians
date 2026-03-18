@@ -144,7 +144,6 @@ def _build_workload_frame(
     tile_size: int,
     eff_width: int,
     eff_height: int,
-    chunk_size: int,
     fov_x: float,
     foveated_enabled: bool,
     total_gaussians_in_scene: int = 0,
@@ -200,10 +199,8 @@ def _build_workload_frame(
         for tx in range(num_tiles_x):
             tile_id = ty * num_tiles_x + tx
             ids = tile_to_gauss.get((tx, ty), [])
-            chunks: List[int] = []
-            chunk_label_counts: List[Dict[int, int]] = []
             label_counts = {0: 0, 1: 0, 2: 0}
-            # 按顺序分 chunk，计算每个 chunk 内的标签计数
+            # tile 粒度标签计数（不做分块）
             if len(ids) > 0:
                 for gid in ids:
                     attr = visible_gaussian_attrs.get(gid)
@@ -211,25 +208,9 @@ def _build_workload_frame(
                         lb = attr.label
                         if lb in (0, 1, 2):
                             label_counts[lb] = label_counts.get(lb, 0) + 1
-                pos = 0
-                while pos < len(ids):
-                    take = min(chunk_size, len(ids) - pos)
-                    chunk_ids = ids[pos:pos + take]
-                    pos += take
-                    chunks.append(take)
-                    c_counts = {0: 0, 1: 0, 2: 0}
-                    for gid in chunk_ids:
-                        attr = visible_gaussian_attrs.get(gid)
-                        if attr is not None and attr.label is not None:
-                            lb = attr.label
-                            if lb in (0, 1, 2):
-                                c_counts[lb] = c_counts.get(lb, 0) + 1
-                    chunk_label_counts.append(c_counts)
             tiles[tile_id] = TileWorkload(
                 tile_id=tile_id,
                 gaussian_ids=ids,
-                chunk_sizes=chunks,
-                chunk_label_counts=chunk_label_counts,
                 label_counts=label_counts,
                 region=_classify_region(tx, ty, tile_size, eff_width, eff_height, fov_x=fov_x, foveated_enabled=foveated_enabled),
             )
@@ -253,11 +234,10 @@ def load_workload_from_scene(
     config: dict,
     config_path: str = None,
     tile_size: int = 32,
-    chunk_size: int = 256,
     verbose: bool = True,
 ) -> Optional[List[WorkloadFrame]]:
     """
-    根据 config 中 dataset/scene/frames 加载真实 4DGS 模型，按 tile 汇总高斯属性。
+    根据 config 中 dataset/scene/frames 加载真实 4DGS 模型，按 tile 汇总高斯属性（不做分块）。
     若模型缺失或出错，返回 None。
     """
     sim_cfg = config.get("simulation", {})
@@ -462,7 +442,6 @@ def load_workload_from_scene(
             tile_size=tile_size,
             eff_width=eff_w,
             eff_height=eff_h,
-            chunk_size=chunk_size,
             fov_x=algo.get("fov_x", 90.0),
             foveated_enabled=algo.get("foveated_enabled", True),
             total_gaussians_in_scene=total_gaussians_in_scene,
@@ -488,7 +467,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
-    workloads = load_workload_from_scene(config, config_path=args.config, tile_size=32, chunk_size=256, verbose=True)
+    workloads = load_workload_from_scene(config, config_path=args.config, tile_size=32, verbose=True)
     if workloads is None:
         print("failed to load workloads (returned None)")
     else:
@@ -544,7 +523,6 @@ if __name__ == "__main__":
             print(f"\n[Tile 区域分布]")
             region_counts = {"fovea": 0, "transition": 0, "periphery": 0}
             region_gauss = {"fovea": 0, "transition": 0, "periphery": 0}
-            region_chunks = {"fovea": 0, "transition": 0, "periphery": 0}
             max_gauss_per_tile = 0
             min_gauss_per_tile = float('inf')
             
@@ -552,7 +530,6 @@ if __name__ == "__main__":
                 r = tile.region
                 region_counts[r] = region_counts.get(r, 0) + 1
                 region_gauss[r] = region_gauss.get(r, 0) + tile.num_gaussians
-                region_chunks[r] = region_chunks.get(r, 0) + tile.num_chunks
                 max_gauss_per_tile = max(max_gauss_per_tile, tile.num_gaussians)
                 if tile.num_gaussians > 0:
                     min_gauss_per_tile = min(min_gauss_per_tile, tile.num_gaussians)
@@ -560,20 +537,13 @@ if __name__ == "__main__":
             for region in ["fovea", "transition", "periphery"]:
                 tile_count = region_counts.get(region, 0)
                 gauss_count = region_gauss.get(region, 0)
-                chunk_count = region_chunks.get(region, 0)
                 if tile_count > 0:
                     avg_gauss = gauss_count / tile_count
-                    avg_chunks = chunk_count / tile_count
-                    print(f"  {region:12s}: {tile_count:3d} tiles, {gauss_count:8d} gaussians (avg: {avg_gauss:6.1f}/tile), {chunk_count:4d} chunks (avg: {avg_chunks:4.1f}/tile)")
+                    print(f"  {region:12s}: {tile_count:3d} tiles, {gauss_count:8d} gaussians (avg: {avg_gauss:6.1f}/tile)")
             
             print(f"\n  Tile 高斯数范围: {min_gauss_per_tile if min_gauss_per_tile != float('inf') else 0} - {max_gauss_per_tile}")
             
-            # Chunk 统计
-            total_chunks = sum(tile.num_chunks for tile in wl.tiles.values())
-            if total_chunks > 0:
-                print(f"\n[Chunk 统计]")
-                print(f"  总 Chunk 数: {total_chunks}")
-                print(f"  平均每 Tile: {total_chunks / wl.num_tiles:.2f} chunks")
+            # 不做分块：不再输出 Chunk 统计
         
         # 可视化第一个帧的 tile 区域及高斯数
         if len(workloads) > 0:

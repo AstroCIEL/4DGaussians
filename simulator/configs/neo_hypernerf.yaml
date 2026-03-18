@@ -23,8 +23,8 @@ hardware:
     skip_enabled: false
   hse:
     num_cores: 16                 # 排序核数
-    coarse_sort_cycles: 6.0       # 粗排序（pivot分chunk）周期
-    fine_sort_cycles: 8.0        # 细排序（chunk内双调排序）周期
+    coarse_sort_cycles: 6.0       # 粗排序周期
+    fine_sort_cycles: 8.0        # 细排序周期
   fre:
     num_cores: 16                 # 光栅化核数
     base_cycles_per_gaussian: 8.0 # 单高斯基础光栅化周期
@@ -49,7 +49,6 @@ algorithm:
 
 # workload：不设 use_synthetic 且存在模型时使用真实负载；否则合成
 workload:
-  chunk_size: 256
   # use_synthetic: true   # 设为 true 强制使用合成 workload
   # num_gaussians: 100000  # 仅合成时有效
   static_ratio: 0.4

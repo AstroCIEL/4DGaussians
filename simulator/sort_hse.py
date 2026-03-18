@@ -11,8 +11,8 @@ from simulator.memory import MemorySystem
 @dataclass
 class HSEConfig:
     num_cores: int = 16  # 排序核心数量，需与 FRE 核心数一致
-    coarse_cycles_per_chunk: float = 4.0  # 粗排
-    fine_cycles_per_chunk: float = 4.0  # 每 chunk 内双调排序近似
+    coarse_cycles: float = 4.0  # 粗排
+    fine_cycles: float = 4.0  # 细排近似
     early_stop_ratio: float = 0.3 
 
 
@@ -45,12 +45,12 @@ class HierarchicalSortEngine:
     def sort_cycles(self) -> float:
         '''
         like GSCore, the actual latency of sorting before rasterization begins
-        is approximately sorting one chunk and precisely sorting one chunk
+        is approximately coarse + fine
         '''
         c = self.config
         #n = max(1, task.num_gaussians * c.early_stop_ratio)
-        coarse = c.coarse_cycles_per_chunk
-        fine = c.fine_cycles_per_chunk
+        coarse = c.coarse_cycles
+        fine = c.fine_cycles
         return coarse + fine
 
     def has_free_core(self) -> bool:

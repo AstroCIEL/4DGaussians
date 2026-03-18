@@ -1,0 +1,59 @@
+# Auto-generated for A/B test: only read_latency_hiding_rate and stats_file differ from default_scene.yaml
+simulation:
+  dataset: "hypernerf/interp"
+  scene: "torchocolate"
+  frames: 0,1,2,3,4
+  resolution: "1440x1024"
+  iteration: -1
+  camera_split: "video"
+  base_output: "output"
+
+hardware:
+  clock_frequency: 1.0
+  relaxation_factor: 0.5
+  udpe:
+    cull_cycles: 3.0
+    deform_cycles: 16.0
+    intersection_cycles: 5.0
+    fifo_depth: 10
+    udpe_utilization: 0.5
+    skip_enabled: false
+  hse:
+    num_cores: 4
+    coarse_sort_cycles: 25.0
+    fine_sort_cycles: 40.0
+  fre:
+    num_cores: 4
+    base_cycles_per_gaussian: 10.0
+    interpolation_cycles: 256.0
+  wbs:
+    window_size_k: 16
+    fifo_depth: 10
+    scheduling_mode: "hilbert_window"
+  memory:
+    memory_bandwidth: 51.2
+    bandwidth_utilization: 0.6
+    bytes_per_gaussian: 240
+    read_latency_hiding_rate: 0.2
+
+algorithm:
+  tile_size: 32
+  subtile_size: 2
+  early_stop_ratio: 0.7
+  fov_x: 90
+  foveated_enabled: false
+
+workload:
+  static_ratio: 0.4
+  quasi_ratio: 0.4
+  culling_survival_rate: 0.8
+
+labeling:
+  num_time_samples: 50
+  output_npy: "motion_labels.npy"
+  output_json: "motion_labels.json"
+
+output:
+  stats_file: "simulator/results/scene_stats_rate_0p2.json"
+  verbose: True
+
