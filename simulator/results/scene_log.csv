@@ -1,0 +1,2 @@
+start_time,total_cycles,fps,fps_r,config.simulation.dataset,config.simulation.scene,config.hardware.udpe.skip_enabled,config.hardware.memory.read_latency_hiding_rate,config.hardware.wbs.scheduling_mode,config.hardware.wbs.window_size_k,config.algorithm.foveated_enabled,config.algorithm.early_stop_ratio,preprocess_cycles,sort_cycles,rasterize_cycles,module_utilization.fre
+2026-03-18T04:21:13.004087,12835116.375,311.6450122564627,155.82250612823134,dynerf,flame_steak,False,0.2,default_fifo,4,False,0.5,9250848.0,5733895.0,10116993.75,0.7867973801289355

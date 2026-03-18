@@ -174,6 +174,7 @@ class UnifiedDeformPreprocessEngine:
                 break
             
             # 1. 访存延迟：获取整个frame的负载（与高斯数量成正比）
+            stage_start = self.env.now
             mem_cycles = self.memory.estimate_memory_cycles_for_frame(frame.num_gaussians) * 0.5
             if mem_cycles > 0:
                 self.analyzer.record_busy("memory", mem_cycles)
@@ -184,6 +185,14 @@ class UnifiedDeformPreprocessEngine:
             # 注意：mem_cycles 已经作为 memory busy 记录过一次，不应重复计入 udpe busy
             self.analyzer.record_busy("udpe", cycles)
             yield self.env.timeout(cycles)
+            stage_end = self.env.now
+            self.analyzer.record_timeline_event(
+                "udpe",
+                stage_start,
+                stage_end,
+                frame_id=frame.frame_id,
+                num_gaussians=frame.num_gaussians,
+            )
             
             # 将 frame 拆分为 TileTask 列表
             tasks = self.frame_to_tile_tasks(frame)

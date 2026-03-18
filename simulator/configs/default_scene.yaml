@@ -2,10 +2,10 @@
 # 真实 workload：根据 dataset/scene/frames 加载训练好的 4DGS 模型，渲染得到每 tile 高斯数以驱动仿真。
 # 若 model_path 不存在或 workload.use_synthetic=true，则使用合成（平均分配）workload。
 simulation:
-  dataset: "hypernerf/interp"
-  scene: "torchocolate"
+  dataset: "dynerf"
+  scene: "flame_steak"
   # 要仿真的帧（camera/view）索引，单帧写 0，多帧写 0,1,2
-  frames: 0,1,2,3,4
+  frames: 0,1,2,3
   resolution: "1440x1024"   # 仅合成 workload 时使用；真实 workload 由视图分辨率决定
   # 可选：直接指定模型与数据路径；不填则用 base_output/dataset/scene 与 data/dataset/scene
   # model_path: "output/dynerf/sear_steak"
@@ -31,11 +31,11 @@ hardware:
   fre:
     num_cores: 4                  # 光栅化核数
     base_cycles_per_gaussian: 10.0 # 单高斯基础光栅化周期
-    interpolation_cycles: 256.0    # 插值周期（每个tile）
+    interpolation_cycles: 128.0    # 插值周期（每个tile）
   wbs:
-    window_size_k: 16             # 窗口大小
+    window_size_k: 4             # 窗口大小
     fifo_depth: 10                # FIFO 深度
-    scheduling_mode: "global_greedy" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
+    scheduling_mode: "default_fifo" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
   memory:
     memory_bandwidth: 51.2         # GB/s
     bandwidth_utilization: 0.6     
@@ -46,7 +46,7 @@ algorithm:
   # tile_size 32 means 32x32px
   tile_size: 32
   subtile_size: 2
-  early_stop_ratio: 0.7
+  early_stop_ratio: 0.5
   fov_x: 90          # 水平视场角(度)用于区域划分
   foveated_enabled: false  # 关闭则全部视为fovea，不做降采样
 
@@ -65,4 +65,8 @@ labeling:
   
 output:
   stats_file: "simulator/results/scene_stats.json"
+  csv_file: "simulator/results/scene_log.csv"
+  timeline_enabled: true
+  timeline_file: "simulator/results/scene_timeline.json"
+  timeline_image_file: "simulator/results/scene_timeline.png"
   verbose: True

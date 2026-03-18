@@ -58,7 +58,7 @@ class FoveatedRasterEngine:
         scale = self._region_scale(task.region)
         core_cycles = 4 * task.num_gaussians * self.config.early_stop_ratio * self.config.base_cycles_per_gaussian * scale
         # 插值重建为轻量级、与高斯数量无关的固定开销（仅在降采样区域启用）
-        interp = self.config.interpolation_cycles if scale < 1.0 else 0.0
+        interp = self.config.interpolation_cycles * (1 - scale)
         return core_cycles + interp
 
     def process(self, task: TileTask):
@@ -72,6 +72,7 @@ class FoveatedRasterEngine:
             core_id = yield self._core_id_store.get()
             
             try:
+                stage_start = self.env.now
                 # 获取当前tile的高斯集合
                 current_gaussians = set(task.gaussian_ids) if task.gaussian_ids else None
                 
@@ -99,6 +100,16 @@ class FoveatedRasterEngine:
                 cycles = self.raster_cycles(task)
                 yield self.env.timeout(cycles)
                 end = self.env.now
+                self.analyzer.record_timeline_event(
+                    "fre",
+                    stage_start,
+                    end,
+                    frame_id=task.frame_id,
+                    tile_id=task.tile_id,
+                    core_id=core_id,
+                    num_gaussians=task.num_gaussians,
+                    region=task.region,
+                )
                 self._busy_intervals.append((start, end))
                 st = max(0.0, end - start)
                 self._busy_core_time_sum += st

@@ -68,6 +68,7 @@ class HierarchicalSortEngine:
             core_id = yield self._core_id_store.get()
             
             try:
+                stage_start = self.env.now
                 # 获取当前tile的高斯集合
                 current_gaussians = set(task.gaussian_ids) if task.gaussian_ids else None
                 
@@ -95,6 +96,16 @@ class HierarchicalSortEngine:
                 cycles = self.sort_cycles()
                 yield self.env.timeout(cycles)
                 end = self.env.now
+                self.analyzer.record_timeline_event(
+                    "hse",
+                    stage_start,
+                    end,
+                    frame_id=task.frame_id,
+                    tile_id=task.tile_id,
+                    core_id=core_id,
+                    num_gaussians=task.num_gaussians,
+                    region=task.region,
+                )
                 self._busy_intervals.append((start, end))
                 st = max(0.0, end - start)
                 self._busy_core_time_sum += st

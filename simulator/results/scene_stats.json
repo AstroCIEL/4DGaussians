@@ -1,42 +1,41 @@
 {
-  "total_cycles": 29417741.25,
-  "preprocess_cycles": 17309504.0,
-  "sort_cycles": 3371870.0,
-  "rasterize_cycles": 20698577.0,
-  "memory_stall_cycles": 28181301.25,
+  "total_cycles": 12835116.375,
+  "preprocess_cycles": 9250848.0,
+  "sort_cycles": 5733895.0,
+  "rasterize_cycles": 10116993.75,
+  "memory_stall_cycles": 30498191.875,
   "frame_cycles": [
-    5883548.25,
-    5883548.25,
-    5883548.25,
-    5883548.25,
-    5883548.25
+    3208779.09375,
+    3208779.09375,
+    3208779.09375,
+    3208779.09375
   ],
   "module_busy": {
-    "memory": 28181301.25,
-    "udpe": 17309504.0,
-    "hse": 3371870.0,
-    "fre": 20698577.0
+    "memory": 30498191.875,
+    "udpe": 9250848.0,
+    "hse": 5733895.0,
+    "fre": 10116993.75
   },
   "module_utilization": {
-    "hse": 0.1145855734250161,
-    "fre": 0.7030538162069122
+    "hse": 0.44608604103910976,
+    "fre": 0.7867973801289355
   },
   "task_time_stats": {
     "hse": {
-      "count": 2400,
-      "mean": 5618.08125,
-      "max": 83595.0,
-      "p50": 2217.5,
-      "p90": 13386.999999999998,
-      "p99": 52988.44999999956
+      "count": 5208,
+      "mean": 4397.516321044547,
+      "max": 60315.0,
+      "p50": 2125.0,
+      "p90": 9136.5,
+      "p99": 40489.050000000025
     },
     "fre": {
-      "count": 1920,
-      "mean": 43088.03177083333,
-      "max": 550143.75,
-      "p50": 18332.875,
-      "p90": 98782.9500000001,
-      "p99": 389560.2149999999
+      "count": 1302,
+      "mean": 31024.99519969278,
+      "max": 333237.5,
+      "p50": 16753.125,
+      "p90": 65235.25000000006,
+      "p99": 239637.36250000002
     }
   },
   "scheduling_stats": {
@@ -45,23 +44,23 @@
     }
   },
   "fifo_blocked": {
-    "udpe_to_wbs.src_get": 5,
-    "wbs.frame_get": 5
+    "udpe_to_wbs.src_get": 4,
+    "wbs.frame_get": 4
   },
   "fifo_blocked_cycles": {
-    "udpe_to_wbs.src_get": 18999885.25,
-    "wbs.frame_get": 18999885.25
+    "udpe_to_wbs.src_get": 10154251.125,
+    "wbs.frame_get": 10154251.125
   },
-  "start_time": "2026-03-17T22:29:21.194798",
-  "elapsed_time": 2.1682560443878174,
-  "ave_frame_times": 0.0058835482500000005,
-  "fps": 169.9654625930874,
-  "fps_r": 84.9827312965437,
+  "start_time": "2026-03-18T04:21:13.004087",
+  "elapsed_time": 4.467516899108887,
+  "ave_frame_times": 0.00320877909375,
+  "fps": 311.6450122564627,
+  "fps_r": 155.82250612823134,
   "config": {
     "simulation": {
-      "dataset": "hypernerf/interp",
-      "scene": "torchocolate",
-      "frames": "0,1,2,3,4",
+      "dataset": "dynerf",
+      "scene": "flame_steak",
+      "frames": "0,1,2,3",
       "resolution": "1440x1024",
       "iteration": -1,
       "camera_split": "video",
@@ -86,12 +85,12 @@
       "fre": {
         "num_cores": 4,
         "base_cycles_per_gaussian": 10.0,
-        "interpolation_cycles": 256.0
+        "interpolation_cycles": 128.0
       },
       "wbs": {
-        "window_size_k": 16,
+        "window_size_k": 4,
         "fifo_depth": 10,
-        "scheduling_mode": "global_greedy"
+        "scheduling_mode": "default_fifo"
       },
       "memory": {
         "memory_bandwidth": 51.2,
@@ -103,7 +102,7 @@
     "algorithm": {
       "tile_size": 32,
       "subtile_size": 2,
-      "early_stop_ratio": 0.7,
+      "early_stop_ratio": 0.5,
       "fov_x": 90,
       "foveated_enabled": false
     },
@@ -119,6 +118,10 @@
     },
     "output": {
       "stats_file": "simulator/results/scene_stats.json",
+      "csv_file": "simulator/results/scene_log.csv",
+      "timeline_enabled": true,
+      "timeline_file": "simulator/results/scene_timeline.json",
+      "timeline_image_file": "simulator/results/scene_timeline.png",
       "verbose": true
     }
   }

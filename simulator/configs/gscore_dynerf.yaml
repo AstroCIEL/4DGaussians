@@ -30,7 +30,7 @@ hardware:
   fre:
     num_cores: 4                  # 光栅化核数
     base_cycles_per_gaussian: 10.0 # 单高斯基础光栅化周期
-    interpolation_cycles: 256.0    # 插值周期（每个tile）
+    interpolation_cycles: 128.0    # 插值周期（每个tile）
   wbs:
     window_size_k: 4             # 窗口大小
     fifo_depth: 10                # FIFO 深度

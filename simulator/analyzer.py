@@ -31,12 +31,26 @@ class Analyzer:
             "memory": "memory_stall_cycles",
         }
         self._start_time = None
+        self._timeline_enabled = False
+        self._timeline_file = None
+        self._timeline_image_file = None
+        self._trace_events = []
 
     def start_simulation(self, config: dict) -> None:
         """记录模拟开始时间和配置。"""
         self._start_time = time.time()
         self.stats.start_time = datetime.now().isoformat()
         self.stats.config = config
+        cfg_output = (config or {}).get("output", {}) if isinstance(config, dict) else {}
+        self._timeline_enabled = bool(cfg_output.get("timeline_enabled", False))
+        self._timeline_file = cfg_output.get(
+            "timeline_file",
+            os.path.join(os.path.dirname(self.output_path), "timeline_trace.json"),
+        )
+        self._timeline_image_file = cfg_output.get(
+            "timeline_image_file",
+            os.path.join(os.path.dirname(self.output_path), "timeline.png"),
+        )
 
     def record_busy(self, module: str, cycles: float) -> None:
         self.stats.record_busy(module, cycles)
@@ -61,6 +75,45 @@ class Analyzer:
         # 同时记录次数与周期，便于对齐旧字段
         self.stats.record_block(name)
         self.stats.record_block_cycles(name, cycles)
+
+    def record_timeline_event(
+        self,
+        stage: str,
+        start: float,
+        end: float,
+        frame_id: int = None,
+        tile_id: int = None,
+        core_id: int = None,
+        num_gaussians: int = None,
+        region: str = None,
+    ) -> None:
+        if not self._timeline_enabled:
+            return
+        if end < start:
+            start, end = end, start
+        dur = max(0.0, float(end - start))
+        args = {}
+        if frame_id is not None:
+            args["frame_id"] = int(frame_id)
+        if tile_id is not None:
+            args["tile_id"] = int(tile_id)
+        if core_id is not None:
+            args["core_id"] = int(core_id)
+        if num_gaussians is not None:
+            args["num_gaussians"] = int(num_gaussians)
+        if region is not None:
+            args["region"] = str(region)
+        event = {
+            "name": stage,
+            "cat": stage,
+            "ph": "X",
+            "ts": float(start),
+            "dur": dur,
+            "pid": stage,
+            "tid": int(core_id) if core_id is not None else stage,
+            "args": args,
+        }
+        self._trace_events.append(event)
 
     def finalize(self, total_cycles: float, clock_period_ns: float = 1.0) -> None:
         """
@@ -103,6 +156,17 @@ class Analyzer:
         except Exception as e:
             # 不要因为记录 CSV 失败影响主流程
             print(f"[analyzer] warn: failed to append stats to csv ({type(e).__name__}: {e})")
+
+        if self._timeline_enabled and self._trace_events and self._timeline_file:
+            os.makedirs(os.path.dirname(self._timeline_file), exist_ok=True)
+            with open(self._timeline_file, "w", encoding="utf-8") as f:
+                json.dump({"traceEvents": self._trace_events}, f, indent=2, ensure_ascii=False)
+        if self._timeline_enabled and self._trace_events and self._timeline_image_file:
+            try:
+                from simulator.utils.timeline_visualizer import render_timeline_png
+                render_timeline_png(self._trace_events, self._timeline_image_file)
+            except Exception as e:
+                print(f"[analyzer] warn: failed to render timeline image ({type(e).__name__}: {e})")
 
     def _print_summary(self) -> None:
         print("[analyzer] === Simulation Summary ===")
