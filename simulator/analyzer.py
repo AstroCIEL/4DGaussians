@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import time
@@ -40,17 +41,24 @@ class Analyzer:
         """记录模拟开始时间和配置。"""
         self._start_time = time.time()
         self.stats.start_time = datetime.now().isoformat()
-        self.stats.config = config
-        cfg_output = (config or {}).get("output", {}) if isinstance(config, dict) else {}
+        cfg = copy.deepcopy(config) if isinstance(config, dict) else {}
+        cfg_output = cfg.setdefault("output", {})
+        if "stats_file" not in cfg_output:
+            cfg_output["stats_file"] = self.output_path
+        if "verbose" not in cfg_output:
+            cfg_output["verbose"] = self.verbose
+        if "timeline_enabled" not in cfg_output:
+            cfg_output["timeline_enabled"] = False
+        if "csv_file" not in cfg_output:
+            cfg_output["csv_file"] = os.path.join(os.path.dirname(self.output_path), "stats_log.csv")
+        if "timeline_file" not in cfg_output:
+            cfg_output["timeline_file"] = os.path.join(os.path.dirname(self.output_path), "timeline_trace.json")
+        if "timeline_image_file" not in cfg_output:
+            cfg_output["timeline_image_file"] = os.path.join(os.path.dirname(self.output_path), "timeline.png")
+        self.stats.config = cfg
         self._timeline_enabled = bool(cfg_output.get("timeline_enabled", False))
-        self._timeline_file = cfg_output.get(
-            "timeline_file",
-            os.path.join(os.path.dirname(self.output_path), "timeline_trace.json"),
-        )
-        self._timeline_image_file = cfg_output.get(
-            "timeline_image_file",
-            os.path.join(os.path.dirname(self.output_path), "timeline.png"),
-        )
+        self._timeline_file = cfg_output.get("timeline_file")
+        self._timeline_image_file = cfg_output.get("timeline_image_file")
 
     def record_busy(self, module: str, cycles: float) -> None:
         self.stats.record_busy(module, cycles)

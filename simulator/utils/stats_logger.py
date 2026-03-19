@@ -49,6 +49,7 @@ def append_stats_to_csv(stats: Mapping[str, Any], csv_path: str) -> None:
         "fps_r",
         "config.simulation.dataset",
         "config.simulation.scene",
+        "config.hardware.udpe.udpe_utilization",
         "config.hardware.udpe.skip_enabled",
         "config.hardware.memory.read_latency_hiding_rate",
         "config.hardware.wbs.scheduling_mode",

@@ -19,14 +19,28 @@ from simulator.rasterize_fre import FREConfig, FoveatedRasterEngine
 from simulator.memory import MemoryConfig, MemorySystem
 from simulator.analyzer import Analyzer
 from simulator.utils.stats_logger import append_stats_to_csv
+from simulator.utils.config_defaults import (
+    DEFAULT_CONFIG_TEMPLATE,
+    apply_config_defaults,
+)
 
 
 class Simulator:
     """simpy 事件驱动的三阶段流水模拟器。"""
 
-    def __init__(self, config_path: str, config_override = None, dump_enabled: bool = True):
+    def __init__(
+        self,
+        config_path: str,
+        config_override = None,
+        dump_enabled: bool = True,
+        default_template_path: str = None,
+    ):
         self.config_path = config_path
         self.config = config_override if config_override is not None else self._load_config(config_path)
+        if default_template_path is None:
+            sim_cfg = self.config.get("simulation", {}) if isinstance(self.config, dict) else {}
+            default_template_path = sim_cfg.get("default_template", DEFAULT_CONFIG_TEMPLATE)
+        self.config = apply_config_defaults(self.config, default_template_path)
         self.stats = SimStats()
         self.analyzer = Analyzer(
             self.stats,
@@ -327,6 +341,7 @@ def run_simulator(config_path: str) -> SimStats:
         base_config = yaml.safe_load(f)
 
     sim_cfg = (base_config or {}).get("simulation", {}) if isinstance(base_config, dict) else {}
+    default_template_path = sim_cfg.get("default_template", DEFAULT_CONFIG_TEMPLATE)
     dataset = sim_cfg.get("dataset")
     scene = sim_cfg.get("scene")
 
@@ -338,7 +353,12 @@ def run_simulator(config_path: str) -> SimStats:
         return False
 
     if not dataset or not _scene_is_missing(scene):
-        sim = Simulator(config_path, config_override=base_config, dump_enabled=True)
+        sim = Simulator(
+            config_path,
+            config_override=base_config,
+            dump_enabled=True,
+            default_template_path=default_template_path,
+        )
         return sim.run()
 
     # scene 未指定：枚举 dataset 下所有 scene，逐个运行，并将结果汇总到同一输出文件
@@ -356,7 +376,12 @@ def run_simulator(config_path: str) -> SimStats:
     scenes = sorted(list(scenes_model & scenes_data)) if (scenes_model and scenes_data) else sorted(list(scenes_model or scenes_data))
     if not scenes:
         # 没有可枚举场景：回退为单次运行（可能走合成 workload）
-        sim = Simulator(config_path, config_override=base_config, dump_enabled=True)
+        sim = Simulator(
+            config_path,
+            config_override=base_config,
+            dump_enabled=True,
+            default_template_path=default_template_path,
+        )
         return sim.run()
 
     output_path = (base_config.get("output", {}) if isinstance(base_config, dict) else {}).get("stats_file", "results/stats.json")
@@ -387,7 +412,12 @@ def run_simulator(config_path: str) -> SimStats:
 
         # 多场景模式下：禁止 Analyzer 覆盖写，最终由这里统一写汇总文件
         print(f"[simulator] ({i+1}/{len(scenes)}) running scene={sc}")
-        sim = Simulator(config_path, config_override=cfg, dump_enabled=False)
+        sim = Simulator(
+            config_path,
+            config_override=cfg,
+            dump_enabled=False,
+            default_template_path=default_template_path,
+        )
         st = sim.run()
         d = st.to_dict()
         d["simulation"] = {"dataset": dataset, "scene": sc}

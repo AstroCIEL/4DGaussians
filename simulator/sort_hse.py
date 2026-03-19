@@ -76,7 +76,7 @@ class HierarchicalSortEngine:
                 previous_gaussians = self._previous_gaussians.get(core_id, None)
                 
                 # 计算访存延迟（考虑cache命中率）
-                mem_cycles = 0.8 * self.memory.estimate_memory_cycles_for_tile(
+                mem_cycles = 0.6 * self.memory.estimate_memory_cycles_for_tile(
                     current_gaussians, 
                     previous_gaussians, 
                     task.num_gaussians
