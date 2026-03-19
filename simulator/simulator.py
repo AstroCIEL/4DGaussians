@@ -32,7 +32,7 @@ class Simulator:
             self.stats,
             output_path=self.config.get("output", {}).get("stats_file", "results/stats.json"),
             verbose=self.config.get("output", {}).get("verbose", True),
-            relaxation_factor=self.config.get("hardware", {}).get("relaxation_factor", 0.6),
+            relaxation_factor=self.config.get("hardware", {}).get("relaxation_factor", 0.8),
             dump_enabled=dump_enabled,
         )
         self.workloads = self._build_workloads()
@@ -66,7 +66,7 @@ class Simulator:
         width, height = parse_resolution(res_str)
         width = (width // tile_size) * tile_size
         height = (height // tile_size) * tile_size
-        frames_cfg = sim_cfg.get("frames", 0)
+        frames_cfg = sim_cfg.get("frames", "0,1,2,3")
         frame_ids = [frames_cfg] if isinstance(frames_cfg, int) else [int(x) for x in str(frames_cfg).replace(" ", "").split(",")]
         num_gaussians = self.config.get("workload", {}).get("num_gaussians", 100_000)
         fov_x = self.config.get("algorithm", {}).get("fov_x", 90.0)
@@ -91,24 +91,24 @@ class Simulator:
         mem = MemorySystem(
             MemoryConfig(
                 memory_bandwidth_gbps=hw.get('memory', {}).get("memory_bandwidth", 51.2),
-                bandwidth_utilization=hw.get('memory', {}).get("bandwidth_utilization", 0.5),
+                bandwidth_utilization=hw.get('memory', {}).get("bandwidth_utilization", 0.6),
                 clock_frequency_ghz=clock,
-                read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.8),
-                bytes_per_gaussian=hw.get('memory', {}).get("bytes_per_gaussian", 120),
+                read_latency_hiding_rate=hw.get('memory', {}).get("read_latency_hiding_rate", 0.4),
+                bytes_per_gaussian=hw.get('memory', {}).get("bytes_per_gaussian", 240),
                 cache_hit_enabled=hw.get('memory', {}).get("cache_hit_enabled", True),
             )
         )
         udpe = UnifiedDeformPreprocessEngine(
             env,
             UDPEConfig(
-                cull_cycles=hw.get("udpe", {}).get("cull_cycles", 1.0),
-                deform_cycles=hw.get("udpe", {}).get("deform_cycles", 5.0),
-                intersection_cycles=hw.get("udpe", {}).get("intersection_cycles", 2.0),
+                cull_cycles=hw.get("udpe", {}).get("cull_cycles", 3.0),
+                deform_cycles=hw.get("udpe", {}).get("deform_cycles", 14.0),
+                intersection_cycles=hw.get("udpe", {}).get("intersection_cycles", 5.0),
                 fifo_depth=hw.get("udpe", {}).get("fifo_depth", 16),
                 static_ratio=self.config.get("workload", {}).get("static_ratio", 0.4),
                 quasi_ratio=self.config.get("workload", {}).get("quasi_ratio", 0.4),
                 skip_enabled=hw.get("udpe", {}).get("skip_enabled", True),
-                udpe_utilization=hw.get("udpe", {}).get("udpe_utilization", 0.9),
+                udpe_utilization=hw.get("udpe", {}).get("udpe_utilization", 0.5),
             ),
             self.analyzer,
             memory=mem,
@@ -116,10 +116,10 @@ class Simulator:
         hse = HierarchicalSortEngine(
             env,
             HSEConfig(
-                num_cores=hw.get("hse", {}).get("num_cores", 16),
-                coarse_cycles=hw.get("hse", {}).get("coarse_sort_cycles", 4.0),
-                fine_cycles=hw.get("hse", {}).get("fine_sort_cycles", 4.0),
-                early_stop_ratio=algo.get("early_stop_ratio", 0.3),
+                num_cores=hw.get("hse", {}).get("num_cores", 4),
+                coarse_cycles=hw.get("hse", {}).get("coarse_sort_cycles", 25.0),
+                fine_cycles=hw.get("hse", {}).get("fine_sort_cycles", 40.0),
+                early_stop_ratio=algo.get("early_stop_ratio", 0.5),
             ),
             self.analyzer,
             memory=mem,
@@ -127,10 +127,10 @@ class Simulator:
         fre = FoveatedRasterEngine(
             env,
             FREConfig(
-                num_cores=hw.get("fre", {}).get("num_cores", 16),
-                base_cycles_per_gaussian=hw.get("fre", {}).get("base_cycles_per_gaussian", 2.0),
-                interpolation_cycles=hw.get("fre", {}).get("interpolation_cycles", 8.0),
-                early_stop_ratio=algo.get("early_stop_ratio", 0.3),
+                num_cores=hw.get("fre", {}).get("num_cores", 4),
+                base_cycles_per_gaussian=hw.get("fre", {}).get("base_cycles_per_gaussian", 4.0),
+                interpolation_cycles=hw.get("fre", {}).get("interpolation_cycles", 100.0),
+                early_stop_ratio=algo.get("early_stop_ratio", 0.5),
             ),
             self.analyzer,
             memory=mem,
@@ -144,8 +144,8 @@ class Simulator:
         wbs = WorkloadBalancingScheduler(
             env,
             WBSConfig(
-                window_size=hw.get("wbs", {}).get("window_size_k", 8),
-                fifo_depth=hw.get("wbs", {}).get("fifo_depth", 32),
+                window_size=hw.get("wbs", {}).get("window_size_k", 4),
+                fifo_depth=hw.get("wbs", {}).get("fifo_depth", 10),
                 scheduling_mode=hw.get("wbs", {}).get("scheduling_mode", "hilbert_window"),
             ),
             sort_engine=hse,

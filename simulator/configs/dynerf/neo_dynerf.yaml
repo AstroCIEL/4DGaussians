@@ -18,9 +18,9 @@ hardware:
   relaxation_factor: 0.5
   udpe: 
     cull_cycles: 3.0              # 单高斯 cull 开销
-    deform_cycles: 16.0           # 单高斯 deform 开销
+    deform_cycles: 14.0           # 单高斯 deform 开销
     intersection_cycles: 5.0      # 单高斯 intersection 开销
-    fifo_depth: 6                 # FIFO 深度（frame粒度）
+    fifo_depth: 10                 # FIFO 深度（frame粒度）
     udpe_utilization: 0.5
     skip_enabled: false
   hse:
@@ -29,23 +29,24 @@ hardware:
     fine_sort_cycles: 40.0        # 细排序周期
   fre:
     num_cores: 4                  # 光栅化核数
-    base_cycles_per_gaussian: 10.0 # 单高斯基础光栅化周期
-    interpolation_cycles: 256.0    # 插值周期（每个tile）
+    base_cycles_per_gaussian: 6.0 # 单高斯基础光栅化周期
+    interpolation_cycles: 128.0    # 插值周期（每个tile）
   wbs:
-    window_size_k: 8             # 窗口大小
-    fifo_depth: 6                # FIFO 深度
-    scheduling_mode: "hilbert_window" # "hilbert_window" | "default_fifo" | "global_greedy"
+    window_size_k: 4             # 窗口大小
+    fifo_depth: 10                # FIFO 深度
+    scheduling_mode: "default_fifo" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
   memory:
     memory_bandwidth: 51.2         # GB/s
     bandwidth_utilization: 0.6     
     bytes_per_gaussian: 240        # 内存估算用的单高斯读写字节
-    read_latency_hiding_rate: 0.4
+    read_latency_hiding_rate: 0.6
+    cache_hit_enabled: true
   
 algorithm:
   # tile_size 32 means 32x32px
   tile_size: 32
   subtile_size: 2
-  early_stop_ratio: 0.7
+  early_stop_ratio: 0.5
   fov_x: 90          # 水平视场角(度)用于区域划分
   foveated_enabled: false  # 关闭则全部视为fovea，不做降采样
 
@@ -64,4 +65,5 @@ labeling:
   
 output:
   stats_file: "simulator/results/neo_dynerf_stats.json"
+  csv_file: "simulator/results/dynerf_log.csv"
   verbose: True
