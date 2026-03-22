@@ -1,20 +1,20 @@
 # merge with default.yaml
 simulation:
-  dataset: "dynerf"
-  scene: "sear_steak"
+  dataset: "hypernerf/interp"
+  scene: "torchocolate"
 
 hardware:
   udpe: 
-    udpe_utilization: 0.35
-    skip_enabled: false
+    udpe_utilization: 0.5
+    skip_enabled: true
   wbs:
     scheduling_mode: "default_fifo" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
   memory:   
-    read_latency_hiding_rate: 0.5
+    read_latency_hiding_rate: 0.4
   
 algorithm:
-  early_stop_ratio: 0.4
-  foveated_enabled: false  # 关闭则全部视为fovea，不做降采样
+  early_stop_ratio: 0.7
+  foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
   
 output:
   stats_file: "simulator/results/scene_stats.json"

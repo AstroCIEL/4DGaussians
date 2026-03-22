@@ -183,6 +183,8 @@ class WorkloadBalancingScheduler:
         self.fre_in_flight = 0  # FRE 核正在处理的任务数
         # 调度统计：记录每次从窗口选中的 task workload（num_gaussians）
         self._window_selected_workloads: List[int] = []
+        # hilbert 顺序索引（frame_id, tile_id -> order），用于 FRE 侧保持空间局部性
+        self._hilbert_order: dict[tuple[int, int], int] = {}
 
     def start(self):
         return self.env.process(self._run())
@@ -352,7 +354,18 @@ class WorkloadBalancingScheduler:
     def _dispatch_fre(self):
         """尝试把排序完成的任务分配给空闲的 FRE 核。"""
         while self.sorted_queue and self.raster_engine.has_free_core():
-            task = self.sorted_queue.pop(0)  # FIFO：先排序完成的先光栅化
+            if self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo"):
+                # hilbert 模式：在已完成排序的任务中选择 hilbert 顺序更靠前的
+                best_idx = min(
+                    range(len(self.sorted_queue)),
+                    key=lambda i: self._hilbert_order.get(
+                        (self.sorted_queue[i].frame_id, self.sorted_queue[i].tile_id),
+                        i,
+                    ),
+                )
+                task = self.sorted_queue.pop(best_idx)
+            else:
+                task = self.sorted_queue.pop(0)  # FIFO：先排序完成的先光栅化
             self.fre_in_flight += 1
             # 启动 FRE 核进行光栅化
             self.env.process(self._process_raster(task))
@@ -387,6 +400,9 @@ class WorkloadBalancingScheduler:
         if self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo"):
             # 按希尔伯特曲线排序
             sorted_tasks = sort_tasks_by_hilbert_curve(tasks, self.width, self.height, self.tile_size)
+            # 记录 hilbert 顺序索引，供 FRE 侧在已完成任务中择优
+            for order_idx, task in enumerate(sorted_tasks):
+                self._hilbert_order[(task.frame_id, task.tile_id)] = order_idx
             # 按 frame 顺序排队，避免跨 frame 混排
             self.frame_task_queue.append(sorted_tasks)
             self._ensure_active_frame()

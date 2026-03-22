@@ -14,6 +14,13 @@ python simulator/main.py --config simulator/configs/dynerf/default_dynerf_fifo.y
 python simulator/main.py --config simulator/configs/dynerf/default_dynerf_wo_skip.yaml
 python simulator/main.py --config simulator/configs/dynerf/default_dynerf_wo_fov.yaml
 
-# python simulator/main.py --config simulator/configs/default_hypernerf.yaml
-# python simulator/main.py --config simulator/configs/gscore_hypernerf.yaml
-# python simulator/main.py --config simulator/configs/neo_hypernerf.yaml
+python simulator/main.py --config simulator/configs/hypernerf/default_hypernerf.yaml
+python simulator/main.py --config simulator/configs/hypernerf/gscore_hypernerf.yaml
+python simulator/main.py --config simulator/configs/hypernerf/gscore_hypernerf_hilbert.yaml
+python simulator/main.py --config simulator/configs/hypernerf/gscore_hypernerf_hilbert_fifo.yaml
+python simulator/main.py --config simulator/configs/hypernerf/gscore_hypernerf_greedy.yaml
+python simulator/main.py --config simulator/configs/hypernerf/neo_hypernerf.yaml
+python simulator/main.py --config simulator/configs/hypernerf/default_hypernerf_fifo.yaml
+python simulator/main.py --config simulator/configs/hypernerf/default_hypernerf_wo_skip.yaml
+python simulator/main.py --config simulator/configs/hypernerf/default_hypernerf_wo_fov.yaml
+

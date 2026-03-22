@@ -21,7 +21,7 @@
 
 ## 文件结构
 
-* `config/`: 包含 `.yaml` 配置文件（需包含：各算子Latency设定、`NUM_RASTER_CORES`、FIFO_DEPTH、WBS `WINDOW_SIZE_K` 等）。
+* `configs/`: 包含 `.yaml` 配置文件（场景/硬件/算法/输出等）。
 * `results/`: 每次仿真的性能报告、图表和日志保存目录。
 * `utils/`: 可视化等工具代码。
 * `simulator.py`: 主Simulator环境配置与顶层连接。
@@ -82,22 +82,27 @@
 
 ## 使用说明（含动静标签生成）
 
-1) 配置：编辑 `simulator/configs/default.yaml`，至少设置 `simulation.dataset` / `simulation.scene`，可选 `simulation.model_path` / `simulation.source_path`；`workload.static_ratio` / `quasi_ratio` 指定动静比例；`labeling.output_npy` / `output_json` 控制标签文件名。内存模型估计使用 `hardware.bytes_per_gaussian`（单高斯读写字节数）。
+1) 配置：编辑 `simulator/configs/default_scene.yaml` 或自定义配置文件，常用字段：
+- `simulation.dataset` / `simulation.scene`：指定数据集与场景；若 `scene` 留空会自动遍历该数据集所有场景并逐个仿真。
+- `simulation.model_path` / `simulation.source_path`：可选，直接指定模型/数据路径。
+- `hardware.*` / `algorithm.*` / `workload.*`：硬件/算法/负载参数（不写则从默认模板补齐）。
+- `output.stats_file` / `output.csv_file`：输出 JSON/CSV 路径。
+- `simulation.default_template`：可选，指定“默认模板配置”文件路径，用于补齐缺省参数。
 
-2）查看负载分析：可以通过单独运行
+2) 查看负载分析：单独运行
 ```bash
-python -m simulator.workload_loader --config simulator/configs/default.yaml
+python -m simulator.workload_loader --config simulator/configs/default_scene.yaml
 ```
 来获取某个config下的工作负载报告。
 
 3) 运行仿真：  
 ```bash
-python -m simulator.main --config simulator/configs/default.yaml
+python -m simulator.main --config simulator/configs/default_scene.yaml
 ```
 运行时会尝试读取模型目录下的标签文件（默认 `motion_labels.npy`）；若缺失则自动调用 `simulator.generate_labels` 离线生成后再继续仿真。
 
-也可以手动生成标签（没必要）：  
+也可以手动生成标签（可选）：  
 ```bash
-python -m simulator.generate_labels --config simulator/configs/default.yaml
+python -m simulator.generate_labels --config simulator/configs/default_scene.yaml
 ```
 生成结果会写入模型目录并在后续仿真中复用。
