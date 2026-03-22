@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Dict
 
 from simulator.structures import SimStats
+from simulator.utils.fre_visualizer import render_fre_core_trace, render_fre_core_assignment
 from simulator.utils.stats_logger import append_stats_to_csv
 
 
@@ -36,6 +37,13 @@ class Analyzer:
         self._timeline_file = None
         self._timeline_image_file = None
         self._trace_events = []
+        self._fre_viz_enabled = False
+        self._fre_viz_file = None
+        self._fre_viz_frame_id = None
+        self._fre_viz_num_tiles_x = None
+        self._fre_viz_num_tiles_y = None
+        self._fre_viz_records = []
+        self._fre_viz_core_orders = {}
 
     def start_simulation(self, config: dict) -> None:
         """记录模拟开始时间和配置。"""
@@ -55,10 +63,68 @@ class Analyzer:
             cfg_output["timeline_file"] = os.path.join(os.path.dirname(self.output_path), "timeline_trace.json")
         if "timeline_image_file" not in cfg_output:
             cfg_output["timeline_image_file"] = os.path.join(os.path.dirname(self.output_path), "timeline.png")
+        if "fre_visualization_enabled" not in cfg_output:
+            cfg_output["fre_visualization_enabled"] = False
+        if "fre_visualization_file" not in cfg_output:
+            cfg_output["fre_visualization_file"] = os.path.join(os.path.dirname(self.output_path), "fre_core_trace.png")
+        if "fre_assignment_visualization_file" not in cfg_output:
+            cfg_output["fre_assignment_visualization_file"] = os.path.join(os.path.dirname(self.output_path), "fre_core_assignment.png")
+
         self.stats.config = cfg
         self._timeline_enabled = bool(cfg_output.get("timeline_enabled", False))
         self._timeline_file = cfg_output.get("timeline_file")
         self._timeline_image_file = cfg_output.get("timeline_image_file")
+        self._fre_viz_enabled = bool(cfg_output.get("fre_visualization_enabled", False))
+        self._fre_viz_file = cfg_output.get("fre_visualization_file")
+        self._fre_assign_file = cfg_output.get("fre_assignment_visualization_file")
+        self._fre_viz_frame_id = None
+        self._fre_viz_records = []
+        self._fre_viz_core_orders = {}
+
+    def register_fre_frame(self, frame_id: int, width: int, height: int, tile_size: int) -> None:
+        if not self._fre_viz_enabled:
+            return
+        if self._fre_viz_frame_id is None:
+            self._fre_viz_frame_id = int(frame_id)
+            self._fre_viz_num_tiles_x = max(1, int(width) // int(tile_size))
+            self._fre_viz_num_tiles_y = max(1, int(height) // int(tile_size))
+
+    def record_fre_tile(
+        self,
+        frame_id: int,
+        core_id: int,
+        tile_id: int,
+        cache_hit_ratio: float,
+        tile_x: int = None,
+        tile_y: int = None,
+        num_tiles_x: int = None,
+        num_tiles_y: int = None,
+    ) -> None:
+        if not self._fre_viz_enabled:
+            return
+        if self._fre_viz_frame_id is None or int(frame_id) != int(self._fre_viz_frame_id):
+            return
+        if self._fre_viz_num_tiles_x is None and num_tiles_x:
+            self._fre_viz_num_tiles_x = int(num_tiles_x)
+        if self._fre_viz_num_tiles_y is None and num_tiles_y:
+            self._fre_viz_num_tiles_y = int(num_tiles_y)
+        if not self._fre_viz_num_tiles_x or not self._fre_viz_num_tiles_y:
+            return
+        if tile_x is None or tile_y is None:
+            num_tiles_x = int(self._fre_viz_num_tiles_x)
+            tile_x = int(tile_id) % num_tiles_x
+            tile_y = int(tile_id) // num_tiles_x
+        order = self._fre_viz_core_orders.get(core_id, 0)
+        self._fre_viz_core_orders[core_id] = order + 1
+        self._fre_viz_records.append(
+            {
+                "core_id": int(core_id),
+                "order": int(order),
+                "tile_x": int(tile_x),
+                "tile_y": int(tile_y),
+                "cache_hit_ratio": float(cache_hit_ratio),
+            }
+        )
 
     def record_busy(self, module: str, cycles: float) -> None:
         self.stats.record_busy(module, cycles)
@@ -186,6 +252,28 @@ class Analyzer:
                 render_timeline_png(self._trace_events, self._timeline_image_file)
             except Exception as e:
                 print(f"[analyzer] warn: failed to render timeline image ({type(e).__name__}: {e})")
+        if self._fre_viz_enabled and self._fre_viz_records and self._fre_viz_file:
+            try:
+                render_fre_core_trace(
+                    self._fre_viz_records,
+                    int(self._fre_viz_num_tiles_x or 0),
+                    int(self._fre_viz_num_tiles_y or 0),
+                    self._fre_viz_file,
+                    title="FRE Core Tile Order & Cache Hit Rate (Frame 0)",
+                )
+            except Exception as e:
+                print(f"[analyzer] warn: failed to render fre core trace ({type(e).__name__}: {e})")
+        if self._fre_viz_enabled and self._fre_viz_records and self._fre_assign_file:
+            try:
+                render_fre_core_assignment(
+                    self._fre_viz_records,
+                    int(self._fre_viz_num_tiles_x or 0),
+                    int(self._fre_viz_num_tiles_y or 0),
+                    self._fre_assign_file,
+                    title="FRE Core Assignment (Frame 0)",
+                )
+            except Exception as e:
+                print(f"[analyzer] warn: failed to render fre core assignment ({type(e).__name__}: {e})")
 
     def _print_summary(self) -> None:
         print("[analyzer] === Simulation Summary ===")

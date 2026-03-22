@@ -53,6 +53,10 @@ class TileTask:
     region: str
     gaussian_ids: Optional[List[int]] = None
     label_counts: Optional[Dict[int, int]] = None
+    tile_x: Optional[int] = None
+    tile_y: Optional[int] = None
+    num_tiles_x: Optional[int] = None
+    num_tiles_y: Optional[int] = None
 
 
 @dataclass

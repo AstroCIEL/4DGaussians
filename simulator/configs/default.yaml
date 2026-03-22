@@ -70,3 +70,6 @@ output:
   timeline_file: "simulator/results/scene_timeline.json"
   timeline_image_file: "simulator/results/scene_timeline.png"
   verbose: True
+  fre_visualization_enabled: false
+  fre_visualization_file: "simulator/results/tile_order/fre_core_trace.png"
+  fre_assignment_visualization_file: "simulator/results/tile_order/fre_core_assignment.png"

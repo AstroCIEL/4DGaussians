@@ -450,7 +450,7 @@ def load_workload_from_scene(
         workloads.append(wl)
         if verbose:
             max_tile = max((len(v) for v in tile_map.values()), default=0)
-            print(f"[workload_loader] frame {fid}: tiles={ntx*nty}, visible_gaussians={wl.num_gaussians}, max_per_tile={max_tile}")
+            print(f"[workload_loader] frame {fid}: tiles={ntx}*{nty}={ntx*nty}, visible_gaussians={wl.num_gaussians}, max_per_tile={max_tile}")
 
     return workloads if workloads else None
 

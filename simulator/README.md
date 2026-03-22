@@ -2,9 +2,9 @@
 
 ## 基本信息
 
-* **simulator源码位置**：`/DISK1/home/rh_xu30/4DGaussians/simulator`
-* **算法源码根目录**：`/DISK1/home/rh_xu30/4DGaussians`
-* **完整创新点说明文件**：`/DISK1/home/rh_xu30/4DGaussians/simulator/4DGS行文逻辑.pdf`（重要）
+- **simulator源码位置**：`/DISK1/home/rh_xu30/4DGaussians/simulator`
+- **算法源码根目录**：`/DISK1/home/rh_xu30/4DGaussians`
+- **完整创新点说明文件**：`/DISK1/home/rh_xu30/4DGaussians/simulator/4DGS行文逻辑.pdf`（重要）
 
 该Simulator是一个基于Python的离散事件驱动（Discrete-Event Driven）的Cycle-Accurate模拟器。它专门用于验证和评估一种**面向边缘端低功耗、高帧率的创新型4DGS（4D Gaussian Splatting）渲染ASIC架构**。
 
@@ -15,24 +15,24 @@
 
 ## 核心设计原则与技术栈
 
-* **框架建议**：强烈建议使用 `simpy` 库，利用 `simpy.Resource` 模拟计算核心，利用 `simpy.Store` 模拟带容量限制的 FIFO 和缓存。
-* **真实工作负载驱动**：Simulator 不使用随机数据，而是直接读取算法离线训练后导出的高斯模型参数（如 `.ply` 或 `.json`）、预计算的 2-bit 动静标签，以及 Foveated Rendering 的掩码分区，以保证评估的准确性。
-* **模块解耦与并发**：各个硬件Engine作为独立的进程/协程运行，通过 FIFO 相互握手。
+- **框架建议**：强烈建议使用 `simpy` 库，利用 `simpy.Resource` 模拟计算核心，利用 `simpy.Store` 模拟带容量限制的 FIFO 和缓存。
+- **真实工作负载驱动**：Simulator 不使用随机数据，而是直接读取算法离线训练后导出的高斯模型参数（如 `.ply` 或 `.json`）、预计算的 2-bit 动静标签，以及 Foveated Rendering 的掩码分区，以保证评估的准确性。
+- **模块解耦与并发**：各个硬件Engine作为独立的进程/协程运行，通过 FIFO 相互握手。
 
 ## 文件结构
 
-* `configs/`: 包含 `.yaml` 配置文件（场景/硬件/算法/输出等）。
-* `results/`: 每次仿真的性能报告、图表和日志保存目录。
-* `utils/`: 可视化等工具代码。
-* `simulator.py`: 主Simulator环境配置与顶层连接。
-* `preprocess_udpe.py`: **【重点模块】** 包含 Unified Deformation-Preprocess Engine 的实现，处理动静高斯的动态路由。
-* `scheduler_wbs.py`: **【重点模块】** 包含 Workload Balancing Scheduler (WSLAS) 的实现。
-* `sort_hse.py`: 包含 Hierarchical Sort Engine (粗排与双调排序) 的实现。
-* `rasterize_fre.py`: **【重点模块】** 包含 Foveated Rasterizing Engine 的实现，支持多分辨率降采样与插值。
-* `memory.py`: 简化的DRAM带宽与延迟模型。
-* `analyzer.py`: 统计总周期数、FIFO满/空时间占比、各Raster Core利用率，并生成图表。
-* `main.py`: 仿真入口，负责加载 Workload 数据并启动仿真。
-* `generate_labels.py`: 离线动静标签生成，自动与 simulator 集成（运行时若无标签会触发生成）。
+- `configs/`: 包含 `.yaml` 配置文件（场景/硬件/算法/输出等）。
+- `results/`: 每次仿真的性能报告、图表和日志保存目录。
+- `utils/`: 可视化等工具代码。
+- `simulator.py`: 主Simulator环境配置与顶层连接。
+- `preprocess_udpe.py`: **【重点模块】** 包含 Unified Deformation-Preprocess Engine 的实现，处理动静高斯的动态路由。
+- `scheduler_wbs.py`: **【重点模块】** 包含 Workload Balancing Scheduler (WSLAS) 的实现。
+- `sort_hse.py`: 包含 Hierarchical Sort Engine (粗排与双调排序) 的实现。
+- `rasterize_fre.py`: **【重点模块】** 包含 Foveated Rasterizing Engine 的实现，支持多分辨率降采样与插值。
+- `memory.py`: 简化的DRAM带宽与延迟模型。
+- `analyzer.py`: 统计总周期数、FIFO满/空时间占比、各Raster Core利用率，并生成图表。
+- `main.py`: 仿真入口，负责加载 Workload 数据并启动仿真。
+- `generate_labels.py`: 离线动静标签生成，自动与 simulator 集成（运行时若无标签会触发生成）。
 
 ## ASIC 数据流与微架构要求
 
@@ -41,68 +41,100 @@
 **非传统的固定流水线，而是基于 2-bit 标签的动态路由结构。**
 给定时间步t，UDPE 的 Dispatcher 首先读取高斯的 2-bit 离线标签，并将其路由到不同的并发数据通路：
 
-* **静止高斯 (Static, 约40%)**：直接进入 Cull Module (视锥剔除)，完成后**完全跳过** Deform Module，通过零开销旁路 (Bypass) 直接输出。
-* **微动高斯 (Quasi-static, 约40%)**：先进入 Cull Module 做粗剔除 -> 进入 `FIFO_cull_to_deform` -> 存活者进入 Deform Module 计算形变。
-* **巨变高斯 (Dynamic, 约20%)**：先进入 Deform Module 计算形变 -> 进入 `FIFO_deform_to_cull` -> 进入 Cull Module 做精确剔除。
-* **相交测试 (Intersection Test)**：存活的高斯球在此步骤计算其覆盖的 Subtile，并将结果打包输出。
+- **静止高斯 (Static, 约40%)**：直接进入 Cull Module (视锥剔除)，完成后**完全跳过** Deform Module，通过零开销旁路 (Bypass) 直接输出。
+- **微动高斯 (Quasi-static, 约40%)**：先进入 Cull Module 做粗剔除 -> 进入 `FIFO_cull_to_deform` -> 存活者进入 Deform Module 计算形变。
+- **巨变高斯 (Dynamic, 约20%)**：先进入 Deform Module 计算形变 -> 进入 `FIFO_deform_to_cull` -> 进入 Cull Module 做精确剔除。
+- **相交测试 (Intersection Test)**：存活的高斯球在此步骤计算其覆盖的 Subtile，并将结果打包输出。
 *(代码要求：必须实现 Inter-stage FIFOs。当处理速度不匹配时，FIFO 满将引发正确的反压 Stall 行为。)*
 
 ### 2. 排序与调度阶段 (HSE & WBS)
 
 **引入了结合空间局部性与贪心负载均衡的 WSLAS (Windowed Spatial-Locality Aware Scheduling)。**
 
-* **数据流**：UDPE 处理完成后，将 frame 拆分为 TileTask 列表，直接送入 WBS 的等待队列。
-* **HSE+FRE 解耦流水线架构**：
+- **数据流**：UDPE 处理完成后，将 frame 拆分为 TileTask 列表，直接送入 WBS 的等待队列。
+- **HSE+FRE 解耦流水线架构**：
   - HSE 和 FRE 核独立调度，实现流水线处理以提高硬件利用率。
   - **HSE 核调度**：当 HSE 核有空闲时，WBS 从等待队列中选择 workload 最大的 TileTask 分配给空闲的 HSE 核进行排序。
   - **中间队列**：排序完成的 TileTask 进入中间队列（sorted_queue），等待 FRE 核处理。
   - **FRE 核调度**：当 FRE 核有空闲时，WBS 从中间队列（FIFO）取出 TileTask 分配给空闲的 FRE 核进行光栅化。
   - **流水线优势**：HSE 和 FRE 核可以并行工作，排序完成的任务可以立即进入光栅化阶段，避免了配对核架构中核之间相互等待的问题。
-* **WBS 调度器 (关键)**：
+- **WBS 调度器 (关键)**：
+
 1. **空间重排**：TileTask 列表最初按照 Hilbert 曲线或 Z-order 进行空间连续性排序进入等待队列。
 2. **滑动窗口 (Sliding Window)**：维护一个大小为 K 的指令窗口 (Instruction Window)，用于 HSE 核的贪心调度。
 3. **双队列管理**：
-   - `pending` 队列：等待排序的 TileTask（使用滑动窗口贪心调度）
-   - `sorted_queue` 队列：排序完成等待光栅化的 TileTask（FIFO 顺序）
+  - `pending` 队列：等待排序的 TileTask（使用滑动窗口贪心调度）
+  - `sorted_queue` 队列：排序完成等待光栅化的 TileTask（FIFO 顺序）
 4. **独立资源管理**：WBS 分别监视 HSE 和 FRE 核的工作状态，独立调度两个阶段。
 5. **局部贪心分发 (Greedy Dispatch)**：
-   - **HSE 阶段**：当 HSE 核空闲时，从窗口内 K 个 TileTask 中选出 **Workload（高斯球数量）最大**的分配给空闲的 HSE 核。
-   - **FRE 阶段**：当 FRE 核空闲时，从 `sorted_queue` 中按 FIFO 顺序取出 TileTask 分配给空闲的 FRE 核。
-   - 窗口在 HSE 调度时向前滑动补充新的 TileTask。
+  - **HSE 阶段**：当 HSE 核空闲时，从窗口内 K 个 TileTask 中选出 **Workload（高斯球数量）最大**的分配给空闲的 HSE 核。
+  - **FRE 阶段**：当 FRE 核空闲时，从 `sorted_queue` 中按 FIFO 顺序取出 TileTask 分配给空闲的 FRE 核。
+  - 窗口在 HSE 调度时向前滑动补充新的 TileTask。
 
 ### 3. 多分辨率光栅化阶段 (FRE: Foveated Rasterizing Engine)
 
 **基于 Tile 的中央凹渲染 (Foveated Rendering)，改变传统 Workload 计算。**
 
-* 接收到 Tile 任务的 Raster Core，会首先检查该 Tile 所在的视野区域（根据配置读取）。真实画幅若无法被 `tile_size` 整除，将直接舍弃右侧/底部不足一整 tile 的区域，仅对可整除区域生成/排序/光栅化任务：
-* **Fovea (中心区)**：1x 原始分辨率计算（Workload 不变）。
-* **Transition (过渡区)**：2x 降采样（每个 Subtile/Tile 实际需要并行处理的像素减少一半，计算 Latency 相应缩短）。
-* **Periphery (外围区)**：4x 降采样（处理像素减少至四分之一）。
-* **插值重建 (Interpolation)**：对于经历过降采样的 Tile，在流水线末端需加上轻量级的插值重建周期（主要为移位和加法延迟），然后再写回 Frame Buffer。
+- 接收到 Tile 任务的 Raster Core，会首先检查该 Tile 所在的视野区域（根据配置读取）。真实画幅若无法被 `tile_size` 整除，将直接舍弃右侧/底部不足一整 tile 的区域，仅对可整除区域生成/排序/光栅化任务：
+- **Fovea (中心区)**：1x 原始分辨率计算（Workload 不变）。
+- **Transition (过渡区)**：2x 降采样（每个 Subtile/Tile 实际需要并行处理的像素减少一半，计算 Latency 相应缩短）。
+- **Periphery (外围区)**：4x 降采样（处理像素减少至四分之一）。
+- **插值重建 (Interpolation)**：对于经历过降采样的 Tile，在流水线末端需加上轻量级的插值重建周期（主要为移位和加法延迟），然后再写回 Frame Buffer。
 
-## 使用说明（含动静标签生成）
+## 使用说明
 
-1) 配置：编辑 `simulator/configs/default_scene.yaml` 或自定义配置文件，常用字段：
+1. 配置：编辑 `simulator/configs/default.yaml` 默认config模板，里面记录了所有config条目作为默认值。
+2. 然后你需要再创建一个yaml文件例如`simulator/configs/dynerf/default_dynerf.yaml`，里面的config会将默认值覆盖，没有的条目则沿用默认值。常用字段：
+
 - `simulation.dataset` / `simulation.scene`：指定数据集与场景；若 `scene` 留空会自动遍历该数据集所有场景并逐个仿真。
 - `simulation.model_path` / `simulation.source_path`：可选，直接指定模型/数据路径。
-- `hardware.*` / `algorithm.*` / `workload.*`：硬件/算法/负载参数（不写则从默认模板补齐）。
+- `hardware.`* / `algorithm.*` / `workload.*`：硬件/算法/负载参数（不写则从默认模板补齐）。
 - `output.stats_file` / `output.csv_file`：输出 JSON/CSV 路径。
 - `simulation.default_template`：可选，指定“默认模板配置”文件路径，用于补齐缺省参数。
 
-2) 查看负载分析：单独运行
-```bash
-python -m simulator.workload_loader --config simulator/configs/default_scene.yaml
-```
-来获取某个config下的工作负载报告。
+1. 运行仿真：
 
-3) 运行仿真：  
 ```bash
 python -m simulator.main --config simulator/configs/default_scene.yaml
 ```
+
 运行时会尝试读取模型目录下的标签文件（默认 `motion_labels.npy`）；若缺失则自动调用 `simulator.generate_labels` 离线生成后再继续仿真。
 
 也可以手动生成标签（可选）：  
+
 ```bash
 python -m simulator.generate_labels --config simulator/configs/default_scene.yaml
 ```
+
 生成结果会写入模型目录并在后续仿真中复用。
+
+## debug模式
+
+1. 查看负载分析以及可视化：单独运行 workload_loader
+
+```bash
+python -m simulator.workload_loader --config simulator/configs/default_scene.yaml
+```
+
+来获取某个 config 下的工作负载报告。
+
+2) 查看 Hilbert 曲线顺序可视化：
+
+```bash
+python -m simulator.utils.hilbert_visualizer --config simulator/configs/default_scene.yaml --output simulator/results/hilbert.png
+```
+
+3) 模拟 foveated rendering 的模糊效果：
+
+```bash
+python -m simulator.utils.foveated_renderer input.png --tile_size 32 --fov_x 90 --output output_foveated.png
+```
+
+4) 可视化模拟中第一帧的模块忙碌甘特图（Timeline）：
+- 配置 `output.timeline_enabled: true` 与 `output.timeline_file/timeline_image_file`
+- 运行仿真后自动生成时间线 PNG
+
+5) 可视化 FRE core 处理 tile 顺序与 cache hit（含 core 分配图）：
+- 配置 `output.fre_visualization_enabled: true`
+- 可选设置 `output.fre_visualization_file` 与 `output.fre_assignment_visualization_file`
+- 运行仿真后自动生成两张图

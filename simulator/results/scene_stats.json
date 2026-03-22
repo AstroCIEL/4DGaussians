@@ -1,90 +1,91 @@
 {
-  "total_cycles": 12954928.017857142,
-  "preprocess_cycles": 10408788.0,
-  "sort_cycles": 1530216.964285701,
-  "rasterize_cycles": 7123178.624999998,
-  "memory_stall_cycles": 17028596.249999955,
-  "cache_hit_ratio": 0.4189307131259701,
-  "total_tiles": 2400,
-  "total_gaussians": 540922,
-  "total_tile_gaussians": 3133696,
-  "fre_total_gaussians": 3133696,
+  "total_cycles": 17380952.39285714,
+  "preprocess_cycles": 3049200.0,
+  "sort_cycles": 1270726.0714285728,
+  "rasterize_cycles": 14160856.857142856,
+  "memory_stall_cycles": 13582315.446428565,
+  "cache_hit_ratio": 0.7892587128574389,
+  "total_tiles": 1302,
+  "total_gaussians": 84700,
+  "total_tile_gaussians": 3446114,
+  "fre_total_gaussians": 3446114,
   "frame_cycles": [
-    2590985.6035714285,
-    2590985.6035714285,
-    2590985.6035714285,
-    2590985.6035714285,
-    2590985.6035714285
+    17380952.39285714
   ],
   "module_busy": {
-    "memory": 17028596.249999955,
-    "udpe": 10408788.0,
-    "hse": 1530216.964285701,
-    "fre": 7123178.624999998
+    "memory": 13582315.446428565,
+    "udpe": 3049200.0,
+    "hse": 1270726.0714285728,
+    "fre": 14160856.857142856
   },
   "module_utilization": {
-    "hse": 0.11668764006985305,
-    "fre": 0.5455969272774084
+    "hse": 0.07308387965884676,
+    "fre": 0.8146169752982076
   },
   "task_time_stats": {
     "hse": {
-      "count": 2400,
-      "mean": 2519.4666294642825,
-      "max": 36962.6785714291,
-      "p50": 967.0982142859139,
-      "p90": 5959.928571429007,
-      "p99": 23791.789285714203
+      "count": 1302,
+      "mean": 3902.51131500988,
+      "max": 37789.55357142864,
+      "p50": 1907.2767857145518,
+      "p90": 8953.07142857137,
+      "p99": 31615.159821428373
     },
     "fre": {
-      "count": 2400,
-      "mean": 11780.281532738105,
-      "max": 224241.625,
-      "p50": 3735.5267857147846,
-      "p90": 24891.987499999424,
-      "p99": 139598.97321428565
+      "count": 1302,
+      "mean": 43498.675471801595,
+      "max": 363562.6964285709,
+      "p50": 22161.59821428568,
+      "p90": 103820.4499999999,
+      "p99": 323469.2807142866
     }
   },
   "scheduling_stats": {
     "wbs.window_selected_workload": {
-      "count": 0
+      "count": 1302,
+      "mean": 2646.7849462365593,
+      "max": 21642.0,
+      "p50": 1366.5,
+      "p90": 6251.500000000005,
+      "p99": 19251.15
     }
   },
   "fre_core_stats": {
     "0": {
-      "total_cycles": 7071731.357142862,
-      "total_gaussians": 790730
+      "total_cycles": 14159072.946428569,
+      "total_gaussians": 862140
     },
     "1": {
-      "total_cycles": 7084526.125000018,
-      "total_gaussians": 787822
+      "total_cycles": 14157306.249999994,
+      "total_gaussians": 862250
     },
     "2": {
-      "total_cycles": 7046975.999999976,
-      "total_gaussians": 778215
+      "total_cycles": 14160663.999999998,
+      "total_gaussians": 860051
     },
     "3": {
-      "total_cycles": 7069442.19642858,
-      "total_gaussians": 776929
+      "total_cycles": 14158232.267857136,
+      "total_gaussians": 861673
     }
   },
   "fifo_blocked": {
-    "udpe_to_wbs.src_get": 5,
-    "wbs.frame_get": 5
+    "udpe_to_wbs.src_get": 1,
+    "wbs.frame_get": 1
   },
   "fifo_blocked_cycles": {
-    "udpe_to_wbs.src_get": 11495461.660714285,
-    "wbs.frame_get": 11495461.660714285
+    "udpe_to_wbs.src_get": 3219356.25,
+    "wbs.frame_get": 3219356.25
   },
-  "start_time": "2026-03-19T02:30:29.943832",
-  "elapsed_time": 2.4340710639953613,
-  "ave_frame_times": 0.0025909856035714286,
-  "fps": 385.95351460911036,
-  "fps_r": 192.97675730455518,
+  "start_time": "2026-03-22T02:20:00.769575",
+  "elapsed_time": 3.528346061706543,
+  "ave_frame_times": 0.017380952392857144,
+  "fps": 57.534246535935445,
+  "fps_r": 28.767123267967722,
   "config": {
     "simulation": {
-      "dataset": "hypernerf/interp",
-      "scene": "torchocolate",
-      "frames": "0,1,2,3,4",
+      "dataset": "dynerf",
+      "scene": "coffee_martini",
+      "frames": 0,
       "resolution": "1440x1024",
       "iteration": -1,
       "camera_split": "video",
@@ -93,14 +94,14 @@
     "hardware": {
       "udpe": {
         "udpe_utilization": 0.5,
-        "skip_enabled": true,
+        "skip_enabled": false,
         "cull_cycles": 4.0,
         "deform_cycles": 18.0,
         "intersection_cycles": 6.0,
         "fifo_depth": 10
       },
       "wbs": {
-        "scheduling_mode": "default_fifo",
+        "scheduling_mode": "hilbert_fifo",
         "window_size_k": 4,
         "fifo_depth": 10
       },
@@ -126,7 +127,7 @@
     },
     "algorithm": {
       "early_stop_ratio": 0.7,
-      "foveated_enabled": true,
+      "foveated_enabled": false,
       "tile_size": 32,
       "subtile_size": 2,
       "fov_x": 90
@@ -134,6 +135,9 @@
     "output": {
       "stats_file": "simulator/results/scene_stats.json",
       "csv_file": "simulator/results/scene_log.csv",
+      "fre_visualization_enabled": true,
+      "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+      "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png",
       "timeline_enabled": false,
       "timeline_file": "simulator/results/scene_timeline.json",
       "timeline_image_file": "simulator/results/scene_timeline.png",

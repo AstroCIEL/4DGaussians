@@ -396,10 +396,26 @@ class WorkloadBalancingScheduler:
         """
         if not tasks:
             return
+
+        # 记录首帧的 FRE 可视化网格信息（优先使用 workload 的有效尺寸）
+        t0 = tasks[0]
+        local_width = self.width
+        local_height = self.height
+        if t0.num_tiles_x and t0.num_tiles_y:
+            local_width = int(t0.num_tiles_x) * int(self.tile_size)
+            local_height = int(t0.num_tiles_y) * int(self.tile_size)
+        self.analyzer.register_fre_frame(
+            frame_id=t0.frame_id,
+            width=local_width,
+            height=local_height,
+            tile_size=self.tile_size,
+        )
+
+        # 使用 workload 的有效尺寸计算 hilbert 顺序
         
         if self.config.scheduling_mode in ("hilbert_window", "hilbert_fifo"):
             # 按希尔伯特曲线排序
-            sorted_tasks = sort_tasks_by_hilbert_curve(tasks, self.width, self.height, self.tile_size)
+            sorted_tasks = sort_tasks_by_hilbert_curve(tasks, local_width, local_height, self.tile_size)
             # 记录 hilbert 顺序索引，供 FRE 侧在已完成任务中择优
             for order_idx, task in enumerate(sorted_tasks):
                 self._hilbert_order[(task.frame_id, task.tile_id)] = order_idx
@@ -408,7 +424,7 @@ class WorkloadBalancingScheduler:
             self._ensure_active_frame()
         elif self.config.scheduling_mode == "default_fifo":
             # 按默认顺序排序（从左到右从上到下）
-            sorted_tasks = sort_tasks_by_default_order(tasks, self.width, self.height, self.tile_size)
+            sorted_tasks = sort_tasks_by_default_order(tasks, local_width, local_height, self.tile_size)
             # 添加到全局任务列表
             self.global_task_list.extend(sorted_tasks)
             # 不需要填充窗口，直接按顺序分发

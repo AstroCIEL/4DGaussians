@@ -142,9 +142,13 @@ class UnifiedDeformPreprocessEngine:
         将处理后的 frame 拆分为 TileTask 列表，供下游模块使用。
         """
         tasks = []
+        num_tiles_x = max(1, frame.width // frame.tile_size)
+        num_tiles_y = max(1, frame.height // frame.tile_size)
         for tile in frame.tiles.values():
             if tile.num_gaussians <= 0:
                 continue
+            tile_x = tile.tile_id % num_tiles_x
+            tile_y = tile.tile_id // num_tiles_x
             tasks.append(
                 TileTask(
                     frame_id=frame.frame_id,
@@ -153,6 +157,10 @@ class UnifiedDeformPreprocessEngine:
                     region=tile.region,
                     gaussian_ids=tile.gaussian_ids,
                     label_counts=tile.label_counts,
+                    tile_x=tile_x,
+                    tile_y=tile_y,
+                    num_tiles_x=num_tiles_x,
+                    num_tiles_y=num_tiles_y,
                 )
             )
         return tasks

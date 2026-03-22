@@ -88,12 +88,29 @@ class FoveatedRasterEngine:
                     previous_gaussians, 
                     task.num_gaussians
                 )
+                cache_hit_ratio = self.memory.get_tile_cache_hit_ratio(
+                    current_gaussians,
+                    previous_gaussians,
+                    task.num_gaussians,
+                )
 
                 start = self.env.now
 
                 if mem_cycles > 0:
                     self.analyzer.record_busy("memory", mem_cycles)
                     yield self.env.timeout(mem_cycles)
+
+                # 记录 FRE 各 core 的 tile 处理顺序与 cache hit rate
+                self.analyzer.record_fre_tile(
+                    frame_id=task.frame_id,
+                    core_id=core_id,
+                    tile_id=task.tile_id,
+                    cache_hit_ratio=cache_hit_ratio,
+                    tile_x=task.tile_x,
+                    tile_y=task.tile_y,
+                    num_tiles_x=task.num_tiles_x,
+                    num_tiles_y=task.num_tiles_y,
+                )
                 
                 # 更新当前core的上一次高斯集合
                 if current_gaussians is not None:
