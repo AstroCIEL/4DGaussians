@@ -3,49 +3,49 @@
   "dataset": "dynerf",
   "scenes": [
     {
-      "total_cycles": 47244025.3125,
-      "preprocess_cycles": 7309400.0,
-      "sort_cycles": 10843943.75,
-      "rasterize_cycles": 45580476.6875,
-      "memory_stall_cycles": 97501065.9375,
-      "cache_hit_ratio": 0.6731414548006096,
+      "total_cycles": 33797603.66964288,
+      "preprocess_cycles": 13425428.571428573,
+      "sort_cycles": 5829837.991071474,
+      "rasterize_cycles": 30966799.65178574,
+      "memory_stall_cycles": 61953852.455357455,
+      "cache_hit_ratio": 0.6735370864198504,
       "total_tiles": 6510,
       "total_gaussians": 422694,
       "total_tile_gaussians": 17245841,
       "fre_total_gaussians": 17245841,
       "frame_cycles": [
-        9448805.0625,
-        9448805.0625,
-        9448805.0625,
-        9448805.0625,
-        9448805.0625
+        6759520.733928576,
+        6759520.733928576,
+        6759520.733928576,
+        6759520.733928576,
+        6759520.733928576
       ],
       "module_busy": {
-        "memory": 97501065.9375,
-        "udpe": 7309400.0,
-        "hse": 10843943.75,
-        "fre": 45580476.6875
+        "memory": 61953852.455357455,
+        "udpe": 13425428.571428573,
+        "hse": 5829837.991071474,
+        "fre": 30966799.65178574
       },
       "module_utilization": {
-        "hse": 0.2294239110830423,
-        "fre": 0.9645752262814238
+        "hse": 0.17229864303162087,
+        "fre": 0.9160345628434834
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 6659.851958525345,
-          "max": 69353.75,
-          "p50": 3162.5,
-          "p90": 15530.750000000004,
-          "p99": 54586.737499999974
+          "mean": 3578.05299539171,
+          "max": 37163.973214285914,
+          "p50": 1704.375,
+          "p90": 8330.223214286054,
+          "p99": 29253.073660714057
         },
         "fre": {
           "count": 6510,
-          "mean": 28000.255856374806,
-          "max": 344261.8125,
-          "p50": 8734.0625,
-          "p90": 67157.50000000001,
-          "p99": 296166.69749999983
+          "mean": 19022.902060017565,
+          "max": 231983.4375,
+          "p50": 5957.080357142724,
+          "p90": 45700.42678571358,
+          "p99": 200660.7953571437
         }
       },
       "scheduling_stats": {
@@ -55,20 +55,20 @@
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 45580476.6875,
-          "total_gaussians": 4298650
+          "total_cycles": 30957827.955357105,
+          "total_gaussians": 4286536
         },
         "1": {
-          "total_cycles": 45567319.0625,
-          "total_gaussians": 4365227
+          "total_cycles": 30966749.42857145,
+          "total_gaussians": 4345451
         },
         "2": {
-          "total_cycles": 45569679.125,
-          "total_gaussians": 4294066
+          "total_cycles": 30955945.758928634,
+          "total_gaussians": 4367942
         },
         "3": {
-          "total_cycles": 45564190.75,
-          "total_gaussians": 4287898
+          "total_cycles": 30958569.267857134,
+          "total_gaussians": 4245912
         }
       },
       "fifo_blocked": {
@@ -76,64 +76,72 @@
         "wbs.frame_get": 5
       },
       "fifo_blocked_cycles": {
-        "udpe_to_wbs.src_get": 8300089.0625,
-        "wbs.frame_get": 8300089.0625
+        "udpe_to_wbs.src_get": 14133063.616071431,
+        "wbs.frame_get": 14133063.616071431
       },
-      "start_time": "2026-03-18T09:35:53.678685",
-      "elapsed_time": 17.323160886764526,
-      "ave_frame_times": 0.009448805062500001,
-      "fps": 105.83348829671127,
-      "fps_r": 52.91674414835563,
+      "start_time": "2026-03-19T01:09:32.248617",
+      "elapsed_time": 18.815753698349,
+      "ave_frame_times": 0.0067595207339285765,
+      "fps": 147.9394825997979,
+      "fps_r": 73.96974129989896,
       "config": {
         "simulation": {
           "dataset": "dynerf",
+          "scene": "coffee_martini",
           "frames": "0,1,2,3,4",
           "resolution": "1440x1024",
           "iteration": -1,
           "camera_split": "video",
-          "base_output": "output",
-          "scene": "coffee_martini"
+          "base_output": "output"
         },
         "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "default_fifo",
+            "window_size_k": 4,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
           "clock_frequency": 1.0,
           "relaxation_factor": 0.5,
-          "udpe": {
-            "cull_cycles": 3.0,
-            "deform_cycles": 14.0,
-            "intersection_cycles": 5.0,
-            "fifo_depth": 10,
-            "udpe_utilization": 0.5,
-            "skip_enabled": true
-          },
           "hse": {
             "num_cores": 4,
-            "coarse_sort_cycles": 25.0,
-            "fine_sort_cycles": 40.0
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
           },
           "fre": {
             "num_cores": 4,
-            "base_cycles_per_gaussian": 6.0,
-            "interpolation_cycles": 128.0
-          },
-          "wbs": {
-            "window_size_k": 4,
-            "fifo_depth": 10,
-            "scheduling_mode": "default_fifo"
-          },
-          "memory": {
-            "memory_bandwidth": 51.2,
-            "bandwidth_utilization": 0.6,
-            "bytes_per_gaussian": 240,
-            "read_latency_hiding_rate": 0.4,
-            "cache_hit_enabled": true
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
           }
         },
         "algorithm": {
+          "early_stop_ratio": 0.4,
+          "foveated_enabled": true,
           "tile_size": 32,
           "subtile_size": 2,
-          "early_stop_ratio": 0.5,
-          "fov_x": 90,
-          "foveated_enabled": true
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
+          "csv_file": "simulator/results/dynerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true
         },
         "workload": {
           "static_ratio": 0.4,
@@ -144,11 +152,6 @@
           "num_time_samples": 50,
           "output_npy": "motion_labels.npy",
           "output_json": "motion_labels.json"
-        },
-        "output": {
-          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
-          "csv_file": "simulator/results/dynerf_log.csv",
-          "verbose": true
         }
       },
       "simulation": {
@@ -157,49 +160,49 @@
       }
     },
     {
-      "total_cycles": 23570034.34375,
-      "preprocess_cycles": 6390160.0,
-      "sort_cycles": 5444027.5,
-      "rasterize_cycles": 22096435.25,
-      "memory_stall_cycles": 48279513.28125,
-      "cache_hit_ratio": 0.6083168301378018,
+      "total_cycles": 17476032.361607093,
+      "preprocess_cycles": 11737028.571428573,
+      "sort_cycles": 2933079.107142867,
+      "rasterize_cycles": 14987963.276785664,
+      "memory_stall_cycles": 30678037.83482127,
+      "cache_hit_ratio": 0.6083202366897036,
       "total_tiles": 6510,
       "total_gaussians": 412269,
       "total_tile_gaussians": 8072679,
       "fre_total_gaussians": 8072679,
       "frame_cycles": [
-        4714006.86875,
-        4714006.86875,
-        4714006.86875,
-        4714006.86875,
-        4714006.86875
+        3495206.4723214186,
+        3495206.4723214186,
+        3495206.4723214186,
+        3495206.4723214186,
+        3495206.4723214186
       ],
       "module_busy": {
-        "memory": 48279513.28125,
-        "udpe": 6390160.0,
-        "hse": 5444027.5,
-        "fre": 22096435.25
+        "memory": 30678037.83482127,
+        "udpe": 11737028.571428573,
+        "hse": 2933079.107142867,
+        "fre": 14987963.276785664
       },
       "module_utilization": {
-        "hse": 0.23061849882036195,
-        "fre": 0.9372587113553726
+        "hse": 0.1675781978615692,
+        "fre": 0.8574277627956515
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 3339.8991935483873,
-          "max": 52835.0,
-          "p50": 1362.5,
-          "p90": 6894.125000000001,
-          "p99": 36896.149999999994
+          "mean": 1799.4482389730128,
+          "max": 28314.642857143655,
+          "p50": 740.0892857140861,
+          "p90": 3703.4598214284993,
+          "p99": 19775.97321428563
         },
         "fre": {
           "count": 6510,
-          "mean": 13573.7142953149,
-          "max": 247824.9375,
-          "p50": 3820.34375,
-          "p90": 29029.893750000003,
-          "p99": 183587.38874999998
+          "mean": 9207.026316655687,
+          "max": 168262.3839285709,
+          "p50": 2586.276785714552,
+          "p90": 19712.63571428536,
+          "p99": 124798.13812499966
         }
       },
       "scheduling_stats": {
@@ -209,20 +212,20 @@
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 22091451.0,
-          "total_gaussians": 2032670
+          "total_cycles": 14982916.473214284,
+          "total_gaussians": 2016771
         },
         "1": {
-          "total_cycles": 22096356.5,
-          "total_gaussians": 1991912
+          "total_cycles": 14984521.776785692,
+          "total_gaussians": 2018473
         },
         "2": {
-          "total_cycles": 22088682.25,
-          "total_gaussians": 2027579
+          "total_cycles": 14982686.13392856,
+          "total_gaussians": 2013527
         },
         "3": {
-          "total_cycles": 22088390.3125,
-          "total_gaussians": 2020518
+          "total_cycles": 14987616.937499952,
+          "total_gaussians": 2023908
         }
       },
       "fifo_blocked": {
@@ -230,64 +233,72 @@
         "wbs.frame_get": 5
       },
       "fifo_blocked_cycles": {
-        "udpe_to_wbs.src_get": 7356415.46875,
-        "wbs.frame_get": 7356415.46875
+        "udpe_to_wbs.src_get": 12427211.049107144,
+        "wbs.frame_get": 12427211.049107144
       },
-      "start_time": "2026-03-18T09:36:46.968093",
-      "elapsed_time": 8.013968229293823,
-      "ave_frame_times": 0.0047140068687500005,
-      "fps": 212.13375963221011,
-      "fps_r": 106.06687981610506,
+      "start_time": "2026-03-19T01:10:25.359752",
+      "elapsed_time": 8.207878112792969,
+      "ave_frame_times": 0.003495206472321419,
+      "fps": 286.10613075908725,
+      "fps_r": 143.05306537954363,
       "config": {
         "simulation": {
           "dataset": "dynerf",
+          "scene": "cook_spinach",
           "frames": "0,1,2,3,4",
           "resolution": "1440x1024",
           "iteration": -1,
           "camera_split": "video",
-          "base_output": "output",
-          "scene": "cook_spinach"
+          "base_output": "output"
         },
         "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "default_fifo",
+            "window_size_k": 4,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
           "clock_frequency": 1.0,
           "relaxation_factor": 0.5,
-          "udpe": {
-            "cull_cycles": 3.0,
-            "deform_cycles": 14.0,
-            "intersection_cycles": 5.0,
-            "fifo_depth": 10,
-            "udpe_utilization": 0.5,
-            "skip_enabled": true
-          },
           "hse": {
             "num_cores": 4,
-            "coarse_sort_cycles": 25.0,
-            "fine_sort_cycles": 40.0
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
           },
           "fre": {
             "num_cores": 4,
-            "base_cycles_per_gaussian": 6.0,
-            "interpolation_cycles": 128.0
-          },
-          "wbs": {
-            "window_size_k": 4,
-            "fifo_depth": 10,
-            "scheduling_mode": "default_fifo"
-          },
-          "memory": {
-            "memory_bandwidth": 51.2,
-            "bandwidth_utilization": 0.6,
-            "bytes_per_gaussian": 240,
-            "read_latency_hiding_rate": 0.4,
-            "cache_hit_enabled": true
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
           }
         },
         "algorithm": {
+          "early_stop_ratio": 0.4,
+          "foveated_enabled": true,
           "tile_size": 32,
           "subtile_size": 2,
-          "early_stop_ratio": 0.5,
-          "fov_x": 90,
-          "foveated_enabled": true
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
+          "csv_file": "simulator/results/dynerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true
         },
         "workload": {
           "static_ratio": 0.4,
@@ -298,11 +309,6 @@
           "num_time_samples": 50,
           "output_npy": "motion_labels.npy",
           "output_json": "motion_labels.json"
-        },
-        "output": {
-          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
-          "csv_file": "simulator/results/dynerf_log.csv",
-          "verbose": true
         }
       },
       "simulation": {
@@ -311,49 +317,49 @@
       }
     },
     {
-      "total_cycles": 26644605.0,
-      "preprocess_cycles": 6538364.0,
-      "sort_cycles": 6203820.0,
-      "rasterize_cycles": 25153417.5625,
-      "memory_stall_cycles": 55424851.875,
-      "cache_hit_ratio": 0.6232851499811158,
+      "total_cycles": 19602240.13392853,
+      "preprocess_cycles": 12009240.0,
+      "sort_cycles": 3340147.9017856917,
+      "rasterize_cycles": 17069615.62499996,
+      "memory_stall_cycles": 35215347.99107152,
+      "cache_hit_ratio": 0.624026198952621,
       "total_tiles": 6510,
       "total_gaussians": 389006,
       "total_tile_gaussians": 9394116,
       "fre_total_gaussians": 9394116,
       "frame_cycles": [
-        5328921.0,
-        5328921.0,
-        5328921.0,
-        5328921.0,
-        5328921.0
+        3920448.026785706,
+        3920448.026785706,
+        3920448.026785706,
+        3920448.026785706,
+        3920448.026785706
       ],
       "module_busy": {
-        "memory": 55424851.875,
-        "udpe": 6538364.0,
-        "hse": 6203820.0,
-        "fre": 25153417.5625
+        "memory": 35215347.99107152,
+        "udpe": 12009240.0,
+        "hse": 3340147.9017856917,
+        "fre": 17069615.62499996
       },
       "module_utilization": {
-        "hse": 0.23255474701163706,
-        "fre": 0.9439082748881059
+        "hse": 0.17018919990465173,
+        "fre": 0.8706841098579878
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 3807.2684331797236,
-          "max": 61141.25,
-          "p50": 1728.125,
-          "p90": 7993.250000000003,
-          "p99": 36834.874999999985
+          "mean": 2049.824617346946,
+          "max": 32764.419642856345,
+          "p50": 934.9553571431898,
+          "p90": 4292.276785714367,
+          "p99": 19743.14732142813
         },
         "fre": {
           "count": 6510,
-          "mean": 15453.187797619048,
-          "max": 290822.625,
-          "p50": 4871.21875,
-          "p90": 33501.90625,
-          "p99": 185170.86749999985
+          "mean": 10486.856529789327,
+          "max": 197638.4464285709,
+          "p50": 3304.218750000233,
+          "p90": 22762.146428571923,
+          "p99": 125692.39678571401
         }
       },
       "scheduling_stats": {
@@ -363,20 +369,20 @@
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 25149080.125,
-          "total_gaussians": 2334985
+          "total_cycles": 17066597.88392857,
+          "total_gaussians": 2385020
         },
         "1": {
-          "total_cycles": 25149833.1875,
-          "total_gaussians": 2365582
+          "total_cycles": 17066428.705357123,
+          "total_gaussians": 2361591
         },
         "2": {
-          "total_cycles": 25148604.1875,
-          "total_gaussians": 2356033
+          "total_cycles": 17069523.21428567,
+          "total_gaussians": 2320328
         },
         "3": {
-          "total_cycles": 25152735.0625,
-          "total_gaussians": 2337516
+          "total_cycles": 17066886.205357134,
+          "total_gaussians": 2327177
         }
       },
       "fifo_blocked": {
@@ -384,64 +390,72 @@
         "wbs.frame_get": 5
       },
       "fifo_blocked_cycles": {
-        "udpe_to_wbs.src_get": 7450096.8125,
-        "wbs.frame_get": 7450096.8125
+        "udpe_to_wbs.src_get": 12660477.723214285,
+        "wbs.frame_get": 12660477.723214285
       },
-      "start_time": "2026-03-18T09:37:30.085966",
-      "elapsed_time": 10.427817583084106,
-      "ave_frame_times": 0.005328921,
-      "fps": 187.65524953362979,
-      "fps_r": 93.82762476681489,
+      "start_time": "2026-03-19T01:11:08.931668",
+      "elapsed_time": 10.598223209381104,
+      "ave_frame_times": 0.0039204480267857065,
+      "fps": 255.07288788620394,
+      "fps_r": 127.53644394310197,
       "config": {
         "simulation": {
           "dataset": "dynerf",
+          "scene": "cut_roasted_beef",
           "frames": "0,1,2,3,4",
           "resolution": "1440x1024",
           "iteration": -1,
           "camera_split": "video",
-          "base_output": "output",
-          "scene": "cut_roasted_beef"
+          "base_output": "output"
         },
         "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "default_fifo",
+            "window_size_k": 4,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
           "clock_frequency": 1.0,
           "relaxation_factor": 0.5,
-          "udpe": {
-            "cull_cycles": 3.0,
-            "deform_cycles": 14.0,
-            "intersection_cycles": 5.0,
-            "fifo_depth": 10,
-            "udpe_utilization": 0.5,
-            "skip_enabled": true
-          },
           "hse": {
             "num_cores": 4,
-            "coarse_sort_cycles": 25.0,
-            "fine_sort_cycles": 40.0
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
           },
           "fre": {
             "num_cores": 4,
-            "base_cycles_per_gaussian": 6.0,
-            "interpolation_cycles": 128.0
-          },
-          "wbs": {
-            "window_size_k": 4,
-            "fifo_depth": 10,
-            "scheduling_mode": "default_fifo"
-          },
-          "memory": {
-            "memory_bandwidth": 51.2,
-            "bandwidth_utilization": 0.6,
-            "bytes_per_gaussian": 240,
-            "read_latency_hiding_rate": 0.4,
-            "cache_hit_enabled": true
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
           }
         },
         "algorithm": {
+          "early_stop_ratio": 0.4,
+          "foveated_enabled": true,
           "tile_size": 32,
           "subtile_size": 2,
-          "early_stop_ratio": 0.5,
-          "fov_x": 90,
-          "foveated_enabled": true
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
+          "csv_file": "simulator/results/dynerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true
         },
         "workload": {
           "static_ratio": 0.4,
@@ -452,11 +466,6 @@
           "num_time_samples": 50,
           "output_npy": "motion_labels.npy",
           "output_json": "motion_labels.json"
-        },
-        "output": {
-          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
-          "csv_file": "simulator/results/dynerf_log.csv",
-          "verbose": true
         }
       },
       "simulation": {
@@ -465,49 +474,49 @@
       }
     },
     {
-      "total_cycles": 47564629.28125,
-      "preprocess_cycles": 7391076.0,
-      "sort_cycles": 11063035.0,
-      "rasterize_cycles": 45872455.5,
-      "memory_stall_cycles": 99659407.96875,
-      "cache_hit_ratio": 0.6849517991046288,
+      "total_cycles": 34051408.82589288,
+      "preprocess_cycles": 13575445.714285716,
+      "sort_cycles": 5949568.526785711,
+      "rasterize_cycles": 31182353.133928593,
+      "memory_stall_cycles": 63364308.81696419,
+      "cache_hit_ratio": 0.6849062615513921,
       "total_tiles": 6510,
       "total_gaussians": 448953,
       "total_tile_gaussians": 17776537,
       "fre_total_gaussians": 17776537,
       "frame_cycles": [
-        9512925.85625,
-        9512925.85625,
-        9512925.85625,
-        9512925.85625,
-        9512925.85625
+        6810281.765178576,
+        6810281.765178576,
+        6810281.765178576,
+        6810281.765178576,
+        6810281.765178576
       ],
       "module_busy": {
-        "memory": 99659407.96875,
-        "udpe": 7391076.0,
-        "hse": 11063035.0,
-        "fre": 45872455.5
+        "memory": 63364308.81696419,
+        "udpe": 13575445.714285716,
+        "hse": 5949568.526785711,
+        "fre": 31182353.133928593
       },
       "module_utilization": {
-        "hse": 0.23249174028271508,
-        "fre": 0.9642553268953951
+        "hse": 0.174468198270583,
+        "fre": 0.9155762412414096
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 6794.705645161291,
-          "max": 56603.75,
-          "p50": 3426.875,
-          "p90": 15982.62500000001,
-          "p99": 49178.22499999998
+          "mean": 3650.3151744568786,
+          "max": 30333.616071428638,
+          "p50": 1846.0044642854482,
+          "p90": 8572.29910714366,
+          "p99": 26355.656249999745
         },
         "fre": {
           "count": 6510,
-          "mean": 28180.919911674348,
-          "max": 307709.4375,
-          "p50": 9587.90625,
-          "p90": 69595.7875,
-          "p99": 262666.3181249999
+          "mean": 19156.16645271011,
+          "max": 208505.02678571455,
+          "p50": 6556.785714285448,
+          "p90": 47270.946428572766,
+          "p99": 178059.55437499942
         }
       },
       "scheduling_stats": {
@@ -517,20 +526,20 @@
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 45862905.6875,
-          "total_gaussians": 4474149
+          "total_cycles": 31175632.964285698,
+          "total_gaussians": 4457805
         },
         "1": {
-          "total_cycles": 45861033.5625,
-          "total_gaussians": 4437580
+          "total_cycles": 31182288.84821431,
+          "total_gaussians": 4431605
         },
         "2": {
-          "total_cycles": 45862966.375,
-          "total_gaussians": 4466726
+          "total_cycles": 31174278.500000022,
+          "total_gaussians": 4437225
         },
         "3": {
-          "total_cycles": 45870883.0,
-          "total_gaussians": 4398082
+          "total_cycles": 31174443.2946429,
+          "total_gaussians": 4449902
         }
       },
       "fifo_blocked": {
@@ -538,64 +547,72 @@
         "wbs.frame_get": 5
       },
       "fifo_blocked_cycles": {
-        "udpe_to_wbs.src_get": 8443309.59375,
-        "wbs.frame_get": 8443309.59375
+        "udpe_to_wbs.src_get": 14327041.138392858,
+        "wbs.frame_get": 14327041.138392858
       },
-      "start_time": "2026-03-18T09:38:40.572041",
-      "elapsed_time": 18.20430088043213,
-      "ave_frame_times": 0.00951292585625,
-      "fps": 105.12012971729399,
-      "fps_r": 52.560064858646996,
+      "start_time": "2026-03-19T01:12:19.677793",
+      "elapsed_time": 18.332015991210938,
+      "ave_frame_times": 0.006810281765178576,
+      "fps": 146.83680271689587,
+      "fps_r": 73.41840135844794,
       "config": {
         "simulation": {
           "dataset": "dynerf",
+          "scene": "flame_salmon_1",
           "frames": "0,1,2,3,4",
           "resolution": "1440x1024",
           "iteration": -1,
           "camera_split": "video",
-          "base_output": "output",
-          "scene": "flame_salmon_1"
+          "base_output": "output"
         },
         "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "default_fifo",
+            "window_size_k": 4,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
           "clock_frequency": 1.0,
           "relaxation_factor": 0.5,
-          "udpe": {
-            "cull_cycles": 3.0,
-            "deform_cycles": 14.0,
-            "intersection_cycles": 5.0,
-            "fifo_depth": 10,
-            "udpe_utilization": 0.5,
-            "skip_enabled": true
-          },
           "hse": {
             "num_cores": 4,
-            "coarse_sort_cycles": 25.0,
-            "fine_sort_cycles": 40.0
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
           },
           "fre": {
             "num_cores": 4,
-            "base_cycles_per_gaussian": 6.0,
-            "interpolation_cycles": 128.0
-          },
-          "wbs": {
-            "window_size_k": 4,
-            "fifo_depth": 10,
-            "scheduling_mode": "default_fifo"
-          },
-          "memory": {
-            "memory_bandwidth": 51.2,
-            "bandwidth_utilization": 0.6,
-            "bytes_per_gaussian": 240,
-            "read_latency_hiding_rate": 0.4,
-            "cache_hit_enabled": true
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
           }
         },
         "algorithm": {
+          "early_stop_ratio": 0.4,
+          "foveated_enabled": true,
           "tile_size": 32,
           "subtile_size": 2,
-          "early_stop_ratio": 0.5,
-          "fov_x": 90,
-          "foveated_enabled": true
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
+          "csv_file": "simulator/results/dynerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true
         },
         "workload": {
           "static_ratio": 0.4,
@@ -606,11 +623,6 @@
           "num_time_samples": 50,
           "output_npy": "motion_labels.npy",
           "output_json": "motion_labels.json"
-        },
-        "output": {
-          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
-          "csv_file": "simulator/results/dynerf_log.csv",
-          "verbose": true
         }
       },
       "simulation": {
@@ -619,49 +631,49 @@
       }
     },
     {
-      "total_cycles": 23055337.875,
-      "preprocess_cycles": 5713652.0,
-      "sort_cycles": 5400262.5,
-      "rasterize_cycles": 21740611.0,
-      "memory_stall_cycles": 47973178.125,
-      "cache_hit_ratio": 0.6563149333351593,
+      "total_cycles": 16974593.794642895,
+      "preprocess_cycles": 10494462.857142858,
+      "sort_cycles": 2909561.785714274,
+      "rasterize_cycles": 14751524.687500037,
+      "memory_stall_cycles": 30494406.02678562,
+      "cache_hit_ratio": 0.6561945643429324,
       "total_tiles": 6510,
       "total_gaussians": 361262,
       "total_tile_gaussians": 8324403,
       "fre_total_gaussians": 8324403,
       "frame_cycles": [
-        4611067.575,
-        4611067.575,
-        4611067.575,
-        4611067.575,
-        4611067.575
+        3394918.7589285793,
+        3394918.7589285793,
+        3394918.7589285793,
+        3394918.7589285793,
+        3394918.7589285793
       ],
       "module_busy": {
-        "memory": 47973178.125,
-        "udpe": 5713652.0,
-        "hse": 5400262.5,
-        "fre": 21740611.0
+        "memory": 30494406.02678562,
+        "udpe": 10494462.857142858,
+        "hse": 2909561.785714274,
+        "fre": 14751524.687500037
       },
       "module_utilization": {
-        "hse": 0.23384985851134485,
-        "fre": 0.9427659744554926
+        "hse": 0.17113019307181374,
+        "fre": 0.8688468689187386
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 3312.7419354838707,
-          "max": 45458.75,
-          "p50": 1610.0,
-          "p90": 6854.0000000000055,
-          "p99": 30083.112499999992
+          "mean": 1784.8636026991387,
+          "max": 24363.080357143655,
+          "p50": 872.6785714281723,
+          "p90": 3681.964285714508,
+          "p99": 16126.131696427889
         },
         "fre": {
           "count": 6510,
-          "mean": 13355.322935867896,
-          "max": 216261.1875,
-          "p50": 4625.71875,
-          "p90": 29216.512500000004,
-          "p99": 147563.45625
+          "mean": 9061.949412991005,
+          "max": 146879.70535714366,
+          "p50": 3139.339285714552,
+          "p90": 19852.702678570906,
+          "p99": 100116.57303571429
         }
       },
       "scheduling_stats": {
@@ -671,20 +683,20 @@
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 21736086.5,
-          "total_gaussians": 2058002
+          "total_cycles": 14751524.687500037,
+          "total_gaussians": 2099162
         },
         "1": {
-          "total_cycles": 21732097.375,
-          "total_gaussians": 2095784
+          "total_cycles": 14748486.758928604,
+          "total_gaussians": 2118665
         },
         "2": {
-          "total_cycles": 21735209.9375,
-          "total_gaussians": 2081855
+          "total_cycles": 14747924.223214291,
+          "total_gaussians": 2048144
         },
         "3": {
-          "total_cycles": 21739758.5,
-          "total_gaussians": 2088762
+          "total_cycles": 14745355.008928554,
+          "total_gaussians": 2058432
         }
       },
       "fifo_blocked": {
@@ -692,64 +704,72 @@
         "wbs.frame_get": 5
       },
       "fifo_blocked_cycles": {
-        "udpe_to_wbs.src_get": 6560359.8125,
-        "wbs.frame_get": 6560359.8125
+        "udpe_to_wbs.src_get": 11099254.151785713,
+        "wbs.frame_get": 11099254.151785713
       },
-      "start_time": "2026-03-18T09:39:34.914226",
-      "elapsed_time": 8.63713264465332,
-      "ave_frame_times": 0.004611067575000001,
-      "fps": 216.86951746743807,
-      "fps_r": 108.43475873371904,
+      "start_time": "2026-03-19T01:13:14.431603",
+      "elapsed_time": 8.730554580688477,
+      "ave_frame_times": 0.0033949187589285795,
+      "fps": 294.55785867335317,
+      "fps_r": 147.27892933667658,
       "config": {
         "simulation": {
           "dataset": "dynerf",
+          "scene": "flame_steak",
           "frames": "0,1,2,3,4",
           "resolution": "1440x1024",
           "iteration": -1,
           "camera_split": "video",
-          "base_output": "output",
-          "scene": "flame_steak"
+          "base_output": "output"
         },
         "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "default_fifo",
+            "window_size_k": 4,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
           "clock_frequency": 1.0,
           "relaxation_factor": 0.5,
-          "udpe": {
-            "cull_cycles": 3.0,
-            "deform_cycles": 14.0,
-            "intersection_cycles": 5.0,
-            "fifo_depth": 10,
-            "udpe_utilization": 0.5,
-            "skip_enabled": true
-          },
           "hse": {
             "num_cores": 4,
-            "coarse_sort_cycles": 25.0,
-            "fine_sort_cycles": 40.0
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
           },
           "fre": {
             "num_cores": 4,
-            "base_cycles_per_gaussian": 6.0,
-            "interpolation_cycles": 128.0
-          },
-          "wbs": {
-            "window_size_k": 4,
-            "fifo_depth": 10,
-            "scheduling_mode": "default_fifo"
-          },
-          "memory": {
-            "memory_bandwidth": 51.2,
-            "bandwidth_utilization": 0.6,
-            "bytes_per_gaussian": 240,
-            "read_latency_hiding_rate": 0.4,
-            "cache_hit_enabled": true
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
           }
         },
         "algorithm": {
+          "early_stop_ratio": 0.4,
+          "foveated_enabled": true,
           "tile_size": 32,
           "subtile_size": 2,
-          "early_stop_ratio": 0.5,
-          "fov_x": 90,
-          "foveated_enabled": true
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
+          "csv_file": "simulator/results/dynerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true
         },
         "workload": {
           "static_ratio": 0.4,
@@ -760,11 +780,6 @@
           "num_time_samples": 50,
           "output_npy": "motion_labels.npy",
           "output_json": "motion_labels.json"
-        },
-        "output": {
-          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
-          "csv_file": "simulator/results/dynerf_log.csv",
-          "verbose": true
         }
       },
       "simulation": {
@@ -773,49 +788,49 @@
       }
     },
     {
-      "total_cycles": 25763017.5,
-      "preprocess_cycles": 5815992.0,
-      "sort_cycles": 5993157.5,
-      "rasterize_cycles": 24421338.75,
-      "memory_stall_cycles": 53034296.71875,
-      "cache_hit_ratio": 0.6556682460339428,
+      "total_cycles": 18836242.151785716,
+      "preprocess_cycles": 10682434.285714285,
+      "sort_cycles": 3227273.839285705,
+      "rasterize_cycles": 16571444.250000002,
+      "memory_stall_cycles": 33689332.03125006,
+      "cache_hit_ratio": 0.6553816804250723,
       "total_tiles": 6510,
       "total_gaussians": 375617,
       "total_tile_gaussians": 9212550,
       "fre_total_gaussians": 9212550,
       "frame_cycles": [
-        5152603.5,
-        5152603.5,
-        5152603.5,
-        5152603.5,
-        5152603.5
+        3767248.4303571433,
+        3767248.4303571433,
+        3767248.4303571433,
+        3767248.4303571433,
+        3767248.4303571433
       ],
       "module_busy": {
-        "memory": 53034296.71875,
-        "udpe": 5815992.0,
-        "hse": 5993157.5,
-        "fre": 24421338.75
+        "memory": 33689332.03125006,
+        "udpe": 10682434.285714285,
+        "hse": 3227273.839285705,
+        "fre": 16571444.250000002
       },
       "module_utilization": {
-        "hse": 0.23239929823825956,
-        "fre": 0.9478210833125429
+        "hse": 0.17116305196208081,
+        "fre": 0.879675064931965
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 3678.83698156682,
-          "max": 55748.75,
-          "p50": 1598.75,
-          "p90": 7582.250000000008,
-          "p99": 36306.76249999999
+          "mean": 1980.994589368009,
+          "max": 29875.580357142724,
+          "p50": 866.6517857140861,
+          "p90": 4072.098214285546,
+          "p99": 19460.22991071394
         },
         "fre": {
           "count": 6510,
-          "mean": 15003.828667434716,
-          "max": 279289.6875,
-          "p50": 4572.09375,
-          "p90": 32704.312500000015,
-          "p99": 180957.46874999988
+          "mean": 10181.119838983981,
+          "max": 189934.1964285709,
+          "p50": 3111.888392857276,
+          "p90": 22134.758928571184,
+          "p99": 122877.04580357201
         }
       },
       "scheduling_stats": {
@@ -825,20 +840,20 @@
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 24417525.8125,
-          "total_gaussians": 2309597
+          "total_cycles": 16571444.250000002,
+          "total_gaussians": 2314778
         },
         "1": {
-          "total_cycles": 24417746.125,
-          "total_gaussians": 2287037
+          "total_cycles": 16569202.94642859,
+          "total_gaussians": 2308664
         },
         "2": {
-          "total_cycles": 24421256.25,
-          "total_gaussians": 2273116
+          "total_cycles": 16568958.687500017,
+          "total_gaussians": 2305423
         },
         "3": {
-          "total_cycles": 24418396.4375,
-          "total_gaussians": 2342800
+          "total_cycles": 16569484.267857168,
+          "total_gaussians": 2283685
         }
       },
       "fifo_blocked": {
@@ -846,64 +861,72 @@
         "wbs.frame_get": 5
       },
       "fifo_blocked_cycles": {
-        "udpe_to_wbs.src_get": 6696344.34375,
-        "wbs.frame_get": 6696344.34375
+        "udpe_to_wbs.src_get": 11311257.388392856,
+        "wbs.frame_get": 11311257.388392856
       },
-      "start_time": "2026-03-18T09:40:18.709677",
-      "elapsed_time": 10.620445489883423,
-      "ave_frame_times": 0.0051526035,
-      "fps": 194.0766449426974,
-      "fps_r": 97.0383224713487,
+      "start_time": "2026-03-19T01:13:58.719513",
+      "elapsed_time": 9.457035064697266,
+      "ave_frame_times": 0.0037672484303571435,
+      "fps": 265.44572742849283,
+      "fps_r": 132.72286371424642,
       "config": {
         "simulation": {
           "dataset": "dynerf",
+          "scene": "sear_steak",
           "frames": "0,1,2,3,4",
           "resolution": "1440x1024",
           "iteration": -1,
           "camera_split": "video",
-          "base_output": "output",
-          "scene": "sear_steak"
+          "base_output": "output"
         },
         "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "default_fifo",
+            "window_size_k": 4,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
           "clock_frequency": 1.0,
           "relaxation_factor": 0.5,
-          "udpe": {
-            "cull_cycles": 3.0,
-            "deform_cycles": 14.0,
-            "intersection_cycles": 5.0,
-            "fifo_depth": 10,
-            "udpe_utilization": 0.5,
-            "skip_enabled": true
-          },
           "hse": {
             "num_cores": 4,
-            "coarse_sort_cycles": 25.0,
-            "fine_sort_cycles": 40.0
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
           },
           "fre": {
             "num_cores": 4,
-            "base_cycles_per_gaussian": 6.0,
-            "interpolation_cycles": 128.0
-          },
-          "wbs": {
-            "window_size_k": 4,
-            "fifo_depth": 10,
-            "scheduling_mode": "default_fifo"
-          },
-          "memory": {
-            "memory_bandwidth": 51.2,
-            "bandwidth_utilization": 0.6,
-            "bytes_per_gaussian": 240,
-            "read_latency_hiding_rate": 0.4,
-            "cache_hit_enabled": true
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
           }
         },
         "algorithm": {
+          "early_stop_ratio": 0.4,
+          "foveated_enabled": true,
           "tile_size": 32,
           "subtile_size": 2,
-          "early_stop_ratio": 0.5,
-          "fov_x": 90,
-          "foveated_enabled": true
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
+          "csv_file": "simulator/results/dynerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true
         },
         "workload": {
           "static_ratio": 0.4,
@@ -914,11 +937,6 @@
           "num_time_samples": 50,
           "output_npy": "motion_labels.npy",
           "output_json": "motion_labels.json"
-        },
-        "output": {
-          "stats_file": "simulator/results/ours_fifo_dynerf_stats.json",
-          "csv_file": "simulator/results/dynerf_log.csv",
-          "verbose": true
         }
       },
       "simulation": {
@@ -927,6 +945,6 @@
       }
     }
   ],
-  "generated_at": "2026-03-18T09:34:53.969494",
+  "generated_at": "2026-03-19T01:08:33.220450",
   "config_path": "/data/home/jet/Work/4DGaussians/simulator/configs/dynerf/default_dynerf_fifo.yaml"
 }

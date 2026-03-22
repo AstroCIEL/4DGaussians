@@ -3,72 +3,77 @@
   "dataset": "dynerf",
   "scenes": [
     {
-      "total_cycles": 48606080.45535706,
+      "total_cycles": 48742915.94642857,
       "preprocess_cycles": 21738548.571428575,
-      "sort_cycles": 5829842.00892855,
-      "rasterize_cycles": 44107499.294642776,
-      "memory_stall_cycles": 62112356.919643134,
-      "cache_hit_ratio": 0.6707936423628167,
+      "sort_cycles": 5872430.491071372,
+      "rasterize_cycles": 44244334.78571428,
+      "memory_stall_cycles": 62779735.714285724,
+      "cache_hit_ratio": 0.6575082363336181,
       "total_tiles": 6510,
       "total_gaussians": 422694,
       "total_tile_gaussians": 17245841,
       "fre_total_gaussians": 17245841,
       "frame_cycles": [
-        9721216.091071412,
-        9721216.091071412,
-        9721216.091071412,
-        9721216.091071412,
-        9721216.091071412
+        9748583.189285714,
+        9748583.189285714,
+        9748583.189285714,
+        9748583.189285714,
+        9748583.189285714
       ],
       "module_busy": {
-        "memory": 62112356.919643134,
+        "memory": 62779735.714285724,
         "udpe": 21738548.571428575,
-        "hse": 5829842.00892855,
-        "fre": 44107499.294642776
+        "hse": 5872430.491071372,
+        "fre": 44244334.78571428
       },
       "module_utilization": {
-        "hse": 0.11980561270206674,
-        "fre": 0.9071461493227737
+        "hse": 0.12023611552515805,
+        "fre": 0.907255648046287
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 3578.0529953917107,
-          "max": 37163.97321428545,
-          "p50": 1704.375,
-          "p90": 8330.223214285263,
-          "p99": 29253.073660715752
+          "mean": 3601.019276662277,
+          "max": 37316.65178571455,
+          "p50": 1748.5714285708964,
+          "p90": 8482.700892857183,
+          "p99": 27888.38839285707
         },
         "fre": {
           "count": 6510,
-          "mean": 27092.36173195083,
-          "max": 233534.4375,
-          "p50": 13755.950892856345,
-          "p90": 65365.39910714348,
-          "p99": 200660.7953571438
+          "mean": 27171.91139455783,
+          "max": 241848.05357142817,
+          "p50": 13946.901785714552,
+          "p90": 65572.11696428509,
+          "p99": 197696.15535714573
         }
       },
       "scheduling_stats": {
         "wbs.window_selected_workload": {
-          "count": 0
+          "count": 6510,
+          "mean": 2649.130721966206,
+          "max": 21642.0,
+          "p50": 1389.5,
+          "p90": 6314.300000000008,
+          "p99": 18848.0
         }
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 44085271.91964286,
-          "total_gaussians": 4310230
+          "total_cycles": 44198963.13392861,
+          "total_gaussians": 4307101
         },
         "1": {
-          "total_cycles": 44091553.58035714,
-          "total_gaussians": 4313256
+          "total_cycles": 44216907.035714276,
+          "total_gaussians": 4308653
         },
         "2": {
-          "total_cycles": 44087601.776785746,
-          "total_gaussians": 4310394
+          "total_cycles": 44244264.47321428,
+          "total_gaussians": 4313851
         },
         "3": {
-          "total_cycles": 44106847.5982142,
-          "total_gaussians": 4311961
+          "total_cycles": 44229008.5357142,
+          "total_gaussians": 4316236
         }
       },
       "fifo_blocked": {
@@ -79,11 +84,11 @@
         "udpe_to_wbs.src_get": 22446183.616071425,
         "wbs.frame_get": 22446183.616071425
       },
-      "start_time": "2026-03-19T00:41:32.850576",
-      "elapsed_time": 17.1596782207489,
-      "ave_frame_times": 0.009721216091071412,
-      "fps": 102.86778841573783,
-      "fps_r": 51.43389420786892,
+      "start_time": "2026-03-19T00:52:41.581715",
+      "elapsed_time": 16.468766927719116,
+      "ave_frame_times": 0.009748583189285715,
+      "fps": 102.57900872190953,
+      "fps_r": 51.289504360954766,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -104,7 +109,7 @@
             "fifo_depth": 10
           },
           "wbs": {
-            "scheduling_mode": "default_fifo",
+            "scheduling_mode": "hilbert_fifo",
             "window_size_k": 4,
             "fifo_depth": 10
           },
@@ -136,7 +141,7 @@
           "fov_x": 90
         },
         "output": {
-          "stats_file": "simulator/results/gscore_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_hilbert_fifo_dynerf_stats.json",
           "csv_file": "simulator/results/dynerf_log.csv",
           "timeline_enabled": false,
           "timeline_file": "simulator/results/scene_timeline.json",
@@ -160,72 +165,77 @@
       }
     },
     {
-      "total_cycles": 26063955.084821433,
+      "total_cycles": 26101141.245535754,
       "preprocess_cycles": 21202405.714285716,
-      "sort_cycles": 2933078.705357086,
-      "rasterize_cycles": 20851981.017857146,
-      "memory_stall_cycles": 30817450.781249877,
-      "cache_hit_ratio": 0.6031606731792507,
+      "sort_cycles": 2942814.7767857173,
+      "rasterize_cycles": 21089602.241071515,
+      "memory_stall_cycles": 31337416.406249966,
+      "cache_hit_ratio": 0.584692454636187,
       "total_tiles": 6510,
       "total_gaussians": 412269,
       "total_tile_gaussians": 8072679,
       "fre_total_gaussians": 8072679,
       "frame_cycles": [
-        5212791.016964287,
-        5212791.016964287,
-        5212791.016964287,
-        5212791.016964287,
-        5212791.016964287
+        5220228.24910715,
+        5220228.24910715,
+        5220228.24910715,
+        5220228.24910715,
+        5220228.24910715
       ],
       "module_busy": {
-        "memory": 30817450.781249877,
+        "memory": 31337416.406249966,
         "udpe": 21202405.714285716,
-        "hse": 2933078.705357086,
-        "fre": 20851981.017857146
+        "hse": 2942814.7767857173,
+        "fre": 21089602.241071515
       },
       "module_utilization": {
-        "hse": 0.11236205281343965,
-        "fre": 0.7988738858075626
+        "hse": 0.11190601352261265,
+        "fre": 0.8030119878589288
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 1799.4466960170978,
-          "max": 28314.642857141793,
-          "p50": 740.0892857145518,
-          "p90": 3703.4598214290113,
-          "p99": 19775.973214286052
+          "mean": 1794.700255102025,
+          "max": 28141.875,
+          "p50": 752.1428571436554,
+          "p90": 3842.879464285638,
+          "p99": 18912.013392856577
         },
         "fre": {
           "count": 6510,
-          "mean": 12793.740754608307,
-          "max": 163072.6517857127,
-          "p50": 5815.058035714086,
-          "p90": 27277.82857142855,
-          "p99": 125274.12178571276
+          "mean": 12878.359027320608,
+          "max": 167288.8928571418,
+          "p50": 5838.125000000931,
+          "p90": 27580.176785714746,
+          "p99": 124980.452142856
         }
       },
       "scheduling_stats": {
         "wbs.window_selected_workload": {
-          "count": 0
+          "count": 6510,
+          "mean": 1240.0428571428572,
+          "max": 15322.0,
+          "p50": 587.5,
+          "p90": 2642.500000000002,
+          "p99": 11697.079999999987
         }
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 20822282.508928575,
-          "total_gaussians": 2014846
+          "total_cycles": 20943047.52678572,
+          "total_gaussians": 2023688
         },
         "1": {
-          "total_cycles": 20810294.30357143,
-          "total_gaussians": 2018022
+          "total_cycles": 20979441.857142873,
+          "total_gaussians": 2019303
         },
         "2": {
-          "total_cycles": 20833274.848214302,
-          "total_gaussians": 2022698
+          "total_cycles": 21008937.973214343,
+          "total_gaussians": 2020568
         },
         "3": {
-          "total_cycles": 20821400.651785664,
-          "total_gaussians": 2017113
+          "total_cycles": 20906689.910714325,
+          "total_gaussians": 2009120
         }
       },
       "fifo_blocked": {
@@ -236,11 +246,11 @@
         "udpe_to_wbs.src_get": 21892588.191964287,
         "wbs.frame_get": 21892588.191964287
       },
-      "start_time": "2026-03-19T00:42:25.782523",
-      "elapsed_time": 8.150827646255493,
-      "ave_frame_times": 0.005212791016964287,
-      "fps": 191.83581247466898,
-      "fps_r": 95.91790623733449,
+      "start_time": "2026-03-19T00:53:33.556896",
+      "elapsed_time": 7.819042205810547,
+      "ave_frame_times": 0.005220228249107151,
+      "fps": 191.56250498645082,
+      "fps_r": 95.78125249322541,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -261,7 +271,7 @@
             "fifo_depth": 10
           },
           "wbs": {
-            "scheduling_mode": "default_fifo",
+            "scheduling_mode": "hilbert_fifo",
             "window_size_k": 4,
             "fifo_depth": 10
           },
@@ -293,7 +303,7 @@
           "fov_x": 90
         },
         "output": {
-          "stats_file": "simulator/results/gscore_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_hilbert_fifo_dynerf_stats.json",
           "csv_file": "simulator/results/dynerf_log.csv",
           "timeline_enabled": false,
           "timeline_file": "simulator/results/scene_timeline.json",
@@ -317,72 +327,77 @@
       }
     },
     {
-      "total_cycles": 28334785.633928623,
+      "total_cycles": 28443633.312499985,
       "preprocess_cycles": 20006022.85714286,
-      "sort_cycles": 3340147.9017857215,
-      "rasterize_cycles": 24195121.125000052,
-      "memory_stall_cycles": 35310952.90178574,
-      "cache_hit_ratio": 0.620989031857814,
+      "sort_cycles": 3346623.0803571497,
+      "rasterize_cycles": 24303968.803571414,
+      "memory_stall_cycles": 35707339.28571428,
+      "cache_hit_ratio": 0.6084391548922751,
       "total_tiles": 6510,
       "total_gaussians": 389006,
       "total_tile_gaussians": 9394116,
       "fre_total_gaussians": 9394116,
       "frame_cycles": [
-        5666957.126785724,
-        5666957.126785724,
-        5666957.126785724,
-        5666957.126785724,
-        5666957.126785724
+        5688726.662499997,
+        5688726.662499997,
+        5688726.662499997,
+        5688726.662499997,
+        5688726.662499997
       ],
       "module_busy": {
-        "memory": 35310952.90178574,
+        "memory": 35707339.28571428,
         "udpe": 20006022.85714286,
-        "hse": 3340147.9017857215,
-        "fre": 24195121.125000052
+        "hse": 3346623.0803571497,
+        "fre": 24303968.803571414
       },
       "module_utilization": {
-        "hse": 0.11773830258794785,
-        "fre": 0.8537318419287679
+        "hse": 0.11726812633868315,
+        "fre": 0.8539683745370482
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 2049.824617346929,
-          "max": 32764.419642858207,
-          "p50": 934.9553571427241,
-          "p90": 4292.276785714367,
-          "p99": 19743.14732142813
+          "mean": 2049.481772547727,
+          "max": 30413.97321428731,
+          "p50": 957.0535714291036,
+          "p90": 4384.486607144215,
+          "p99": 18568.44642857162
         },
         "fre": {
           "count": 6510,
-          "mean": 14863.476946181652,
-          "max": 197638.4464285709,
-          "p50": 7592.308035714552,
-          "p90": 31446.882142857667,
-          "p99": 125692.39678571426
+          "mean": 14924.70863643845,
+          "max": 190284.41964285634,
+          "p50": 7559.566964284517,
+          "p90": 31826.391964285827,
+          "p99": 124222.11571428484
         }
       },
       "scheduling_stats": {
         "wbs.window_selected_workload": {
-          "count": 0
+          "count": 6510,
+          "mean": 1443.0285714285715,
+          "max": 17724.0,
+          "p50": 761.5,
+          "p90": 3033.1000000000004,
+          "p99": 11618.369999999984
         }
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 24190511.92857143,
-          "total_gaussians": 2348141
+          "total_cycles": 24283344.366071418,
+          "total_gaussians": 2345539
         },
         "1": {
-          "total_cycles": 24195074.91964291,
-          "total_gaussians": 2348346
+          "total_cycles": 24303952.732142843,
+          "total_gaussians": 2350861
         },
         "2": {
-          "total_cycles": 24187238.8839286,
-          "total_gaussians": 2348905
+          "total_cycles": 24292646.19642857,
+          "total_gaussians": 2352744
         },
         "3": {
-          "total_cycles": 24188409.18749997,
-          "total_gaussians": 2348724
+          "total_cycles": 24279909.92857149,
+          "total_gaussians": 2344972
         }
       },
       "fifo_blocked": {
@@ -393,11 +408,11 @@
         "udpe_to_wbs.src_get": 20657260.580357146,
         "wbs.frame_get": 20657260.580357146
       },
-      "start_time": "2026-03-19T00:43:09.091098",
-      "elapsed_time": 9.560613632202148,
-      "ave_frame_times": 0.0056669571267857245,
-      "fps": 176.4615432280844,
-      "fps_r": 88.2307716140422,
+      "start_time": "2026-03-19T00:54:16.609847",
+      "elapsed_time": 9.397184133529663,
+      "ave_frame_times": 0.005688726662499997,
+      "fps": 175.78626278389947,
+      "fps_r": 87.89313139194974,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -418,7 +433,7 @@
             "fifo_depth": 10
           },
           "wbs": {
-            "scheduling_mode": "default_fifo",
+            "scheduling_mode": "hilbert_fifo",
             "window_size_k": 4,
             "fifo_depth": 10
           },
@@ -450,7 +465,7 @@
           "fov_x": 90
         },
         "output": {
-          "stats_file": "simulator/results/gscore_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_hilbert_fifo_dynerf_stats.json",
           "csv_file": "simulator/results/dynerf_log.csv",
           "timeline_enabled": false,
           "timeline_file": "simulator/results/scene_timeline.json",
@@ -474,72 +489,77 @@
       }
     },
     {
-      "total_cycles": 50154450.14732148,
+      "total_cycles": 50259265.0580357,
       "preprocess_cycles": 23089011.428571433,
-      "sort_cycles": 5949568.526785698,
-      "rasterize_cycles": 45382434.455357194,
-      "memory_stall_cycles": 63488152.56696408,
-      "cache_hit_ratio": 0.682824163108934,
+      "sort_cycles": 6008610.133928565,
+      "rasterize_cycles": 45487295.57142856,
+      "memory_stall_cycles": 64030768.861607194,
+      "cache_hit_ratio": 0.67155349211154,
       "total_tiles": 6510,
       "total_gaussians": 448953,
       "total_tile_gaussians": 17776537,
       "fre_total_gaussians": 17776537,
       "frame_cycles": [
-        10030890.029464295,
-        10030890.029464295,
-        10030890.029464295,
-        10030890.029464295,
-        10030890.029464295
+        10051853.01160714,
+        10051853.01160714,
+        10051853.01160714,
+        10051853.01160714,
+        10051853.01160714
       ],
       "module_busy": {
-        "memory": 63488152.56696408,
+        "memory": 64030768.861607194,
         "udpe": 23089011.428571433,
-        "hse": 5949568.526785698,
-        "fre": 45382434.455357194
+        "hse": 6008610.133928565,
+        "fre": 45487295.57142856
       },
       "module_utilization": {
-        "hse": 0.11845186078160662,
-        "fre": 0.9045969541290743
+        "hse": 0.1191627836510487,
+        "fre": 0.9044515648669585
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 3650.315174456867,
-          "max": 30333.616071428172,
-          "p50": 1846.0044642854482,
-          "p90": 8572.299107141984,
-          "p99": 26355.65625000144
+          "mean": 3679.8979591836646,
+          "max": 36147.455357142724,
+          "p50": 1875.1339285708964,
+          "p90": 8984.93303571362,
+          "p99": 24662.973214284964
         },
         "fre": {
           "count": 6510,
-          "mean": 27876.84352644284,
-          "max": 208505.02678571455,
-          "p50": 15211.107142858207,
-          "p90": 65587.55714285561,
-          "p99": 178059.5543750028
+          "mean": 27930.61193904979,
+          "max": 219383.375,
+          "p50": 15316.459821429104,
+          "p90": 67377.34285714032,
+          "p99": 174792.47026785414
         }
       },
       "scheduling_stats": {
         "wbs.window_selected_workload": {
-          "count": 0
+          "count": 6510,
+          "mean": 2730.650844854071,
+          "max": 19753.0,
+          "p50": 1540.0,
+          "p90": 6447.1,
+          "p99": 16749.959999999992
         }
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 45366478.11607153,
-          "total_gaussians": 4444669
+          "total_cycles": 45436567.678571396,
+          "total_gaussians": 4444105
         },
         "1": {
-          "total_cycles": 45382370.16964291,
-          "total_gaussians": 4445379
+          "total_cycles": 45438894.54464281,
+          "total_gaussians": 4446884
         },
         "2": {
-          "total_cycles": 45366374.63392856,
-          "total_gaussians": 4441754
+          "total_cycles": 45487223.24999999,
+          "total_gaussians": 4439649
         },
         "3": {
-          "total_cycles": 45363028.437500075,
-          "total_gaussians": 4444735
+          "total_cycles": 45465598.25000002,
+          "total_gaussians": 4445899
         }
       },
       "fifo_blocked": {
@@ -550,11 +570,11 @@
         "udpe_to_wbs.src_get": 23840606.852678575,
         "wbs.frame_get": 23840606.852678575
       },
-      "start_time": "2026-03-19T00:44:17.602214",
-      "elapsed_time": 19.518303155899048,
-      "ave_frame_times": 0.010030890029464296,
-      "fps": 99.69205096084633,
-      "fps_r": 49.846025480423165,
+      "start_time": "2026-03-19T00:55:25.355928",
+      "elapsed_time": 17.533584117889404,
+      "ave_frame_times": 0.01005185301160714,
+      "fps": 99.48414474876161,
+      "fps_r": 49.742072374380804,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -575,7 +595,7 @@
             "fifo_depth": 10
           },
           "wbs": {
-            "scheduling_mode": "default_fifo",
+            "scheduling_mode": "hilbert_fifo",
             "window_size_k": 4,
             "fifo_depth": 10
           },
@@ -607,7 +627,7 @@
           "fov_x": 90
         },
         "output": {
-          "stats_file": "simulator/results/gscore_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_hilbert_fifo_dynerf_stats.json",
           "csv_file": "simulator/results/dynerf_log.csv",
           "timeline_enabled": false,
           "timeline_file": "simulator/results/scene_timeline.json",
@@ -631,72 +651,77 @@
       }
     },
     {
-      "total_cycles": 25183707.160714265,
+      "total_cycles": 25298903.55357143,
       "preprocess_cycles": 18579188.571428575,
-      "sort_cycles": 2909562.5892857187,
-      "rasterize_cycles": 21342489.482142836,
-      "memory_stall_cycles": 30679577.678571403,
-      "cache_hit_ratio": 0.6495533073062416,
+      "sort_cycles": 2930045.2232142244,
+      "rasterize_cycles": 21457714.0,
+      "memory_stall_cycles": 31030678.125000075,
+      "cache_hit_ratio": 0.6372124823846227,
       "total_tiles": 6510,
       "total_gaussians": 361262,
       "total_tile_gaussians": 8324403,
       "fre_total_gaussians": 8324403,
       "frame_cycles": [
-        5036741.432142853,
-        5036741.432142853,
-        5036741.432142853,
-        5036741.432142853,
-        5036741.432142853
+        5059780.710714286,
+        5059780.710714286,
+        5059780.710714286,
+        5059780.710714286,
+        5059780.710714286
       ],
       "module_busy": {
-        "memory": 30679577.678571403,
+        "memory": 31030678.125000075,
         "udpe": 18579188.571428575,
-        "hse": 2909562.5892857187,
-        "fre": 21342489.482142836
+        "hse": 2930045.2232142244,
+        "fre": 21457714.0
       },
       "module_utilization": {
-        "hse": 0.11534703755436419,
-        "fre": 0.847209425689337
+        "hse": 0.1147215624249391,
+        "fre": 0.8469215046776662
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 1784.8639112903343,
-          "max": 24363.080357141793,
-          "p50": 872.6785714281723,
-          "p90": 3681.964285714508,
-          "p99": 16126.131696429584
+          "mean": 1783.3055258393595,
+          "max": 24063.75,
+          "p50": 894.7767857126892,
+          "p90": 3856.339285714095,
+          "p99": 15585.388392857307
         },
         "fre": {
           "count": 6510,
-          "mean": 13109.600049374583,
-          "max": 146879.7053571418,
-          "p50": 7085.816964285914,
-          "p90": 27525.90714285768,
-          "p99": 101430.9267857156
+          "mean": 13165.090915075723,
+          "max": 149417.7321428582,
+          "p50": 7112.089285714319,
+          "p90": 27935.739285714008,
+          "p99": 102270.56580357185
         }
       },
       "scheduling_stats": {
         "wbs.window_selected_workload": {
-          "count": 0
+          "count": 6510,
+          "mean": 1278.710138248848,
+          "max": 13341.0,
+          "p50": 714.0,
+          "p90": 2699.1000000000004,
+          "p99": 9416.82
         }
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 21342489.482142836,
-          "total_gaussians": 2083557
+          "total_cycles": 21405165.473214317,
+          "total_gaussians": 2081323
         },
         "1": {
-          "total_cycles": 21335269.464285683,
-          "total_gaussians": 2079580
+          "total_cycles": 21457685.875,
+          "total_gaussians": 2082908
         },
         "2": {
-          "total_cycles": 21329382.20535713,
-          "total_gaussians": 2080717
+          "total_cycles": 21438262.741071466,
+          "total_gaussians": 2082687
         },
         "3": {
-          "total_cycles": 21336355.169642884,
-          "total_gaussians": 2080549
+          "total_cycles": 21403627.767857175,
+          "total_gaussians": 2077485
         }
       },
       "fifo_blocked": {
@@ -707,11 +732,11 @@
         "udpe_to_wbs.src_get": 19183979.866071433,
         "wbs.frame_get": 19183979.866071433
       },
-      "start_time": "2026-03-19T00:45:13.210707",
-      "elapsed_time": 8.561777830123901,
-      "ave_frame_times": 0.005036741432142853,
-      "fps": 198.5410633983162,
-      "fps_r": 99.2705316991581,
+      "start_time": "2026-03-19T00:56:18.327904",
+      "elapsed_time": 9.697586297988892,
+      "ave_frame_times": 0.005059780710714287,
+      "fps": 197.63702365251922,
+      "fps_r": 98.81851182625961,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -732,7 +757,7 @@
             "fifo_depth": 10
           },
           "wbs": {
-            "scheduling_mode": "default_fifo",
+            "scheduling_mode": "hilbert_fifo",
             "window_size_k": 4,
             "fifo_depth": 10
           },
@@ -764,7 +789,7 @@
           "fov_x": 90
         },
         "output": {
-          "stats_file": "simulator/results/gscore_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_hilbert_fifo_dynerf_stats.json",
           "csv_file": "simulator/results/dynerf_log.csv",
           "timeline_enabled": false,
           "timeline_file": "simulator/results/scene_timeline.json",
@@ -788,72 +813,77 @@
       }
     },
     {
-      "total_cycles": 27592682.660714313,
+      "total_cycles": 27776080.78571426,
       "preprocess_cycles": 19317445.714285716,
-      "sort_cycles": 3227273.8392857094,
-      "rasterize_cycles": 23593661.901785742,
-      "memory_stall_cycles": 33893144.53125003,
-      "cache_hit_ratio": 0.6487727067967066,
+      "sort_cycles": 3248410.5803571655,
+      "rasterize_cycles": 23777078.107142832,
+      "memory_stall_cycles": 34499763.28125008,
+      "cache_hit_ratio": 0.629136666829488,
       "total_tiles": 6510,
       "total_gaussians": 375617,
       "total_tile_gaussians": 9212550,
       "fre_total_gaussians": 9212550,
       "frame_cycles": [
-        5518536.532142863,
-        5518536.532142863,
-        5518536.532142863,
-        5518536.532142863,
-        5518536.532142863
+        5555216.157142852,
+        5555216.157142852,
+        5555216.157142852,
+        5555216.157142852,
+        5555216.157142852
       ],
       "module_busy": {
-        "memory": 33893144.53125003,
+        "memory": 34499763.28125008,
         "udpe": 19317445.714285716,
-        "hse": 3227273.8392857094,
-        "fre": 23593661.901785742
+        "hse": 3248410.5803571655,
+        "fre": 23777078.107142832
       },
       "module_utilization": {
-        "hse": 0.11684506120119904,
-        "fre": 0.8549494608051937
+        "hse": 0.11605906279174777,
+        "fre": 0.8547788589683303
       },
       "task_time_stats": {
         "hse": {
           "count": 6510,
-          "mean": 1980.9945893680028,
-          "max": 29875.580357143655,
-          "p50": 866.6517857145518,
-          "p90": 4072.098214286384,
-          "p99": 19460.229910713773
+          "mean": 1980.7470992429294,
+          "max": 30335.625,
+          "p50": 898.7946428563446,
+          "p90": 4262.142857143284,
+          "p99": 19551.515624999938
         },
         "fre": {
           "count": 6510,
-          "mean": 14494.838195358787,
-          "max": 189743.34821428545,
-          "p50": 7078.325892857276,
-          "p90": 30885.342857142372,
-          "p99": 121930.39687499966
+          "mean": 14588.268289170495,
+          "max": 181781.29464285634,
+          "p50": 7117.049107143655,
+          "p90": 31291.057142858583,
+          "p99": 124370.01633928464
         }
       },
       "scheduling_stats": {
         "wbs.window_selected_workload": {
-          "count": 0
+          "count": 6510,
+          "mean": 1415.1382488479262,
+          "max": 16780.0,
+          "p50": 712.5,
+          "p90": 3021.4000000000015,
+          "p99": 11393.659999999996
         }
       },
       "fre_core_stats": {
         "0": {
-          "total_cycles": 23593661.901785742,
-          "total_gaussians": 2296298
+          "total_cycles": 23720631.249999985,
+          "total_gaussians": 2304575
         },
         "1": {
-          "total_cycles": 23590179.723214287,
-          "total_gaussians": 2305524
+          "total_cycles": 23737446.919642873,
+          "total_gaussians": 2304830
         },
         "2": {
-          "total_cycles": 23588740.250000037,
-          "total_gaussians": 2302948
+          "total_cycles": 23777039.937499974,
+          "total_gaussians": 2308588
         },
         "3": {
-          "total_cycles": 23588814.776785742,
-          "total_gaussians": 2307780
+          "total_cycles": 23734508.455357164,
+          "total_gaussians": 2294557
         }
       },
       "fifo_blocked": {
@@ -864,11 +894,11 @@
         "udpe_to_wbs.src_get": 19946268.816964284,
         "wbs.frame_get": 19946268.816964284
       },
-      "start_time": "2026-03-19T00:45:57.211378",
-      "elapsed_time": 9.379337787628174,
-      "ave_frame_times": 0.005518536532142863,
-      "fps": 181.20746219137507,
-      "fps_r": 90.60373109568754,
+      "start_time": "2026-03-19T00:57:03.479110",
+      "elapsed_time": 9.330554485321045,
+      "ave_frame_times": 0.0055552161571428525,
+      "fps": 180.01099718040817,
+      "fps_r": 90.00549859020408,
       "config": {
         "simulation": {
           "dataset": "dynerf",
@@ -889,7 +919,7 @@
             "fifo_depth": 10
           },
           "wbs": {
-            "scheduling_mode": "default_fifo",
+            "scheduling_mode": "hilbert_fifo",
             "window_size_k": 4,
             "fifo_depth": 10
           },
@@ -921,7 +951,7 @@
           "fov_x": 90
         },
         "output": {
-          "stats_file": "simulator/results/gscore_dynerf_stats.json",
+          "stats_file": "simulator/results/gscore_hilbert_fifo_dynerf_stats.json",
           "csv_file": "simulator/results/dynerf_log.csv",
           "timeline_enabled": false,
           "timeline_file": "simulator/results/scene_timeline.json",
@@ -945,6 +975,6 @@
       }
     }
   ],
-  "generated_at": "2026-03-19T00:40:33.756162",
-  "config_path": "/data/home/jet/Work/4DGaussians/simulator/configs/dynerf/gscore_dynerf.yaml"
+  "generated_at": "2026-03-19T00:51:42.935128",
+  "config_path": "/data/home/jet/Work/4DGaussians/simulator/configs/dynerf/gscore_dynerf_hilbert_fifo.yaml"
 }
