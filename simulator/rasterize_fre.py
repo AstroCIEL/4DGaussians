@@ -36,6 +36,8 @@ class FoveatedRasterEngine:
         self._busy_core_time_sum: float = 0.0
         # 任务级服务时间样本（用于长尾分布统计）
         self._task_service_times: List[float] = []
+        # 连续 tile 的高斯集合 overlap（Jaccard）
+        self._gaussian_overlap_ratios: List[float] = []
         # 跟踪每个core上一次处理的tile的高斯集合
         self._previous_gaussians: Dict[int, Optional[Set[int]]] = {}
         # 统计每个 core 的累计处理周期与高斯数量
@@ -81,6 +83,12 @@ class FoveatedRasterEngine:
                 
                 # 获取上一次处理的tile的高斯集合
                 previous_gaussians = self._previous_gaussians.get(core_id, None)
+                # 记录连续 tile 的 overlap ratio（Jaccard）
+                if current_gaussians is not None and previous_gaussians is not None:
+                    union = current_gaussians | previous_gaussians
+                    if union:
+                        inter = current_gaussians & previous_gaussians
+                        self._gaussian_overlap_ratios.append(len(inter) / len(union))
                 
                 # 计算访存延迟（考虑cache命中率）
                 mem_cycles = self.memory.estimate_memory_cycles_for_tile(
@@ -178,3 +186,17 @@ class FoveatedRasterEngine:
                 "total_gaussians": int(self._core_total_gaussians.get(core_id, 0)),
             }
         return stats
+
+    def get_makespan_imbalance_ratio(self) -> float:
+        if self.config.num_cores <= 0:
+            return 0.0
+        totals = [float(self._core_total_cycles.get(i, 0.0)) for i in range(self.config.num_cores)]
+        avg = sum(totals) / float(self.config.num_cores)
+        if avg <= 0:
+            return 0.0
+        return max(totals) / avg
+
+    def get_gaussian_set_overlap_ratio(self) -> float:
+        if not self._gaussian_overlap_ratios:
+            return 0.0
+        return float(sum(self._gaussian_overlap_ratios) / len(self._gaussian_overlap_ratios))

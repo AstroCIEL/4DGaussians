@@ -1,4 +1,0 @@
-start_time,total_cycles,fps,fps_r,config.simulation.dataset,config.simulation.scene,config.hardware.udpe.skip_enabled,config.hardware.memory.read_latency_hiding_rate,config.hardware.wbs.scheduling_mode,config.hardware.wbs.window_size_k,config.algorithm.foveated_enabled,config.algorithm.early_stop_ratio,preprocess_cycles,sort_cycles,rasterize_cycles,module_utilization.fre
-2026-03-18T03:37:01.394407,73670284.0,67.86997047547692,33.93498523773846,dynerf,coffee_martini,False,0.2,global_greedy,4,False,0.7,13526208.0,14541300.0,70587826.5,0.957160005484708
-2026-03-18T03:47:34.913808,43943258.625,113.78309566590545,56.891547832952725,dynerf,cook_spinach,False,0.2,default_fifo,4,False,0.5,13192608.0,7223265.0,39328733.75,0.8939295663124027
-2026-03-18T03:59:39.023954,13516852.0,295.92689185322143,147.96344592661072,dynerf,cook_spinach,False,0.2,default_fifo,4,False,0.5,10556928.0,5781635.0,9866423.75,0.7277069995661711

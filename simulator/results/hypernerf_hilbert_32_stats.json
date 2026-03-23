@@ -1,0 +1,1010 @@
+{
+  "mode": "multi_scene",
+  "dataset": "hypernerf/interp",
+  "scenes": [
+    {
+      "total_cycles": 21801774.01339286,
+      "preprocess_cycles": 19175245.714285716,
+      "sort_cycles": 1249351.875,
+      "rasterize_cycles": 6089173.008928582,
+      "memory_stall_cycles": 14294940.736607173,
+      "cache_hit_ratio": 0.3143736772627925,
+      "total_tiles": 2400,
+      "total_gaussians": 849383,
+      "total_tile_gaussians": 2858183,
+      "fre_total_gaussians": 2858183,
+      "fre_makespan_imbalance_ratio": 1.0010106247742838,
+      "fre_gaussian_set_overlap_ratio": 0.4494766382218338,
+      "frame_cycles": [
+        4360354.802678572,
+        4360354.802678572,
+        4360354.802678572,
+        4360354.802678572,
+        4360354.802678572
+      ],
+      "module_busy": {
+        "memory": 14294940.736607173,
+        "udpe": 19175245.714285716,
+        "hse": 1249351.875,
+        "fre": 6089173.008928582
+      },
+      "module_utilization": {
+        "hse": 0.05719815810393385,
+        "fre": 0.2779990496018323
+      },
+      "task_time_stats": {
+        "hse": {
+          "count": 2400,
+          "mean": 2078.3688616071354,
+          "max": 34443.8839285709,
+          "p50": 577.3660714291036,
+          "p90": 5060.691964285866,
+          "p99": 24015.816964287285
+        },
+        "fre": {
+          "count": 2400,
+          "mean": 10101.4540922619,
+          "max": 215192.27678571455,
+          "p50": 2390.7232142863795,
+          "p90": 21653.930357142617,
+          "p99": 140775.49821428573
+        }
+      },
+      "scheduling_stats": {
+        "wbs.window_selected_workload": {
+          "count": 2400,
+          "mean": 1190.9095833333333,
+          "max": 17176.0,
+          "p50": 393.0,
+          "p90": 2877.3999999999996,
+          "p99": 12014.549999999988
+        }
+      },
+      "fre_core_stats": {
+        "0": {
+          "total_cycles": 6059179.580357116,
+          "total_gaussians": 707159
+        },
+        "1": {
+          "total_cycles": 6053722.955357167,
+          "total_gaussians": 703396
+        },
+        "2": {
+          "total_cycles": 6063589.562499978,
+          "total_gaussians": 727951
+        },
+        "3": {
+          "total_cycles": 6066997.7232142985,
+          "total_gaussians": 719677
+        }
+      },
+      "fifo_blocked": {
+        "udpe_to_wbs.src_get": 5,
+        "wbs.frame_get": 5
+      },
+      "fifo_blocked_cycles": {
+        "udpe_to_wbs.src_get": 20597203.861607146,
+        "wbs.frame_get": 20597203.861607146
+      },
+      "start_time": "2026-03-22T06:20:31.458301",
+      "elapsed_time": 3.0134060382843018,
+      "ave_frame_times": 0.004360354802678572,
+      "fps": 229.33913528910503,
+      "fps_r": 114.66956764455252,
+      "config": {
+        "simulation": {
+          "dataset": "hypernerf/interp",
+          "scene": "aleks-teapot",
+          "frames": "0,1,2,3,4",
+          "resolution": "1440x1024",
+          "iteration": -1,
+          "camera_split": "video",
+          "base_output": "output"
+        },
+        "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "hilbert_window",
+            "window_size_k": 32,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
+          "clock_frequency": 1.0,
+          "relaxation_factor": 0.5,
+          "hse": {
+            "num_cores": 4,
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
+          },
+          "fre": {
+            "num_cores": 4,
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
+          }
+        },
+        "algorithm": {
+          "early_stop_ratio": 0.7,
+          "foveated_enabled": true,
+          "tile_size": 32,
+          "subtile_size": 2,
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/hypernerf_hilbert_32_stats.json",
+          "csv_file": "simulator/results/hypernerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true,
+          "fre_visualization_enabled": false,
+          "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+          "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png"
+        },
+        "workload": {
+          "static_ratio": 0.4,
+          "quasi_ratio": 0.4,
+          "culling_survival_rate": 0.8
+        },
+        "labeling": {
+          "num_time_samples": 50,
+          "output_npy": "motion_labels.npy",
+          "output_json": "motion_labels.json"
+        }
+      },
+      "simulation": {
+        "dataset": "hypernerf/interp",
+        "scene": "aleks-teapot"
+      }
+    },
+    {
+      "total_cycles": 9270932.933035709,
+      "preprocess_cycles": 7693662.857142858,
+      "sort_cycles": 787646.651785716,
+      "rasterize_cycles": 5626566.937499994,
+      "memory_stall_cycles": 8411581.808035718,
+      "cache_hit_ratio": 0.4618075604498217,
+      "total_tiles": 2400,
+      "total_gaussians": 281411,
+      "total_tile_gaussians": 1936234,
+      "fre_total_gaussians": 1936234,
+      "fre_makespan_imbalance_ratio": 1.0013803178400627,
+      "fre_gaussian_set_overlap_ratio": 0.4664322199721973,
+      "frame_cycles": [
+        1854186.586607142,
+        1854186.586607142,
+        1854186.586607142,
+        1854186.586607142,
+        1854186.586607142
+      ],
+      "module_busy": {
+        "memory": 8411581.808035718,
+        "udpe": 7693662.857142858,
+        "hse": 787646.651785716,
+        "fre": 5626566.937499994
+      },
+      "module_utilization": {
+        "hse": 0.08488418436864482,
+        "fre": 0.6031283874821639
+      },
+      "task_time_stats": {
+        "hse": {
+          "count": 2400,
+          "mean": 1311.5926339285743,
+          "max": 23005.044642857043,
+          "p50": 623.571428571362,
+          "p90": 2825.758928571548,
+          "p99": 12034.868303571224
+        },
+        "fre": {
+          "count": 2400,
+          "mean": 9319.271383928564,
+          "max": 193208.07142857183,
+          "p50": 3312.5446428568102,
+          "p90": 19841.32857142836,
+          "p99": 111855.52607142855
+        }
+      },
+      "scheduling_stats": {
+        "wbs.window_selected_workload": {
+          "count": 2400,
+          "mean": 806.7641666666667,
+          "max": 11613.0,
+          "p50": 439.0,
+          "p90": 1783.0,
+          "p99": 6586.44999999999
+        }
+      },
+      "fre_core_stats": {
+        "0": {
+          "total_cycles": 5589602.794642843,
+          "total_gaussians": 494322
+        },
+        "1": {
+          "total_cycles": 5588630.3839285625,
+          "total_gaussians": 475435
+        },
+        "2": {
+          "total_cycles": 5588737.178571434,
+          "total_gaussians": 477988
+        },
+        "3": {
+          "total_cycles": 5599280.964285711,
+          "total_gaussians": 488489
+        }
+      },
+      "fifo_blocked": {
+        "udpe_to_wbs.src_get": 5,
+        "wbs.frame_get": 5
+      },
+      "fifo_blocked_cycles": {
+        "udpe_to_wbs.src_get": 8164775.022321429,
+        "wbs.frame_get": 8164775.022321429
+      },
+      "start_time": "2026-03-22T06:20:47.886944",
+      "elapsed_time": 2.337433338165283,
+      "ave_frame_times": 0.001854186586607142,
+      "fps": 539.3200485986883,
+      "fps_r": 269.6600242993442,
+      "config": {
+        "simulation": {
+          "dataset": "hypernerf/interp",
+          "scene": "cut-lemon1",
+          "frames": "0,1,2,3,4",
+          "resolution": "1440x1024",
+          "iteration": -1,
+          "camera_split": "video",
+          "base_output": "output"
+        },
+        "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "hilbert_window",
+            "window_size_k": 32,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
+          "clock_frequency": 1.0,
+          "relaxation_factor": 0.5,
+          "hse": {
+            "num_cores": 4,
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
+          },
+          "fre": {
+            "num_cores": 4,
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
+          }
+        },
+        "algorithm": {
+          "early_stop_ratio": 0.7,
+          "foveated_enabled": true,
+          "tile_size": 32,
+          "subtile_size": 2,
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/hypernerf_hilbert_32_stats.json",
+          "csv_file": "simulator/results/hypernerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true,
+          "fre_visualization_enabled": false,
+          "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+          "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png"
+        },
+        "workload": {
+          "static_ratio": 0.4,
+          "quasi_ratio": 0.4,
+          "culling_survival_rate": 0.8
+        },
+        "labeling": {
+          "num_time_samples": 50,
+          "output_npy": "motion_labels.npy",
+          "output_json": "motion_labels.json"
+        }
+      },
+      "simulation": {
+        "dataset": "hypernerf/interp",
+        "scene": "cut-lemon1"
+      }
+    },
+    {
+      "total_cycles": 22708805.205357138,
+      "preprocess_cycles": 19761840.000000004,
+      "sort_cycles": 1437852.053571417,
+      "rasterize_cycles": 8187431.464285729,
+      "memory_stall_cycles": 16287383.705357136,
+      "cache_hit_ratio": 0.35748659917315856,
+      "total_tiles": 2400,
+      "total_gaussians": 779632,
+      "total_tile_gaussians": 3409118,
+      "fre_total_gaussians": 3409118,
+      "fre_makespan_imbalance_ratio": 1.009576334713562,
+      "fre_gaussian_set_overlap_ratio": 0.547193365751243,
+      "frame_cycles": [
+        4541761.041071428,
+        4541761.041071428,
+        4541761.041071428,
+        4541761.041071428,
+        4541761.041071428
+      ],
+      "module_busy": {
+        "memory": 16287383.705357136,
+        "udpe": 19761840.000000004,
+        "hse": 1437852.053571417,
+        "fre": 8187431.464285729
+      },
+      "module_utilization": {
+        "hse": 0.06329997232669493,
+        "fre": 0.3455703961217916
+      },
+      "task_time_stats": {
+        "hse": {
+          "count": 2400,
+          "mean": 2395.777901785688,
+          "max": 64611.96428571455,
+          "p50": 501.02678571268916,
+          "p90": 5716.808035714643,
+          "p99": 40067.27678571428
+        },
+        "fre": {
+          "count": 2400,
+          "mean": 13079.15135044645,
+          "max": 396312.5446428573,
+          "p50": 2214.401785714552,
+          "p90": 27138.777678571714,
+          "p99": 285478.062232143
+        }
+      },
+      "scheduling_stats": {
+        "wbs.window_selected_workload": {
+          "count": 2400,
+          "mean": 1420.4658333333334,
+          "max": 32217.0,
+          "p50": 394.5,
+          "p90": 3412.1,
+          "p99": 20712.46999999999
+        }
+      },
+      "fre_core_stats": {
+        "0": {
+          "total_cycles": 7922641.008928594,
+          "total_gaussians": 899761
+        },
+        "1": {
+          "total_cycles": 7717268.223214286,
+          "total_gaussians": 860942
+        },
+        "2": {
+          "total_cycles": 7834658.116071427,
+          "total_gaussians": 810713
+        },
+        "3": {
+          "total_cycles": 7915395.892857163,
+          "total_gaussians": 837702
+        }
+      },
+      "fifo_blocked": {
+        "udpe_to_wbs.src_get": 5,
+        "wbs.frame_get": 5
+      },
+      "fifo_blocked_cycles": {
+        "udpe_to_wbs.src_get": 21067027.5,
+        "wbs.frame_get": 21067027.5
+      },
+      "start_time": "2026-03-22T06:21:17.494995",
+      "elapsed_time": 3.6607422828674316,
+      "ave_frame_times": 0.0045417610410714284,
+      "fps": 220.17891099001855,
+      "fps_r": 110.08945549500928,
+      "config": {
+        "simulation": {
+          "dataset": "hypernerf/interp",
+          "scene": "hand1-dense-v2",
+          "frames": "0,1,2,3,4",
+          "resolution": "1440x1024",
+          "iteration": -1,
+          "camera_split": "video",
+          "base_output": "output"
+        },
+        "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "hilbert_window",
+            "window_size_k": 32,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
+          "clock_frequency": 1.0,
+          "relaxation_factor": 0.5,
+          "hse": {
+            "num_cores": 4,
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
+          },
+          "fre": {
+            "num_cores": 4,
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
+          }
+        },
+        "algorithm": {
+          "early_stop_ratio": 0.7,
+          "foveated_enabled": true,
+          "tile_size": 32,
+          "subtile_size": 2,
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/hypernerf_hilbert_32_stats.json",
+          "csv_file": "simulator/results/hypernerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true,
+          "fre_visualization_enabled": false,
+          "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+          "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png"
+        },
+        "workload": {
+          "static_ratio": 0.4,
+          "quasi_ratio": 0.4,
+          "culling_survival_rate": 0.8
+        },
+        "labeling": {
+          "num_time_samples": 50,
+          "output_npy": "motion_labels.npy",
+          "output_json": "motion_labels.json"
+        }
+      },
+      "simulation": {
+        "dataset": "hypernerf/interp",
+        "scene": "hand1-dense-v2"
+      }
+    },
+    {
+      "total_cycles": 9720139.61160716,
+      "preprocess_cycles": 7501628.571428572,
+      "sort_cycles": 1397571.4285714242,
+      "rasterize_cycles": 8152675.571428589,
+      "memory_stall_cycles": 14756830.245535756,
+      "cache_hit_ratio": 0.5787336288652378,
+      "total_tiles": 2400,
+      "total_gaussians": 249517,
+      "total_tile_gaussians": 3781656,
+      "fre_total_gaussians": 3781656,
+      "fre_makespan_imbalance_ratio": 1.0003275628062867,
+      "fre_gaussian_set_overlap_ratio": 0.562759751365669,
+      "frame_cycles": [
+        1944027.922321432,
+        1944027.922321432,
+        1944027.922321432,
+        1944027.922321432,
+        1944027.922321432
+      ],
+      "module_busy": {
+        "memory": 14756830.245535756,
+        "udpe": 7501628.571428572,
+        "hse": 1397571.4285714242,
+        "fre": 8152675.571428589
+      },
+      "module_utilization": {
+        "hse": 0.14364966042225524,
+        "fre": 0.8384615946458657
+      },
+      "task_time_stats": {
+        "hse": {
+          "count": 2400,
+          "mean": 2327.157924107135,
+          "max": 30821.78571428545,
+          "p50": 901.808035714319,
+          "p90": 5543.236607142537,
+          "p99": 23785.232142857058
+        },
+        "fre": {
+          "count": 2400,
+          "mean": 13583.27293154765,
+          "max": 241328.91071428545,
+          "p50": 3888.7723214281723,
+          "p90": 32993.39107142817,
+          "p99": 141818.77419642816
+        }
+      },
+      "scheduling_stats": {
+        "wbs.window_selected_workload": {
+          "count": 2400,
+          "mean": 1575.69,
+          "max": 15440.0,
+          "p50": 677.0,
+          "p90": 3980.3999999999996,
+          "p99": 11940.43999999999
+        }
+      },
+      "fre_core_stats": {
+        "0": {
+          "total_cycles": 8145575.500000007,
+          "total_gaussians": 932420
+        },
+        "1": {
+          "total_cycles": 8152633.383928589,
+          "total_gaussians": 946166
+        },
+        "2": {
+          "total_cycles": 8150547.616071436,
+          "total_gaussians": 939608
+        },
+        "3": {
+          "total_cycles": 8151098.535714288,
+          "total_gaussians": 963462
+        }
+      },
+      "fifo_blocked": {
+        "udpe_to_wbs.src_get": 5,
+        "wbs.frame_get": 5
+      },
+      "fifo_blocked_cycles": {
+        "udpe_to_wbs.src_get": 7919346.763392857,
+        "wbs.frame_get": 7919346.763392857
+      },
+      "start_time": "2026-03-22T06:21:37.012238",
+      "elapsed_time": 5.380179166793823,
+      "ave_frame_times": 0.0019440279223214322,
+      "fps": 514.3959037408601,
+      "fps_r": 257.1979518704301,
+      "config": {
+        "simulation": {
+          "dataset": "hypernerf/interp",
+          "scene": "interp-chicken",
+          "frames": "0,1,2,3,4",
+          "resolution": "1440x1024",
+          "iteration": -1,
+          "camera_split": "video",
+          "base_output": "output"
+        },
+        "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "hilbert_window",
+            "window_size_k": 32,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
+          "clock_frequency": 1.0,
+          "relaxation_factor": 0.5,
+          "hse": {
+            "num_cores": 4,
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
+          },
+          "fre": {
+            "num_cores": 4,
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
+          }
+        },
+        "algorithm": {
+          "early_stop_ratio": 0.7,
+          "foveated_enabled": true,
+          "tile_size": 32,
+          "subtile_size": 2,
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/hypernerf_hilbert_32_stats.json",
+          "csv_file": "simulator/results/hypernerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true,
+          "fre_visualization_enabled": false,
+          "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+          "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png"
+        },
+        "workload": {
+          "static_ratio": 0.4,
+          "quasi_ratio": 0.4,
+          "culling_survival_rate": 0.8
+        },
+        "labeling": {
+          "num_time_samples": 50,
+          "output_npy": "motion_labels.npy",
+          "output_json": "motion_labels.json"
+        }
+      },
+      "simulation": {
+        "dataset": "hypernerf/interp",
+        "scene": "interp-chicken"
+      }
+    },
+    {
+      "total_cycles": 12062480.1875,
+      "preprocess_cycles": 9960685.714285715,
+      "sort_cycles": 1326626.91964285,
+      "rasterize_cycles": 7780029.678571423,
+      "memory_stall_cycles": 14073184.821428537,
+      "cache_hit_ratio": 0.5394328142133289,
+      "total_tiles": 2400,
+      "total_gaussians": 285626,
+      "total_tile_gaussians": 3488275,
+      "fre_total_gaussians": 3488275,
+      "fre_makespan_imbalance_ratio": 1.0018709907696586,
+      "fre_gaussian_set_overlap_ratio": 0.5727910535346001,
+      "frame_cycles": [
+        2412496.0375,
+        2412496.0375,
+        2412496.0375,
+        2412496.0375,
+        2412496.0375
+      ],
+      "module_busy": {
+        "memory": 14073184.821428537,
+        "udpe": 9960685.714285715,
+        "hse": 1326626.91964285,
+        "fre": 7780029.678571423
+      },
+      "module_utilization": {
+        "hse": 0.10976312439998022,
+        "fre": 0.6429075583729621
+      },
+      "task_time_stats": {
+        "hse": {
+          "count": 2400,
+          "mean": 2206.692522321432,
+          "max": 42017.544642856345,
+          "p50": 758.1696428563446,
+          "p90": 5071.339285715016,
+          "p99": 27905.263392857087
+        },
+        "fre": {
+          "count": 2400,
+          "mean": 12925.099475446406,
+          "max": 354937.2410714291,
+          "p50": 3216.59375,
+          "p90": 25375.349107143236,
+          "p99": 168295.58071428482
+        }
+      },
+      "scheduling_stats": {
+        "wbs.window_selected_workload": {
+          "count": 2400,
+          "mean": 1453.4479166666667,
+          "max": 20972.0,
+          "p50": 552.5,
+          "p90": 3178.2,
+          "p99": 14445.009999999977
+        }
+      },
+      "fre_core_stats": {
+        "0": {
+          "total_cycles": 7769569.330357133,
+          "total_gaussians": 864532
+        },
+        "1": {
+          "total_cycles": 7748040.339285704,
+          "total_gaussians": 862597
+        },
+        "2": {
+          "total_cycles": 7759507.883928555,
+          "total_gaussians": 897974
+        },
+        "3": {
+          "total_cycles": 7743121.18749999,
+          "total_gaussians": 863172
+        }
+      },
+      "fifo_blocked": {
+        "udpe_to_wbs.src_get": 5,
+        "wbs.frame_get": 5
+      },
+      "fifo_blocked_cycles": {
+        "udpe_to_wbs.src_get": 10438854.241071431,
+        "wbs.frame_get": 10438854.241071431
+      },
+      "start_time": "2026-03-22T06:21:59.932183",
+      "elapsed_time": 4.082013845443726,
+      "ave_frame_times": 0.0024124960375,
+      "fps": 414.5084528454899,
+      "fps_r": 207.25422642274495,
+      "config": {
+        "simulation": {
+          "dataset": "hypernerf/interp",
+          "scene": "slice-banana",
+          "frames": "0,1,2,3,4",
+          "resolution": "1440x1024",
+          "iteration": -1,
+          "camera_split": "video",
+          "base_output": "output"
+        },
+        "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "hilbert_window",
+            "window_size_k": 32,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
+          "clock_frequency": 1.0,
+          "relaxation_factor": 0.5,
+          "hse": {
+            "num_cores": 4,
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
+          },
+          "fre": {
+            "num_cores": 4,
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
+          }
+        },
+        "algorithm": {
+          "early_stop_ratio": 0.7,
+          "foveated_enabled": true,
+          "tile_size": 32,
+          "subtile_size": 2,
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/hypernerf_hilbert_32_stats.json",
+          "csv_file": "simulator/results/hypernerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true,
+          "fre_visualization_enabled": false,
+          "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+          "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png"
+        },
+        "workload": {
+          "static_ratio": 0.4,
+          "quasi_ratio": 0.4,
+          "culling_survival_rate": 0.8
+        },
+        "labeling": {
+          "num_time_samples": 50,
+          "output_npy": "motion_labels.npy",
+          "output_json": "motion_labels.json"
+        }
+      },
+      "simulation": {
+        "dataset": "hypernerf/interp",
+        "scene": "slice-banana"
+      }
+    },
+    {
+      "total_cycles": 17114003.96428572,
+      "preprocess_cycles": 14869697.142857146,
+      "sort_cycles": 1262359.2857142864,
+      "rasterize_cycles": 6584614.669642864,
+      "memory_stall_cycles": 13850521.205357125,
+      "cache_hit_ratio": 0.4533984789845601,
+      "total_tiles": 2400,
+      "total_gaussians": 540922,
+      "total_tile_gaussians": 3133696,
+      "fre_total_gaussians": 3133696,
+      "fre_makespan_imbalance_ratio": 1.0008264527145885,
+      "fre_gaussian_set_overlap_ratio": 0.48846083715046984,
+      "frame_cycles": [
+        3422800.792857144,
+        3422800.792857144,
+        3422800.792857144,
+        3422800.792857144,
+        3422800.792857144
+      ],
+      "module_busy": {
+        "memory": 13850521.205357125,
+        "udpe": 14869697.142857146,
+        "hse": 1262359.2857142864,
+        "fre": 6584614.669642864
+      },
+      "module_utilization": {
+        "hse": 0.07339193432068027,
+        "fre": 0.3841636570943044
+      },
+      "task_time_stats": {
+        "hse": {
+          "count": 2400,
+          "mean": 2093.3830915178646,
+          "max": 33278.705357143655,
+          "p50": 761.1830357145518,
+          "p90": 4993.191964286192,
+          "p99": 23182.874999999836
+        },
+        "fre": {
+          "count": 2400,
+          "mean": 10957.630584077371,
+          "max": 214883.4107142859,
+          "p50": 3424.866071428638,
+          "p90": 23250.17678571432,
+          "p99": 129589.55392857153
+        }
+      },
+      "scheduling_stats": {
+        "wbs.window_selected_workload": {
+          "count": 2400,
+          "mean": 1305.7066666666667,
+          "max": 16779.0,
+          "p50": 562.0,
+          "p90": 3018.5999999999995,
+          "p99": 11595.44999999999
+        }
+      },
+      "fre_core_stats": {
+        "0": {
+          "total_cycles": 6569580.544642847,
+          "total_gaussians": 765835
+        },
+        "1": {
+          "total_cycles": 6580011.928571425,
+          "total_gaussians": 796122
+        },
+        "2": {
+          "total_cycles": 6569770.3660714235,
+          "total_gaussians": 769667
+        },
+        "3": {
+          "total_cycles": 6578950.562500004,
+          "total_gaussians": 802072
+        }
+      },
+      "fifo_blocked": {
+        "udpe_to_wbs.src_get": 5,
+        "wbs.frame_get": 5
+      },
+      "fifo_blocked_cycles": {
+        "udpe_to_wbs.src_get": 15775258.526785716,
+        "wbs.frame_get": 15775258.526785716
+      },
+      "start_time": "2026-03-22T06:22:26.128934",
+      "elapsed_time": 3.5660486221313477,
+      "ave_frame_times": 0.0034228007928571442,
+      "fps": 292.1583990768161,
+      "fps_r": 146.07919953840806,
+      "config": {
+        "simulation": {
+          "dataset": "hypernerf/interp",
+          "scene": "torchocolate",
+          "frames": "0,1,2,3,4",
+          "resolution": "1440x1024",
+          "iteration": -1,
+          "camera_split": "video",
+          "base_output": "output"
+        },
+        "hardware": {
+          "udpe": {
+            "udpe_utilization": 0.35,
+            "skip_enabled": true,
+            "cull_cycles": 4.0,
+            "deform_cycles": 18.0,
+            "intersection_cycles": 6.0,
+            "fifo_depth": 10
+          },
+          "wbs": {
+            "scheduling_mode": "hilbert_window",
+            "window_size_k": 32,
+            "fifo_depth": 10
+          },
+          "memory": {
+            "read_latency_hiding_rate": 0.5,
+            "memory_bandwidth": 51.2,
+            "bandwidth_utilization": 0.7,
+            "bytes_per_gaussian": 240,
+            "cache_hit_enabled": true
+          },
+          "clock_frequency": 1.0,
+          "relaxation_factor": 0.5,
+          "hse": {
+            "num_cores": 4,
+            "coarse_sort_cycles": 15.0,
+            "fine_sort_cycles": 30.0
+          },
+          "fre": {
+            "num_cores": 4,
+            "base_cycles_per_gaussian": 5.0,
+            "interpolation_cycles": 32.0
+          }
+        },
+        "algorithm": {
+          "early_stop_ratio": 0.7,
+          "foveated_enabled": true,
+          "tile_size": 32,
+          "subtile_size": 2,
+          "fov_x": 90
+        },
+        "output": {
+          "stats_file": "simulator/results/hypernerf_hilbert_32_stats.json",
+          "csv_file": "simulator/results/hypernerf_log.csv",
+          "timeline_enabled": false,
+          "timeline_file": "simulator/results/scene_timeline.json",
+          "timeline_image_file": "simulator/results/scene_timeline.png",
+          "verbose": true,
+          "fre_visualization_enabled": false,
+          "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+          "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png"
+        },
+        "workload": {
+          "static_ratio": 0.4,
+          "quasi_ratio": 0.4,
+          "culling_survival_rate": 0.8
+        },
+        "labeling": {
+          "num_time_samples": 50,
+          "output_npy": "motion_labels.npy",
+          "output_json": "motion_labels.json"
+        }
+      },
+      "simulation": {
+        "dataset": "hypernerf/interp",
+        "scene": "torchocolate"
+      }
+    }
+  ],
+  "generated_at": "2026-03-22T06:19:57.458017",
+  "config_path": "/data/home/jet/Work/4DGaussians/simulator/configs/dse_k/hypernerf_hilbert_32.yaml"
+}

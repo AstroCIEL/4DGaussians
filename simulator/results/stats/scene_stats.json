@@ -1,0 +1,161 @@
+{
+  "total_cycles": 45532890.58928571,
+  "preprocess_cycles": 9140508.0,
+  "sort_cycles": 3833993.5714285662,
+  "rasterize_cycles": 42312754.07142857,
+  "memory_stall_cycles": 40107876.02678549,
+  "cache_hit_ratio": 0.803744703413387,
+  "total_tiles": 3906,
+  "total_gaussians": 253903,
+  "total_tile_gaussians": 10342982,
+  "fre_total_gaussians": 10342982,
+  "fre_makespan_imbalance_ratio": 1.0000455862102846,
+  "fre_gaussian_set_overlap_ratio": 0.7833782587312202,
+  "frame_cycles": [
+    15177630.196428569,
+    15177630.196428569,
+    15177630.196428569
+  ],
+  "module_busy": {
+    "memory": 40107876.02678549,
+    "udpe": 9140508.0,
+    "hse": 3833993.5714285662,
+    "fre": 42312754.07142857
+  },
+  "module_utilization": {
+    "hse": 0.08418101570253723,
+    "fre": 0.9292365306411303
+  },
+  "task_time_stats": {
+    "hse": {
+      "count": 3906,
+      "mean": 3925.248313034886,
+      "max": 43531.875,
+      "p50": 1903.6607142854482,
+      "p90": 8916.428571428405,
+      "p99": 31261.339285713493
+    },
+    "fre": {
+      "count": 3906,
+      "mean": 43329.05814772142,
+      "max": 357667.0178571418,
+      "p50": 22295.41071428731,
+      "p90": 103253.1160714291,
+      "p99": 317881.2616071432
+    }
+  },
+  "scheduling_stats": {
+    "wbs.window_selected_workload": {
+      "count": 3906,
+      "mean": 2647.9728622631847,
+      "max": 21642.0,
+      "p50": 1376.0,
+      "p90": 6323.5,
+      "p99": 19055.749999999996
+    }
+  },
+  "fre_core_stats": {
+    "0": {
+      "total_cycles": 42312754.07142857,
+      "total_gaussians": 2587317
+    },
+    "1": {
+      "total_cycles": 42311117.83928569,
+      "total_gaussians": 2586336
+    },
+    "2": {
+      "total_cycles": 42310442.42857135,
+      "total_gaussians": 2584414
+    },
+    "3": {
+      "total_cycles": 42308986.78571433,
+      "total_gaussians": 2584915
+    }
+  },
+  "fifo_blocked": {
+    "udpe_to_wbs.src_get": 3,
+    "wbs.frame_get": 3
+  },
+  "fifo_blocked_cycles": {
+    "udpe_to_wbs.src_get": 9650580.99107143,
+    "wbs.frame_get": 9650580.99107143
+  },
+  "start_time": "2026-03-22T05:11:09.349703",
+  "elapsed_time": 16.966715574264526,
+  "ave_frame_times": 0.01517763019642857,
+  "fps": 65.88643859799066,
+  "fps_r": 32.94321929899533,
+  "config": {
+    "simulation": {
+      "dataset": "dynerf",
+      "scene": "coffee_martini",
+      "frames": "0,1,2",
+      "resolution": "1440x1024",
+      "iteration": -1,
+      "camera_split": "video",
+      "base_output": "output"
+    },
+    "hardware": {
+      "udpe": {
+        "udpe_utilization": 0.5,
+        "skip_enabled": false,
+        "cull_cycles": 4.0,
+        "deform_cycles": 18.0,
+        "intersection_cycles": 6.0,
+        "fifo_depth": 10
+      },
+      "wbs": {
+        "scheduling_mode": "hilbert_window",
+        "window_size_k": 4,
+        "fifo_depth": 10
+      },
+      "memory": {
+        "read_latency_hiding_rate": 0.4,
+        "memory_bandwidth": 51.2,
+        "bandwidth_utilization": 0.7,
+        "bytes_per_gaussian": 240,
+        "cache_hit_enabled": true
+      },
+      "clock_frequency": 1.0,
+      "relaxation_factor": 0.5,
+      "hse": {
+        "num_cores": 4,
+        "coarse_sort_cycles": 15.0,
+        "fine_sort_cycles": 30.0
+      },
+      "fre": {
+        "num_cores": 4,
+        "base_cycles_per_gaussian": 5.0,
+        "interpolation_cycles": 32.0
+      }
+    },
+    "algorithm": {
+      "early_stop_ratio": 0.7,
+      "foveated_enabled": false,
+      "tile_size": 32,
+      "subtile_size": 2,
+      "fov_x": 90
+    },
+    "output": {
+      "stats_file": "simulator/results/scene_stats.json",
+      "csv_file": "simulator/results/scene_log.csv",
+      "fre_visualization_enabled": false,
+      "fre_visualization_file": "simulator/results/tile_order/fre_core_trace.png",
+      "fre_assignment_visualization_file": "simulator/results/tile_order/fre_core_assignment.png",
+      "timeline_enabled": false,
+      "timeline_file": "simulator/results/scene_timeline.json",
+      "timeline_image_file": "simulator/results/scene_timeline.png",
+      "verbose": true
+    },
+    "workload": {
+      "static_ratio": 0.4,
+      "quasi_ratio": 0.4,
+      "culling_survival_rate": 0.8
+    },
+    "labeling": {
+      "num_time_samples": 50,
+      "output_npy": "motion_labels.npy",
+      "output_json": "motion_labels.json"
+    }
+  }
+}

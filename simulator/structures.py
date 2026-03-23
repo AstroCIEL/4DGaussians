@@ -72,6 +72,8 @@ class SimStats:
     total_gaussians: int = 0
     total_tile_gaussians: int = 0
     fre_total_gaussians: int = 0
+    fre_makespan_imbalance_ratio: float = 0.0
+    fre_gaussian_set_overlap_ratio: float = 0.0
     frame_cycles: List[float] = field(default_factory=list)
     module_busy: Dict[str, float] = field(default_factory=dict)
     # 平均硬件利用率（0~1），按“核心时间积分 / (核心数 * total_cycles)”计算
@@ -130,6 +132,8 @@ class SimStats:
             "total_gaussians": self.total_gaussians,
             "total_tile_gaussians": self.total_tile_gaussians,
             "fre_total_gaussians": self.fre_total_gaussians,
+            "fre_makespan_imbalance_ratio": self.fre_makespan_imbalance_ratio,
+            "fre_gaussian_set_overlap_ratio": self.fre_gaussian_set_overlap_ratio,
             "frame_cycles": self.frame_cycles,
             "module_busy": self.module_busy,
             "module_utilization": self.module_utilization,

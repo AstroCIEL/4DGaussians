@@ -1,0 +1,21 @@
+# merge with default.yaml
+simulation:
+  dataset: "dynerf"
+
+hardware:
+  udpe: 
+    udpe_utilization: 0.35
+    skip_enabled: true
+  wbs:
+    scheduling_mode: "hilbert_window" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
+    window_size_k: 16
+  memory:   
+    read_latency_hiding_rate: 0.5
+  
+algorithm:
+  early_stop_ratio: 0.4
+  foveated_enabled: true  # 关闭则全部视为fovea，不做降采样
+  
+output:
+  stats_file: "simulator/results/dynerf_hilbert_16_stats.json"
+  csv_file: "simulator/results/dynerf_log.csv"

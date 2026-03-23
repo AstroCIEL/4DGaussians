@@ -278,6 +278,10 @@ class Simulator:
 
         if hasattr(fre, "get_core_stats"):
             self.analyzer.record_fre_core_stats(fre.get_core_stats())
+        if hasattr(fre, "get_makespan_imbalance_ratio"):
+            self.stats.fre_makespan_imbalance_ratio = float(fre.get_makespan_imbalance_ratio())
+        if hasattr(fre, "get_gaussian_set_overlap_ratio"):
+            self.stats.fre_gaussian_set_overlap_ratio = float(fre.get_gaussian_set_overlap_ratio())
 
         def _summarize(values):
             v = [float(x) for x in values if x is not None]

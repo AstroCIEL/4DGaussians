@@ -2,14 +2,14 @@
 simulation:
   dataset: "dynerf"
   scene: "coffee_martini"
-  frames: 0
+  frames: 0,1,2
 
 hardware:
   udpe: 
     udpe_utilization: 0.5
     skip_enabled: false
   wbs:
-    scheduling_mode: "hilbert_fifo" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
+    scheduling_mode: "hilbert_window" # "hilbert_window" | "hilbert_fifo" | "default_fifo" | "global_greedy"
   memory:   
     read_latency_hiding_rate: 0.4
   
@@ -20,6 +20,6 @@ algorithm:
 output:
   stats_file: "simulator/results/scene_stats.json"
   csv_file: "simulator/results/scene_log.csv"
-  fre_visualization_enabled: true
+  fre_visualization_enabled: false
   fre_visualization_file: "simulator/results/tile_order/fre_core_trace.png"
   fre_assignment_visualization_file: "simulator/results/tile_order/fre_core_assignment.png"

@@ -61,6 +61,8 @@ def append_stats_to_csv(stats: Mapping[str, Any], csv_path: str) -> None:
         "rasterize_cycles",
         "module_utilization.fre",
         "cache_hit_ratio",
+        "fre_makespan_imbalance_ratio",
+        "fre_gaussian_set_overlap_ratio",
     ]
 
     # 提取字段值
